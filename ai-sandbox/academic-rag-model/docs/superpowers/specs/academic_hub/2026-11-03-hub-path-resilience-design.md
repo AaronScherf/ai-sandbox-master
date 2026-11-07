@@ -166,4 +166,4 @@ Recommendation:
 2. **Rollout:** first a one-off command run against the current tree to produce the initial proposal and review items; then the same logic becomes part of the daily scan, which raises review items only for new folder names.
 3. **Shared review page:** built together with the reconcile engine in P3, not later.
 
-Status: design approved by the owner; next step is the implementation plan (phases P0-P5, P1 first).
+Status: design approved by the owner. P0-P4 shipped (2026-11-03 to 2026-11-06). **Frozen 2026-11-06:** live dry runs found 0 moves, 0 ambiguous items and 0 orphans, so P5 (`ACADEMIC_HUB_ROOT`) is not planned and the similarity thresholds stay untuned. Reopen on a real moved/ambiguous file or a non-Windows hub; see `docs/status/indexer/2026-11-06-hub-path-resilience-p4-steps-3-7-handoff.md`.

@@ -1,5 +1,7 @@
 # Hub path resilience P3: reconcile and review (status, updated 2026-11-04)
 
+> **FROZEN 2026-11-06.** Live dry runs found 0 exact moves, 0 ambiguous items and 0 orphans, so P3/P4 stay as built and P5 is not planned. Stamping and the duplicate fix are done. Outcome and reopen triggers: `2026-11-06-hub-path-resilience-p4-steps-3-7-handoff.md`. The "nothing run against the live hub" and NEXT items below are historical.
+
 Spec: `docs/superpowers/specs/academic_hub/2026-11-03-hub-path-resilience-design.md`. Usage: "Reconcile and review" in `core/indexer/README.md`.
 
 ## What shipped
@@ -57,7 +59,7 @@ Spec: `docs/superpowers/specs/academic_hub/2026-11-03-hub-path-resilience-design
 
 - NEXT, in order, once transcription has finished and no pipeline is writing to the hub: (1) `write_hub_ids` dry run, review, `--apply`, Aaron commits `academic_notes` (see the stamping item below); (2) `hub_review export` and `repair` dry run on the live hub to see real moves/orphans; (3) publish and validate the review page; (4) tune similarity weights on what (2) shows; (5) P5 (spec phases table; P4 is done).
 - P4: shipped 2026-11-05, see `docs/status/indexer/2026-11-05-hub-path-resilience-p4-status.md`. (Correction: `SELF_REFRESHED_KINDS` already excluded relink/orphan findings, so a bare refresh never swept them; the real gap was that the scan never produced them. P4 fixed that.)
-- P5: `ACADEMIC_HUB_ROOT` discovery.
+- P5: `ACADEMIC_HUB_ROOT` discovery. Not planned (frozen 2026-11-06).
 - Verify Excalidraw keeps a top-level `hub_id` key in plain `.excalidraw` JSON, then decide on `--include-excalidraw-json` by default.
 - Run `python -m tools.write_hub_ids --hub-root HUB` (dry run) on the live hub, review, then `--apply`; Aaron commits the changes in `academic_notes`. Do it BEFORE moving notes (moved clones are then matched by `hub_id`), and run the audio pipeline once first if a TTS re-run is unwanted.
 - Publish the review page (`tools.hub_review page`) as an Artifact with a `db` capability and validate it in a browser end to end (decisions -> `decisions.json` -> `apply`).

@@ -165,6 +165,8 @@ passage-level search is needed. The scanner does not edit the nested
 
 ## Reconcile and review
 
+> **Status (2026-11-06): frozen as built.** The first live runs (`hub_review export --no-raise`, `repair` dry run, `corpus_health scan`) found 0 moves, 0 ambiguous items and 0 orphans. The similarity thresholds are untuned (no data), the review page has not been validated in a browser, and the other pipelines are not wired to preflight. See `docs/status/indexer/2026-11-06-hub-path-resilience-p4-steps-3-7-handoff.md`.
+
 When files are moved or renamed, cards point at dead paths. `reconcile.py` finds them (pure read, no model
 calls) and `reconcile_apply.py` repairs or raises them for review. Spec:
 `docs/superpowers/specs/academic_hub/2026-11-03-hub-path-resilience-design.md`.
