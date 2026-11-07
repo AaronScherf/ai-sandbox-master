@@ -486,3 +486,69 @@ def test_generated_companion_is_separate_and_stale_chunks_are_hidden(tmp_path):
     apply_markdown_plan(str(root), markdown_preview(str(root), "econometrics", child), client)
     assert all(r.file_id != card["file_id"] for r in search_passages([str(root)], "regression", client, course="econometrics"))
     assert load_chunks(str(root), "econometrics")  # old chunks exist until chunk is rerun
+
+
+def _scene(root, name="Lecture 2026-09-07", course="microecon"):
+    base = f"academic_notes/{course}/part_1/lecture_notes"
+    scene = _md(root, f"{base}/{name}.excalidraw.md", "scene bytes")
+    rag = f"{base}/processed_outputs/{name}.excalidraw.rag.md"
+    questions = f"{base}/processed_outputs/{name}.excalidraw.questions.md"
+    _md(root, rag, "# Lecture\n\nUtility maximization.")
+    _md(root, questions, "# Questions\n\n1. What is a budget set?")
+    return scene, rag, questions
+
+
+def test_rebuild_file_creates_card_for_one_cardless_scene_output(tmp_path):
+    root = tmp_path
+    scene, rag, questions = _scene(root)
+    other = {"file_id": "other", "path": "other.md", "embedding": [7, 8]}
+    save_shard(str(root), "microecon", [other])
+    plan = retry_file_plan(str(root), "microecon", rag)
+    assert (plan["action"], plan["reason"], plan["estimated_paid_cards"]) == ("new", "no_card", 1)
+    assert plan["file_id"] == compute_file_id(str(scene))
+    client = _client()
+    assert retry_file(str(root), "microecon", rag, client)["status"] == "applied"
+    cards = load_shard(str(root), "microecon")
+    assert other in cards and len(cards) == 2
+    card = next(c for c in cards if c["file_id"] == plan["file_id"])
+    assert card["path"] == rag and card["source_pdf_path"].endswith("Lecture 2026-09-07.excalidraw.md")
+    assert not card.get("needs_indexing")
+    # the sibling question sidecar was NOT carded by the rag run
+    assert all(c["path"] != questions for c in cards)
+
+
+def test_rebuild_file_questions_sidecar_is_a_companion_of_its_scene(tmp_path):
+    root = tmp_path
+    scene, _rag, questions = _scene(root)
+    save_shard(str(root), "microecon", [])
+    plan = retry_file_plan(str(root), "microecon", questions)
+    assert plan["file_id"] == compute_id_from_parts(["excalidraw_questions", compute_file_id(str(scene))])
+    assert retry_file(str(root), "microecon", questions, _client())["status"] == "applied"
+    card = load_shard(str(root), "microecon")[0]
+    assert card["source_kind"] == "generated_companion"
+    assert card["companion_of_file_id"] == compute_file_id(str(scene))
+    assert card["companion_role"] == "questions"
+
+
+def test_rebuild_file_refuses_unsuitable_cardless_targets(tmp_path):
+    root = tmp_path
+    scene, rag, _questions = _scene(root)
+    save_shard(str(root), "microecon", [])
+    plain = _md(root, "academic_notes/microecon/part_1/tutoring/notes.md")
+    with pytest.raises(ValueError):  # not a scene output: still needs an existing card
+        retry_file_plan(str(root), "microecon", "academic_notes/microecon/part_1/tutoring/notes.md")
+    orphan = "academic_notes/microecon/part_1/lecture_notes/processed_outputs/Gone.excalidraw.rag.md"
+    _md(root, orphan)
+    with pytest.raises(ValueError, match="no matching Excalidraw scene"):
+        retry_file_plan(str(root), "microecon", orphan)
+    (root / rag).write_text("", encoding="utf-8")
+    with pytest.raises(ValueError, match="empty"):
+        retry_file_plan(str(root), "microecon", rag)
+    (root / rag).write_text("# Lecture", encoding="utf-8")
+    assert retry_file(str(root), "microecon", rag, _client())["status"] == "applied"
+    with pytest.raises(ValueError, match="needs_indexing producer card"):  # now carded: normal rule applies
+        retry_file_plan(str(root), "microecon", rag)
+    # a card with the same identity at another path (a moved note) must not get a duplicate
+    save_shard(str(root), "microecon", [{"file_id": compute_file_id(str(scene)), "path": "elsewhere.md"}])
+    with pytest.raises(ValueError, match="already has a card"):
+        retry_file_plan(str(root), "microecon", rag)

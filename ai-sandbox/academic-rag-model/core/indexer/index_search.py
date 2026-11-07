@@ -681,11 +681,75 @@ def apply_markdown_plan(academic_hub_root: str, rows: list[dict], client,
     return [_apply_markdown_row(academic_hub_root, row, client) for row in rows]
 
 
+_SCENE_OUTPUT_SUFFIXES = ((".excalidraw.rag.md", "scene"), (".excalidraw.questions.md", "questions"))
+
+
+def _scene_output_plan(root: str, course: str, rel_path: str) -> dict | None:
+    """Plan a new card for one cardless Excalidraw transcription or question sidecar.
+
+    Mirrors the `rebuild` scene walk but for exactly one file, so a bounded `--file`
+    run does not also sweep in unrelated cardless Markdown. None if `rel_path` is
+    not a scene output; ValueError if it is one but cannot be carded."""
+    for suffix, role in _SCENE_OUTPUT_SUFFIXES:
+        if rel_path.endswith(suffix):
+            break
+    else:
+        return None
+    parts = rel_path.split("/")
+    if len(parts) < 3 or parts[-2] != "processed_outputs":
+        return None
+    scene_rel = "/".join(parts[:-2] + [parts[-1][:-len(suffix)] + ".excalidraw.md"])
+    scene = os.path.join(root, *scene_rel.split("/"))
+    found = next((category for _, category, path in _excalidraw_note_paths(root, course)
+                  if os.path.normpath(path) == os.path.normpath(scene)), None)
+    if found is None:
+        raise ValueError("--file has no matching Excalidraw scene in the course")
+    if not os.path.getsize(os.path.join(root, *parts)):
+        raise ValueError("--file Markdown is empty; the scene has not been transcribed")
+    scene_id = compute_file_id(scene)
+    file_id = scene_id if role == "scene" else compute_id_from_parts(["excalidraw_questions", scene_id])
+    if any(c.get("file_id") == file_id for c in load_shard(root, course)):
+        raise ValueError("--file already has a card; use rebuild for a changed or failed card")
+    return {"path": rel_path, "course": course, "file_id": file_id, "action": "new",
+            "reason": "no_card", "estimated_paid_cards": 1, "kind": role,
+            "scene_path": scene_rel, "folder_category": found}
+
+
+def _index_scene_output(root: str, row: dict, client) -> dict:
+    """Create the card for one cardless scene output (same call `rebuild` makes)."""
+    root_path = os.path.join(root, *row["path"].split("/"))
+    scene = os.path.join(root, *row["scene_path"].split("/"))
+    with open(root_path, encoding="utf-8") as handle:
+        text = handle.read()
+    scene_id = compute_file_id(scene)
+    image = _find_excalidraw_image(scene, root)
+    rel_image = os.path.relpath(image, root).replace(os.sep, "/") if image else None
+    extra: dict = {}
+    doc_types = EXCALIDRAW_DOC_TYPES
+    if row["kind"] == "questions":
+        doc_types = EXCALIDRAW_QUESTION_DOC_TYPES
+        extra = {"source_kind": "generated_companion", "companion_of_file_id": scene_id,
+                 "companion_role": "questions", "relationship_basis": "excalidraw_question_producer"}
+    stats = {"generated": 0, "updated": 0, "unchanged": 0, "moved": 0}
+    _reconcile_one(root, row["course"], row["folder_category"], row["file_id"], row["path"],
+                   row["scene_path"], text, None, client, False, stats,
+                   source_mtime=os.path.getmtime(root_path), content_hash=compute_content_hash(root_path),
+                   known_doc_types=doc_types, source_asset_path=rel_image, **extra)
+    card = next((c for c in load_shard(root, row["course"]) if c.get("file_id") == row["file_id"]), None)
+    if card is None or card.get("needs_indexing"):
+        return {**row, "status": "generation_failed"}
+    return {**row, "status": "applied"}
+
+
 def retry_file_plan(root: str, course: str, rel_path: str) -> dict:
     """Validate one failed producer card without constructing a paid client."""
     exact_markdown_path(root, course, rel_path)
     matches = [card for card in load_shard(root, course)
                if card.get("path") == rel_path or card.get("rag_md_path") == rel_path]
+    if not matches:
+        scene_row = _scene_output_plan(root, course, rel_path)
+        if scene_row is not None:
+            return scene_row
     if len(matches) != 1:
         raise ValueError("--file must match exactly one card path or rag_md_path in the course")
     card = matches[0]
@@ -706,6 +770,8 @@ def retry_file_plan(root: str, course: str, rel_path: str) -> dict:
 
 def retry_file(root: str, course: str, rel_path: str, client) -> dict:
     row = retry_file_plan(root, course, rel_path)
+    if row["reason"] == "no_card":
+        return _index_scene_output(root, row, client)
     card = next(c for c in load_shard(root, course) if c["file_id"] == row["file_id"])
     actual_path = card["path"]
     md = os.path.join(root, *actual_path.split("/"))
