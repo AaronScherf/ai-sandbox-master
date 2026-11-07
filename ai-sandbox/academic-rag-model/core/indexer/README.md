@@ -113,6 +113,15 @@ generates before replacing the failure card, and skips the Markdown, orphan,
 and subset passes. Run the corresponding command without `--plan` only after
 coordinating the index writer and approving its paid call.
 
+`--file` also accepts one cardless Excalidraw output
+(`processed_outputs/<name>.excalidraw.rag.md` or `.excalidraw.questions.md`)
+whose `<name>.excalidraw.md` scene exists. It plans and creates that single
+card (`reason: no_card`, one paid card) with the same identity and fields a full
+`rebuild` would use, without the Markdown, orphan, or subset passes, so a few
+transcribed scenes can be indexed without also carding every other cardless
+file. It refuses an empty output, a missing scene, or a file whose identity
+already has a card.
+
 `python -m tools.relocate_index_paths --root <academic-hub> --course <course> --baseline ca3b286`
 previews the one-shot path migration without API calls or
 writes. Its opt-in `--apply --writer-coordinated` verifies moved content and
