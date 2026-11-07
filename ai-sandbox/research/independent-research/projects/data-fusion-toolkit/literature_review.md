@@ -1,5 +1,7 @@
 # Project 04 Literature Review: Advanced Geospatial Data Fusion & Causal Machine Learning Methodology
 
+**Scope note (2026-11-06):** This seed review includes off-topic oil-spill SAR and air-transport papers. Retain them for review; do not treat every entry as in-scope evidence.
+
 *Methodological literature on Double Machine Learning, causal forests, spatial network spillover models, synthetic aperture radar (SAR) damage detection, and fusing multi-modal geospatial data under severe reporting bias.*
 
 - **Retrieved:** October 2026 via OpenAlex API

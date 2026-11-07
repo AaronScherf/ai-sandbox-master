@@ -3,8 +3,7 @@
 Project 02 builds a district-month panel for Somalia and Sudan (conflict, rainfall, food prices, displacement). `reprokit` is the
 reproducibility framework and project template it uses. Both are **separate Git repositories**, git-ignored by this monorepo and
 kept at `ai-sandbox/research/independent-research/projects/compound-shocks-panel/` and `.../reprokit/` (moved here on 2026-11-06).
-URLs and pinned commits are in `projects/repositories.json`. The older `projects/02_compound_shocks/` folder is a superseded
-placeholder and is not touched.
+URLs and pinned commits are in `projects/repositories.json`. The superseded Project 02 scaffold was retired on 2026-11-06; its literature review is temporarily held in `projects/compound-shocks/`.
 
 ## Where things stand
 

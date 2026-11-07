@@ -4,15 +4,16 @@ The [3R revision](../notes/00_overview-and-strategy/Ground%20Truth%20-%20PhD%20R
 
 | Folder | Current role |
 | --- | --- |
-| `01_evidence_map/` | Evaluation evidence map for anticipatory action, cash, and conflict |
-| `02_compound_shocks/` | Somalia exploratory study and prospective fused panel; later Ukraine work remains a separate phase |
-| `03_transferability/` | Disaster-to-conflict transferability paper; replaces the chatbot pilot |
-| `04_data_fusion_toolkit/` | Prospective reusable data-processing package, developed from validated Project 02 needs |
-| `05_systems_dynamics/` | Internal systems-dynamics scoping note |
+| `evidence-map/` | Project 01 evaluation evidence map; review held until evidence-kind support exists |
+| `compound-shocks/` | Temporary holding place for Project 02's literature review |
+| `transferability/` | Project 03 disaster-to-conflict transferability evidence review |
+| `data-fusion-toolkit/` | Project 04 prospective reusable library; review held until library-kind support exists |
+| `systems-dynamics/` | Project 05 scoping review; remains notes until its scope is settled |
+| `bangladesh-insurance-replication/` | Future study-kind empirical replication; private CSV held locally |
 | `math_thesis/` | Separate thesis work (Project 06 in the roadmap) |
-| `compound-shocks-panel/` | Separate Git repository (git-ignored here; URL and commit in `repositories.json`). The live Project 02 code and data panel for Somalia and Sudan. It supersedes the placeholder files in `02_compound_shocks/` |
+| `compound-shocks-panel/` | Separate Git repository (git-ignored here; URL and commit in `repositories.json`). The live Project 02 code and data panel for Somalia and Sudan |
 | `reprokit/` | Separate Git repository (git-ignored here). The reproducibility framework and project template that `compound-shocks-panel` pins by tag |
 
-Start data intake in [`02_compound_shocks/`](02_compound_shocks/README.md). Keep source downloads and credentials out of Git. Record source versions and checksums before transformation. Projects 01, 03, 04, and 05 retain their existing literature reviews; their methods and publication structure should be set when their individual scope is settled.
+Start project-specific data intake in the live `compound-shocks-panel/` repository using its source descriptors and manifests. Keep source downloads and credentials out of Git. Record source versions and checksums before transformation. The review-only folders above await settled scope and suitable reprokit kinds.
 
 This directory is part of the monorepo, not a separate Git repository. Changes follow the repository's worktree and landing procedures.

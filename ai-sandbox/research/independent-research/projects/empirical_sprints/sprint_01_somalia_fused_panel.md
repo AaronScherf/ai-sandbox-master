@@ -4,7 +4,7 @@
 - **Target Horizon:** Weeks 1–3 (Late October – Mid November 2026)
 - **Status:** Detailed Empirical Specification
 - **Deliverable Milestone:** Informal 30-Minute PhD Brownbag Presentation (Mid-November 2026) + 15-Page EDA Memo
-- **Associated Codebase:** `ai-sandbox/research/independent-research/projects/04_data_fusion_toolkit/`
+- **Associated Codebase:** `ai-sandbox/research/independent-research/projects/data-fusion-toolkit/`
 
 ---
 
