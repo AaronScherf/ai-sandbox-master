@@ -10,7 +10,7 @@ Python 3.13 packages that convert academic PDFs/docs into Markdown, index them, 
 ## Line endings (Windows)
 - The monorepo stores LF (`.gitattributes`: `* text=auto`) but working-tree files are CRLF (`core.autocrlf=true`), so files you read and edit here are CRLF. Scripted edits must detect and preserve a file's existing endings: read with `newline=''`, write with `newline=''`.
 - Python text-mode `open(..., 'w')` writes CRLF on Windows. For lists consumed by shell loops, JSON/IDs and anything compared byte-wise, pass `newline='\n'`, end the file with a newline, and strip `\r` before use.
-- Content hashes are currently line-ending sensitive (`compute_content_hash`): an LF/CRLF flip on a note marks its card stale and can cause a paid re-index. Do not normalize line endings in `academic_notes/` (separate repo, mixed LF/CRLF, tablet sync) until the hash is made line-ending-insensitive; see the tracker.
+- Content hashes are line-ending-insensitive (`compute_content_hash` normalizes CRLF to LF; `content_hash_matches` still accepts older stored hashes), so an LF/CRLF flip no longer stales a card. Normalizing line endings in `academic_notes/` (separate repo, mixed LF/CRLF, tablet sync) is still the owner's call: add a `.gitattributes` there only after a live `python -m tools.rehash_content_hashes` dry run is reviewed.
 
 ## Scope
 - `core/env/` and `core/indexer/` are shared by everything; changes there need tests for the callers too.
