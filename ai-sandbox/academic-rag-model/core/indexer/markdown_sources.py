@@ -12,7 +12,7 @@ from pathlib import Path
 from core.env.frontmatter import parse_frontmatter
 from core.env.academic_hub_paths import course_part_category, is_textbook_folder
 from core.indexer.index_card import (
-    compute_content_hash, compute_legacy_content_hash, compute_id_from_parts, list_courses, load_shard,
+    accepted_content_hashes, compute_content_hash, compute_legacy_content_hash, compute_id_from_parts, list_courses, load_shard,
 )
 
 SOURCE_KINDS = frozenset({"markdown_only", "generated_companion"})
@@ -71,6 +71,12 @@ def _iter_notes(root: str, course: str | None, exact: str | None):
                 path = os.path.join(dirpath, name)
                 if name.lower().endswith(".md") and not name.startswith(".") and _safe_file(root, path):
                     yield path
+
+
+def _row_hashes(row: dict) -> tuple:
+    """Hashes a card may store for this row's file: canonical, legacy, and every older-scheme or
+    other-line-ending form (`accepted_content_hashes`)."""
+    return (row["content_hash"], row["legacy_content_hash"], *row.get("accepted_content_hashes", ()))
 
 
 def _other_live_copy(root: str, rel_path: str, content_hash: str) -> bool:
@@ -237,11 +243,13 @@ def plan_markdown(root: str, course: str | None = None, exact: str | None = None
     for row in rows:
         row["content_hash"] = None
         row["legacy_content_hash"] = None
+        row["accepted_content_hashes"] = []
         if row["index_separately"]:
             path = os.path.join(root, *row["path"].split("/"))
             try:
                 row["content_hash"] = compute_content_hash(path)
                 row["legacy_content_hash"] = compute_legacy_content_hash(path)
+                row["accepted_content_hashes"] = list(accepted_content_hashes(path))
             except OSError:
                 pass
     new_hash_counts = Counter(r["content_hash"] for r in rows
@@ -259,7 +267,7 @@ def plan_markdown(root: str, course: str | None = None, exact: str | None = None
         old = by_path.get(row["path"])
         if old is None and new_hash_counts[row["content_hash"]] == 1:
             matches = [c for c in cards if c.get("source_kind") == row["source_kind"]
-                       and c.get("content_hash") in (row["content_hash"], row["legacy_content_hash"])
+                       and c.get("content_hash") in _row_hashes(row)
                        and c.get("path") not in active_paths
                        and not os.path.isfile(os.path.join(root, *(c.get("path") or "").split("/")))]
             old = matches[0] if len(matches) == 1 else None
@@ -280,7 +288,7 @@ def plan_markdown(root: str, course: str | None = None, exact: str | None = None
             row["action"] = "new"
         elif old.get("path") != row["path"]:
             row["action"] = "move"
-        elif (force or old.get("content_hash") not in (row["content_hash"], row["legacy_content_hash"])
+        elif (force or old.get("content_hash") not in _row_hashes(row)
               or old.get("needs_indexing")):
             row["action"] = "refresh"
         elif (old.get("source_kind") != row["source_kind"]

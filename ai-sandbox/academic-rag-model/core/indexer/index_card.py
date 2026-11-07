@@ -142,23 +142,63 @@ def strip_location_lines(data: bytes) -> bytes:
     return b"\n".join(kept + lines[end:])
 
 
+def _normalize_eol(data: bytes) -> bytes:
+    """CRLF -> LF. A lone CR is not a line ending in anything this repo writes and is left alone."""
+    return data.replace(b"\r\n", b"\n")
+
+
+def _eol_variants(data: bytes) -> tuple[bytes, ...]:
+    """The bytes as stored, all-LF, and all-CRLF (deduplicated, as-stored first)."""
+    lf = _normalize_eol(data)
+    return tuple(dict.fromkeys((data, lf, lf.replace(b"\n", b"\r\n"))))
+
+
+def _digest16(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()[:16]
+
+
+def compute_current_content_hash(md_path: str) -> str:
+    """The location-insensitive hash cards stored from the stable-hashes work until the
+    line-ending-insensitive scheme: frontmatter LOCATION_FIELDS and NOTE_IDENTITY_FIELDS lines
+    excluded, line endings preserved as stored. Kept so those cards still compare."""
+    with open(md_path, "rb") as f:
+        data = f.read()
+    return _digest16(strip_location_lines(data))
+
+
 def compute_content_hash(md_path: str) -> str:
     """Like compute_legacy_content_hash, but frontmatter LOCATION_FIELDS
     lines are excluded, so moving or renaming a note (which rewrites its
     source_* paths) does not change its hash; NOTE_IDENTITY_FIELDS (the
     `hub_id` line, and a frontmatter block that exists only to carry it)
-    are excluded too, so stamping a hub_id never changes the hash. Files
-    with no such lines hash exactly as before."""
+    are excluded too, so stamping a hub_id never changes the hash. CRLF is
+    normalized to LF first, so the same text hashes identically whatever
+    its line endings (git autocrlf, Obsidian or tablet sync, a Python
+    text-mode write on Windows)."""
     with open(md_path, "rb") as f:
         data = f.read()
-    return hashlib.sha256(strip_location_lines(data)).hexdigest()[:16]
+    return _digest16(strip_location_lines(_normalize_eol(data)))
+
+
+def accepted_content_hashes(md_path: str) -> tuple[str, ...]:
+    """Every stored hash this file legitimately carries, canonical hash first: the current scheme
+    and the two older ones (legacy raw bytes; location-insensitive with endings preserved),
+    each computed over the file as stored and with its endings flipped to all-LF and all-CRLF.
+    A card written under any of them stays current across a line-ending flip."""
+    with open(md_path, "rb") as f:
+        data = f.read()
+    accepted = [_digest16(strip_location_lines(_normalize_eol(data)))]
+    for variant in _eol_variants(data):
+        accepted.append(_digest16(strip_location_lines(variant)))
+        accepted.append(_digest16(variant))
+    return tuple(dict.fromkeys(accepted))
 
 
 def content_hash_matches(md_path: str, stored: str | None) -> bool:
-    """True if `stored` is this file's current hash under either scheme."""
+    """True if `stored` is a hash this file carries under any accepted scheme and line-ending form."""
     if not stored:
         return False
-    return stored in (compute_content_hash(md_path), compute_legacy_content_hash(md_path))
+    return stored in accepted_content_hashes(md_path)
 
 
 def derive_course(relative_path: str) -> str:

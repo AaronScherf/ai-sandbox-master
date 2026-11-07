@@ -42,7 +42,6 @@ from core.indexer.index_card import (
     LECTURE_NOTE_DOC_TYPES,
     carry_note_identity,
     compute_content_hash,
-    compute_legacy_content_hash,
     content_hash_matches,
     find_clone_card,
     compute_file_id,
@@ -500,10 +499,11 @@ def _reconcile_one(academic_hub_root, course_name, folder_category, file_id, rel
             existing = c
             break
 
-    legacy_hash = None
+    legacy_hash = None  # the stored hash itself when the file legitimately carries it under an older scheme or line-ending form
     if existing is not None and existing.get("content_hash") not in (None, content_hash):
         try:
-            legacy_hash = compute_legacy_content_hash(os.path.join(academic_hub_root, rel_path))
+            if content_hash_matches(os.path.join(academic_hub_root, rel_path), existing["content_hash"]):
+                legacy_hash = existing["content_hash"]
         except OSError:
             legacy_hash = None
     stale = existing is not None and _is_stale(existing, source_mtime, content_hash, legacy_hash)

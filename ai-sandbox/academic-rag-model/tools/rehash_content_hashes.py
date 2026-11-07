@@ -1,11 +1,14 @@
 """One-time local migration of stored Markdown content hashes.
 
-Cards written before location-only frontmatter fields were excluded from
-`compute_content_hash` store the raw-bytes (legacy) hash. This rewrites a
-card's stored hash (and its chunk records' hash, which must equal the
-card's or the chunks look stale and get re-embedded) to the new hash when,
-and only when, the file is unchanged since the card was written, i.e. the
-stored value equals the legacy hash of the file as it is now.
+Cards written under an older hash scheme store the raw-bytes (legacy) hash,
+or the location-insensitive hash with the file's line endings preserved. This
+rewrites a card's stored hash (and its chunk records' hash, which must equal
+the card's or the chunks look stale and get re-embedded) to the current
+line-ending-insensitive hash when, and only when, the file is unchanged since
+the card was written, i.e. the stored value is one the file legitimately
+carries under an accepted scheme and line-ending form
+(`index_card.accepted_content_hashes`). Rewriting is optional: matching already
+accepts the older forms; it just retires the compatibility path.
 
 No network, no model client. Default is a dry run:
 
@@ -22,7 +25,7 @@ from core.env.corpus_write_lock import corpus_write_lock
 from core.indexer.chunk_index import load_chunks, save_chunks
 from core.indexer.index_card import (
     compute_content_hash,
-    compute_legacy_content_hash,
+    content_hash_matches,
     list_courses,
     load_shard,
     save_shard,
@@ -44,7 +47,7 @@ def plan(hub_root: str) -> dict:
             new = compute_content_hash(absolute)
             if stored == new:
                 result["unchanged"] += 1
-            elif stored == compute_legacy_content_hash(absolute):
+            elif content_hash_matches(absolute, stored):
                 result["rewrite"].append({"course": course, "file_id": card["file_id"],
                                           "path": path, "old": stored, "new": new})
             else:
