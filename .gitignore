@@ -140,7 +140,6 @@ ai-sandbox/research/journal-articles/**/*.pdf
 ai-sandbox/research/journal-articles/**/*.md
 ai-sandbox/research/journal-articles/**/images/
 ai-sandbox/research/independent-research/projects/02_compound_shocks/data/raw/
-ai-sandbox/research/independent-research/projects/03_transferability/source_material/
 ai-sandbox/research/independent-research/projects/bangladesh-insurance-replication/data/raw/
 ai-sandbox/research/**/*_pages_cache.json
 ai-sandbox/research/.index/chunks/
