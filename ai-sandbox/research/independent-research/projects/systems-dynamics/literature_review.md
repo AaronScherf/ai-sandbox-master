@@ -1,5 +1,7 @@
 # Project 05 Literature Review: Systems Dynamics, Non-Linear Tipping Points & Poverty Traps in Post-Shock Recovery
 
+**Scope note (2026-11-06):** This seed review includes an off-topic Iowa derecho paper. Retain it for review; do not treat every entry as in-scope evidence.
+
 *Theoretical and empirical literature on non-linear socio-ecological thresholds, critical slowing down, hysteresis, and poverty traps following compound disaster and conflict shocks.*
 
 - **Retrieved:** October 2026 via OpenAlex API

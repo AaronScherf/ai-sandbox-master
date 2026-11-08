@@ -58,9 +58,8 @@ from typing import Literal
 from core.env.hub_vocabulary import Vocabulary, load_vocabulary, parse_hub_path
 from core.indexer.hub_identity import read_hub_id
 from core.indexer.index_card import (
-    compute_content_hash,
+    accepted_content_hashes,
     compute_file_id,
-    compute_legacy_content_hash,
     list_courses,
     load_shard,
 )
@@ -263,7 +262,7 @@ class _Matcher:
         self.unclaimed = [e for e in snap.values() if e.path not in claimed]
         self.claimed = [e for e in snap.values() if e.path in claimed]
         self._claimed_hub_ids: dict[str, list[FileEntry]] | None = None
-        self._hashes: dict[str, tuple[str, str] | None] = {}
+        self._hashes: dict[str, tuple[str, ...] | None] = {}
         self._file_ids: dict[str, str | None] = {}
         self._hub_ids: dict[str, list[FileEntry]] | None = None
         self._renames: dict[str, str] | None = None
@@ -274,11 +273,11 @@ class _Matcher:
         return os.path.join(self.hub_root, *entry.path.split("/"))
 
     # --- exact evidence ---------------------------------------------------------------------------
-    def hashes(self, entry: FileEntry) -> tuple[str, str] | None:
+    def hashes(self, entry: FileEntry) -> tuple[str, ...] | None:
         if entry.path not in self._hashes:
             try:
                 path = self.abspath(entry)
-                self._hashes[entry.path] = (compute_content_hash(path), compute_legacy_content_hash(path))
+                self._hashes[entry.path] = accepted_content_hashes(path)
             except OSError:
                 self._hashes[entry.path] = None
         return self._hashes[entry.path]

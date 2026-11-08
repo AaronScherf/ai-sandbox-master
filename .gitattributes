@@ -1,2 +1,6 @@
+# Line endings: store text as LF in the repo regardless of each checkout's core.autocrlf
+# (monorepo only; the academic_notes repo has its own policy). Binary files are auto-detected.
+* text=auto
+
 # Hooks run under sh; CRLF breaks the shebang on Windows checkouts.
 .githooks/* text eol=lf

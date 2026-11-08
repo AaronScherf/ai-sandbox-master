@@ -29,4 +29,4 @@
 ## Cross-project items outside `notes/`
 - `academic-rag-model/docs/trackers/academic_hub_to_do.md` holds the open tracker items listed in the summary.
 - `ai-sandbox/research/independent-research/projects/repositories.json` is the registry the spec calls for (URL, pinned commit). Right now it lists only two older gitlink repos; reprokit and compound-shocks-panel are not in it. A repo-hygiene handoff in `academic-rag-model` proposes adding them (inference: not done yet).
-- The `projects/02_compound_shocks/` scaffold in the monorepo is to be removed once the migration is registered.
+- The former Project 02 scaffold was retired on 2026-11-06; its literature review is temporarily in `projects/compound-shocks/`.

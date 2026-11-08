@@ -1,5 +1,13 @@
 # Textbook Conversion (Marker, GPU)
 
+> **Status (2026-11-06): the GCP VM route below is retired.** The owner no
+> longer uses Google Cloud, and the local `gcp-container` Docker container,
+> its `gcp-runner` image and the `gcloud-config`/`gcloud-ssh` volumes have
+> been deleted. Nothing in the repo depends on them. This guide is kept as a
+> reference for the conversion procedure. The root `Dockerfile` is now
+> unused. To run the cloud route again, see the note under Step 0 for what
+> to change.
+
 ## Overview
 
 Converts large, figure- and math-heavy textbook PDFs into structured
@@ -51,51 +59,30 @@ neither is enabled as a corpus-health apply action.
 
 * A GCP project with **billing enabled**, and the account running these commands has Owner/Editor on it (needed for the IAM and service-account changes in Steps 1.2/2.1).
 * **GPU quota** approved for the zone you'll use, specifically `PREEMPTIBLE_NVIDIA_L4_GPUS` (Spot VMs draw from the preemptible quota pool, a separate metric from `NVIDIA_L4_GPUS`) if you're using Step 1.3's VM creation command as-is. This is the single most common blocker on a brand-new project -- request it under IAM & Admin > Quotas in the Console *before* Step 1.3, since approval isn't always instant.
-* `gcloud` and Docker installed locally
+* `gcloud` installed locally, and a bash shell (Git Bash or WSL) for the `bash` snippets below. Docker is no longer used.
 * A copy of `.env.example` (in the parent directory of this folder) filled in as your own `.env` -- see that file for what each variable means. `.env` is gitignored; never commit your real one.
 * A folder named `academic-hub` as a sibling of this `academic-rag-model` folder, containing a subfolder matching whatever you set `TEXTBOOK_SUBDIR` to in Step 0.2 below -- that's where your input PDFs go and where processed output lands locally.
 
-### Step 0: Initialize the Docker Container
+### Step 0: Prepare the local shell (formerly: Initialize the Docker Container)
 
-Execute the following script from PowerShell within the project directory (containing the `Dockerfile`, `.env`, and `convert_textbook.py`). Ensure the Docker daemon is operational prior to execution.
+The Docker container this step used to build (`gcp-container`, image `gcp-runner`) has been removed. Everything below now runs in a local bash shell with `gcloud` installed.
 
-#### Step 0.1: Build and instantiate the environment
+#### Step 0.1: Open a shell and load the environment
 
-* Ensure Docker is running.
-* Ensure you are in the directory location containing the marker_setup.sh script and directories like common, indexer, and textbook.
-* **Initial Execution:** This builds the image and instantiates a named container. The `colab-cli` dependencies have been structurally excised.
-* **Subsequent Executions:** Skips the build phase and restores the existing container via `docker start`.
-* Loads `PROJECT_ID` from the `.env` file located in the parent directory.
-* Mounts the current project directory into `/workspace` to ensure local synchronization of the extraction scripts.
-* Persists `gcloud` authentication configurations across container lifecycles via volume mounting.
+* Open Git Bash or WSL in the `academic-rag-model/` directory (the one containing `core/`, `pipelines/` and `marker_setup.sh`).
+* Authenticate once with `gcloud auth login` (the old container kept this in a Docker volume; it now lives in your normal gcloud config).
+* Load `PROJECT_ID` and the other values from `../.env`, for example `set -a; source ../.env; set +a`.
+* Set `ACADEMIC_HUB` to the absolute path of the sibling `academic-hub/` folder.
 
-```powershell
-if (docker ps -aq -f "name=^gcp-container$") {
-    docker start -ai gcp-container
-} else {
-    docker build -t gcp-runner .
-    docker run -it --name gcp-container `
-        --env-file ../.env `
-        -v ${PWD}:/workspace `
-        -v ${PWD}\..\academic-hub:/academic-hub `
-        -v gcloud-config:/root/.config/gcloud `
-        -v gcloud-ssh:/root/.ssh `
-        gcp-runner
-}
-```
-Note: To stop and remove a previously created Docker container (in case you need to reconfigure it or you've changed env), use:
-docker stop gcp-container
-docker rm gcp-container
-
-You are now operating within the container's interactive bash shell for all subsequent operations.
+**Resuming this route:** the snippets in the later steps still use the container's paths. Replace `/academic-hub/` with `"$ACADEMIC_HUB"/` and `/workspace` with the current directory. Treat those as untested edits, since no run has used them since the container was removed. The VM, bucket and IAM steps need no change.
 
 #### Step 0.2: Declare run-specific variables
 
 `TEXTBOOK_SUBDIR` and `PDF_FILENAMES` identify a particular run of the pipeline (which subject folder, which books in it) rather than durable per-machine config, so they're declared here instead of in `.env`.
 
 ```bash
-# Path, relative to the academic-hub/ folder mounted into the container
-# (Step 0.1), where input PDFs live and where processed output will be
+# Path, relative to the academic-hub/ folder ($ACADEMIC_HUB, Step 0.1),
+# where input PDFs live and where processed output will be
 # written back to.
 export TEXTBOOK_SUBDIR="academic_resources/econometrics/textbooks"
 ```
@@ -677,7 +664,7 @@ fi
 
 ### Step 5: Describe Images Locally
 
-This step runs entirely on your local machine, **outside the Docker container** (exit the container's shell first, or just open a new PowerShell window) -- it needs no GPU, no VM, and no gcloud/IAP tunnel, just local files and network access to the Gemini API. There's no reason to keep billing the VM while this runs, which is why it comes after Step 4 rather than before it.
+This step runs entirely on your local machine, **outside any VM or remote shell** (open a normal local PowerShell window) -- it needs no GPU, no VM, and no gcloud/IAP tunnel, just local files and network access to the Gemini API. There's no reason to keep billing the VM while this runs, which is why it comes after Step 4 rather than before it.
 
 For each image in a book's converted markdown, `describe_images.py` asks a Gemini model whether the image is meaningful academic content (a diagram, chart, plot, or figure) worth describing for RAG/study use, or decorative/non-informational content worth skipping (stock photos, publisher logos, cover art). Images before the book's first real chapter (cover art, title-page decoration) are filtered out for free, no LLM call needed. The result is a derived `<BookName>.rag.md` file with descriptions inserted directly beneath each kept image's link -- the original `<BookName>.md` is never modified. The `.rag.md` is written to the mirrored `academic_notes/<course>/textbooks/processed_outputs/<BookName>/` folder (the tablet-synced notes repo), not next to the raw `.md`; the raw `.md`, `images/`, and JSON sidecars all stay under `academic_resources/`.
 

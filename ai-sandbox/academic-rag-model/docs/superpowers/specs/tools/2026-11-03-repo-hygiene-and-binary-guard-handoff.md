@@ -46,3 +46,5 @@ From the evaluation's decided scope, each independent and small:
 ## Constraints
 
 Dedicated `claude/<task>` or `codex/<task>` worktree; explicit-path staging; no secrets (`ai-sandbox/.env`); never touch history or force-push; the repo is public, so nothing copyrighted goes in; core changes run `python -m tools.run_tests_chunked`; ask before any step that is hard to reverse.
+
+Folder renamed on 2026-11-06: the historical `projects/02_compound_shocks/` links above refer to the retired scaffold; the live project is `projects/compound-shocks-panel/`.
