@@ -85,6 +85,79 @@ test("ambiguous ink is reported instead of assigned", () => {
   assert.equal(result.warnings[0].reason,"ambiguous_ink");
 });
 
+test("same-row explanation outranks the next slide below it", () => {
+  const a=png("a",0,0,"a".repeat(40));
+  const b=png("b",0,550,"b".repeat(40));
+  const e=md("e",1000,0,"c".repeat(40));
+  const matched=af.matchExplanations([a,b],[e]);
+  assert.equal(matched.warnings.length,0);
+  assert.equal(matched.assigned.get("a")[0].id,"e");
+});
+
+test("fully enclosed uncertain ink is reported but does not block framing", () => {
+  const a=png("a",0,0,"a".repeat(40));
+  const b=png("b",3000,0,"b".repeat(40));
+  const e=md("e",1000,0,"c".repeat(40));
+  const uncertain=stroke("uncertain",1950,100,10,10);
+  const report=af.planFrames([a,b,e,uncertain],registry,
+    {slides:[entry(a,1),entry(b,2)]});
+  const first=report.plans.find(p=>p.slideId==="a");
+  assert.equal(first.action,"create");
+  assert.deepEqual([...first.unverifiedInkIds],["uncertain"]);
+  assert.ok(af.contains(first.bounds,af.box(uncertain)));
+});
+
+test("best-effort frame flags a touching stroke that crosses its edge", () => {
+  const a=png("a",0,0,"a".repeat(40));
+  const b=png("b",3000,0,"b".repeat(40));
+  const e=md("e",1000,0,"c".repeat(40));
+  const edge=stroke("edge",1980,100,30,10);
+  const report=af.planFrames([a,b,e,edge],registry,
+    {slides:[entry(a,1),entry(b,2)]});
+  const first=report.plans.find(p=>p.slideId==="a");
+  assert.equal(first.action,"create");
+  assert.equal(first.inkWarning,"partial_ink");
+  assert.deepEqual([...first.atRiskInkIds],["edge"]);
+});
+
+test("oversize touching ink is disclosed without blocking slide framing", () => {
+  const a=png("a",0,0,"a".repeat(40));
+  const b=png("b",3000,0,"b".repeat(40));
+  const e=md("e",1000,0,"c".repeat(40));
+  const edge=stroke("edge",1980,100,30,900);
+  const report=af.planFrames([a,b,e,edge],registry,
+    {slides:[entry(a,1),entry(b,2)]});
+  const first=report.plans.find(p=>p.slideId==="a");
+  assert.equal(first.action,"create");
+  assert.equal(first.inkWarning,"partial_ink");
+  assert.ok(first.atRiskInkIds.includes("edge"));
+});
+
+test("strict ink mode blocks a stroke crossing the frame edge", () => {
+  const a=png("a",0,0,"a".repeat(40));
+  const b=png("b",3000,0,"b".repeat(40));
+  const e=md("e",1000,0,"c".repeat(40));
+  const edge=stroke("edge",1980,100,30,10);
+  const report=af.planFrames([a,b,e,edge],registry,
+    {slides:[entry(a,1),entry(b,2)],inkPolicy:"strict"});
+  const first=report.plans.find(p=>p.slideId==="a");
+  assert.equal(first.action,"skip");
+  assert.equal(first.reason,"ink_at_frame_edge");
+});
+
+test("another image inside the print area still blocks framing", () => {
+  const a=png("a",0,0,"a".repeat(40));
+  const b=png("b",3000,0,"b".repeat(40));
+  const e=md("e",1000,0,"c".repeat(40));
+  const other={id:"other",type:"image",x:1700,y:20,width:200,
+    height:200,fileId:"missing"};
+  const report=af.planFrames([a,b,e,other],registry,
+    {slides:[entry(a,1),entry(b,2)]});
+  const first=report.plans.find(p=>p.slideId==="a");
+  assert.equal(first.action,"skip");
+  assert.equal(first.reason,"foreign_content");
+});
+
 test("missing or duplicated numbers block order-dependent apply", () => {
   const a=png("a",0,0,"a".repeat(40));
   const b=png("b",3000,0,"b".repeat(40));
@@ -220,11 +293,24 @@ test("optional read-only live scene inventory", {skip:!process.env.AUTO_FRAME_LI
     .map(action=>[action,diagnostic.plans.filter(p=>p.action===action).length]));
   const reasons=Object.fromEntries([...new Set(diagnostic.plans.map(p=>p.reason).filter(Boolean))]
     .map(reason=>[reason,diagnostic.plans.filter(p=>p.reason===reason).length]));
+  const byId=new Map(elements.map(e=>[e.id,e]));
+  const conflicts=diagnostic.plans.filter(p=>p.action==="skip").map(p=>({
+    slideId:p.slideId,reason:p.reason,
+    conflictingTypes:Object.fromEntries([...new Set((p.conflictingIds||[])
+      .map(id=>byId.get(id)?.type))].map(type=>[type,
+      (p.conflictingIds||[]).filter(id=>byId.get(id)?.type===type).length]))
+  }));
+  const ambiguousPairs=diagnostic.warnings.filter(w=>w.reason==="ambiguous_pair")
+    .map(w=>({explanation:w.ids[0],
+      explanationAt:[byId.get(w.ids[0])?.x,byId.get(w.ids[0])?.y],
+      candidateSlides:w.slideIds.map(id=>({id,
+        at:[byId.get(id)?.x,byId.get(id)?.y]}))}));
   console.log(JSON.stringify({scene:source,counts:{
     elements:elements.length,slides:kinds.slides.length,
     explanations:kinds.explanations.length,strokes:kinds.ink.length,
     regions:regions.length,frames:kinds.frames.length,
     inkAmbiguous:matched.warnings.length
-  },diagnostic:{actions,reasons},firstSlide:kinds.slides.slice(0,3).map(x=>x.id)}));
+  },diagnostic:{actions,reasons,conflicts,ambiguousPairs},
+    firstSlide:kinds.slides.slice(0,3).map(x=>x.id)}));
   assert.ok(kinds.slides.length>0);
 });
