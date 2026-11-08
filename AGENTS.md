@@ -61,6 +61,10 @@ Resolve the actual file location before linking: use the task worktree for
 unmerged changes and the main checkout after landing. Do not substitute a bare
 filename, a code-formatted path, or a GitHub link for the clickable local path.
 
+Whenever a local file link is meant to open a file for the user, also print its
+full absolute Windows filepath as a separate, copyable line. The path is a
+fallback for chat clients that do not open local Markdown links; include both.
+
 ## Planning and architecture work
 
 When explicitly asked to plan or design a project change:
