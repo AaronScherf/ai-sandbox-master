@@ -4,7 +4,7 @@ The [3R revision](../notes/00_overview-and-strategy/Ground%20Truth%20-%20PhD%20R
 
 | Folder | Current role |
 | --- | --- |
-| `evidence-map/` | Separate local Git repository for Project 01's public evaluation evidence map (reprokit evidence kind; local commit in `repositories.json`, no remote yet). The search and inclusion rules await owner confirmation. |
+| `evidence-map/` | Separate Git repository for Project 01's evidence map (reprokit evidence kind; remote is private for now, URL and commit in `repositories.json`). The narrowed scope is set; detailed search and classification rules await design review. |
 | `compound-shocks/` | Temporary holding place for Project 02's literature review |
 | `transferability/` | Project 03 disaster-to-conflict transferability evidence review |
 | `data-fusion-toolkit/` | Project 04 prospective reusable library; review held until library-kind support exists |

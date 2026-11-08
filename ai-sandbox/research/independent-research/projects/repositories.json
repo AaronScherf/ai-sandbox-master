@@ -22,7 +22,7 @@
     },
     {
       "path": "evidence-map",
-      "url": null,
+      "url": "https://github.com/AaronScherf/evidence-map.git",
       "commit": "f34cf8e69414fc438e7746fbc315a8ba971bfe6f"
     }
   ]
