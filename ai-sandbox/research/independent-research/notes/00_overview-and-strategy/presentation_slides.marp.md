@@ -1,79 +1,59 @@
 ---
 marp: true
 theme: default
+size: 16:9
 paginate: true
-backgroundColor: #ffffff
-color: #1e293b
+header: "The Humanitarian Planner's Dilemma &bull; Brownbag Presentation"
+footer: "Aaron Scherf &bull; Columbia University Sustainable Development (SIPA)"
 style: |
   section {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    padding: 38px 48px;
-    font-size: 24px;
-    line-height: 1.4;
+    color: #1e293b;
+    padding: 36px 54px 30px 54px;
+    background: #ffffff;
   }
   h1 {
     color: #0f172a;
-    font-size: 1.45em;
-    margin-bottom: 0.3em;
+    font-size: 36px;
+    margin-top: 0;
+    margin-bottom: 8px;
     border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 8px;
+    padding-bottom: 6px;
+    font-weight: 700;
   }
   h2 {
     color: #1e3a8a;
-    font-size: 1.15em;
-    margin-top: 0.2em;
+    font-size: 24px;
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-weight: 600;
   }
   p, li {
-    font-size: 0.82em;
+    font-size: 19.5px;
+    line-height: 1.48;
     color: #334155;
   }
   ul {
-    margin-top: 0.3em;
-    margin-bottom: 0.5em;
+    margin-top: 0.25em;
+    margin-bottom: 0.45em;
   }
   li {
-    margin-bottom: 0.35em;
+    margin-bottom: 0.3em;
   }
   strong {
     color: #0f172a;
   }
   .columns {
     display: grid;
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 28px;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
     align-items: start;
-  }
-  .placeholder {
-    background: #f8fafc;
-    border: 2px dashed #94a3b8;
-    border-radius: 8px;
-    padding: 16px 20px;
-    color: #475569;
-    font-size: 0.75em;
-    line-height: 1.35;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  }
-  .placeholder strong {
-    color: #1e3a8a;
-    font-size: 1.1em;
-    display: block;
-    margin-bottom: 6px;
-  }
-  .placeholder .target-file {
-    font-family: monospace;
-    color: #047857;
-    background: #ecfdf5;
-    padding: 2px 6px;
-    border-radius: 4px;
-    display: inline-block;
-    margin-bottom: 8px;
-    font-size: 0.9em;
   }
   .tag {
     display: inline-block;
     background: #e0e7ff;
     color: #3730a3;
-    font-size: 0.65em;
+    font-size: 0.7em;
     padding: 2px 8px;
     border-radius: 12px;
     font-weight: 600;
@@ -82,7 +62,7 @@ style: |
     vertical-align: middle;
   }
   footer {
-    font-size: 0.5em;
+    font-size: 0.55em;
     color: #94a3b8;
   }
 ---
@@ -91,26 +71,16 @@ style: |
 # The Humanitarian Planner's Dilemma
 ## Rapid, Evidence-Grounded Crisis Response Under Data Scarcity
 
-<div class="columns">
-<div>
-
-**Aaron Scherf**  
-Columbia University | Sustainable Development (SIPA)  
-*3R Framework: Resilience, Response, and Recovery*
-
-* **The Core Tension:** Extreme operational urgency vs. high evidence search costs and acute data scarcity.
-* **The Goal:** An open-source, automated pipeline to ingest multi-modal data, quantify global evidence, and simulate intervention outcomes.
-
+<div style="margin-top: 6px; margin-bottom: 10px; font-size: 20px; color: #334155;">
+<strong>Aaron Scherf</strong> &bull; Columbia University | Sustainable Development (SIPA) &bull; <em>3R Framework: Resilience, Response, and Recovery</em>
 </div>
-<div>
 
-<img src="figures/slide01_dilemma_split.svg" style="width: 100%; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); margin-top: 5px;">
-
-</div>
+<div style="width: 100%; display: flex; justify-content: center;">
+<img src="figures/slide01_dilemma_split.svg" style="width: 100%; max-height: 550px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.10);">
 </div>
 
 <!-- Note:
-"When an extreme crisis strikes—a severe drought tipping into famine, or a flood in an active conflict zone—humanitarian agencies face an acute operational bind. Lives depend on designing an effective response in days or weeks. But traditional academic research is not packaged for consumption: planners are confronted with thousands of dense papers of uncertain local relevance. Today, I'm presenting an open-source computational pipeline that bridges this divide."
+"When an extreme crisis strikes—a severe drought tipping into famine, or a flood in an active conflict zone—humanitarian agencies face an acute operational dilemma. Lives depend on designing an effective response in days or weeks. But traditional academic research is not packaged for rapid consumption: planners are confronted with thousands of dense papers of uncertain local relevance. Today, I'm presenting an open-source computational pipeline that bridges this divide."
 -->
 
 ---
@@ -122,13 +92,13 @@ Columbia University | Sustainable Development (SIPA)
 
 * **Evidence Search & Consumption Costs:**
   * Thousands of evaluations exist (3ie, J-PAL, World Bank), but they are locked in fragmented repositories and 80-page PDFs.
-  * Planners cannot consume or standardize them in an emergency.
+  * Responders cannot consume, evaluate, or standardize them during an unfolding emergency.
 * **The Portfolio Optimization Problem:**
-  * Academics isolate single interventions for internal validity.
-  * Responders have an **open canvas and fixed budget**—needing to find the *optimal mix* of cash, food aid, insurance, and logistics.
+  * Academic papers isolate single interventions for clean internal validity.
+  * Responders face an **open canvas and fixed budget**—needing to determine the *optimal mix* of cash, food aid, vouchers, insurance, and logistics.
 * **The Resilience Planning Parallel:**
-  * Planners face severe data scarcity (no field surveys).
-  * Almost always planning for **unprecedented local events**—inherently requiring evidence borrowed from other contexts.
+  * Planners face severe data scarcity (no live field surveys).
+  * Almost always planning for **unprecedented local shocks**—inherently requiring evidence borrowed and adapted from other contexts.
 
 </div>
 <div>
@@ -153,7 +123,7 @@ Columbia University | Sustainable Development (SIPA)
   * Excellent taxonomies, but static and manually curated.
   * Disconnected from live spatial data; does not extract reusable estimators.
 * **[World Bank DIME / Microdata](https://microdata.worldbank.org/) & [HDX](https://data.humdata.org/):**
-  * Passive data repositories lacking counterfactual simulation.
+  * Rich passive data repositories lacking counterfactual simulation engines.
 * **Academic Hierarchical Modeling:**
   * [Meager (2019)](https://pubs.aeaweb.org/doi/10.1257/app.20170299) & [Vivalt (2020)](https://academic.oup.com/jeea/article/18/6/2782/5819777): Prove high cross-study effect variance across microcredit and social programs.
   * [Pritchett & Sandefur (2015)](https://www.aeaweb.org/articles?id=10.1257/aer.p20151069): External trial estimates often yield higher error than local non-experimental data.
@@ -186,7 +156,7 @@ Columbia University | Sustainable Development (SIPA)
   * `evidence`: Machine-readable evidence maps and manifests.
   * `library`: Reusable data fusion and analytics packages.
 * **Built for Human and Agent Readability:**
-  * Metadata files (`project.yaml`, `AGENTS.md`) allow autonomous LLM agents to parse and audit codebases at scale.
+  * Standardized metadata (`project.yaml`, `AGENTS.md`) allows autonomous LLM agents to parse and audit codebases at scale.
   * Dual-interface: accessible to humans, verifiable by agents.
 * **Portability Across Contexts:** Hash-pinned inputs and CI on Linux/Windows enable rapid porting to new crises.
 
@@ -204,33 +174,15 @@ Columbia University | Sustainable Development (SIPA)
 
 ---
 
-# The 2×2 Evidence Engine: System Architecture
+# The 2x2 System Architecture
+## Integrating Context Ingestion, Evidence Synthesis, and Causal Transportability
 
-<div class="columns">
-<div>
-
-* **Dimension 1: Content Type**
-  * *Context Data:* Multi-modal physical, conflict, and market feeds.
-  * *Evidence Data:* Published academic papers and institutional evaluations.
-* **Dimension 2: Methodological Mode**
-  * *Discovery:* Continuous automated harvesting.
-  * *Quantification:* Standardized taxonomies and microdata extraction.
-* **The Four Quadrants:**
-  * **1.1 Literature Search & Synthesis:** OpenAlex & web scraping.
-  * **1.2 Context Data Fusion Panel:** Multi-modal subnational grids.
-  * **2.1 3ie Evidence Taxonomy:** Quantifying coverage & gaps.
-  * **2.2 Reproducible Trials Repository:** Open RCTs & estimators.
-
-</div>
-<div>
-
-<img src="figures/slide05_architecture_2x2.svg" style="width: 100%; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); margin-top: 5px;">
-
-</div>
+<div style="width: 100%; display: flex; justify-content: center; margin-top: 6px;">
+<img src="figures/slide05_architecture_2x2.svg" style="width: 100%; max-height: 565px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.10);">
 </div>
 
 <!-- Note:
-"The core of this research agenda is a 2×2 engine. On one axis, we bridge context data with published literature. On the other, we bridge discovery with rigorous quantification. These four blocks don't operate in a straight line; they feed each other iteratively to build an actionable evidence base."
+"The core of this research agenda is a 2×2 engine. On one axis, we bridge context data with published literature. On the other, we bridge continuous discovery with rigorous quantitative extraction. These four blocks don't operate in a straight line; they feed each other iteratively to build an actionable evidence base that converges on our causal transportability model."
 -->
 
 ---
@@ -241,14 +193,14 @@ Columbia University | Sustainable Development (SIPA)
 <div>
 
 * **Overcoming Search Costs:**
-  * Automated scrapers continuously harvest OpenAlex, academic APIs, and grey literature portals (ALNAP, ReliefWeb, World Bank).
+  * Automated scrapers continuously harvest OpenAlex, academic APIs, and grey literature portals (ALNAP, ReliefWeb, World Bank OKR).
 * **Snowball & Semantic Graph Expansion:**
   * Traces forward/backward citation networks around key crisis topics.
   * Extracts metadata, abstract embeddings, and author linkages.
 * **Standalone Usable Deliverables:**
   * Not just an intermediate step: produces a **comprehensive, publishable literature review** and evidence synthesis on demand for any designated geography.
 * **Current Status:**
-  * <span class="tag">Initialized</span> Active harvesting; expanding from ad-hoc sampling to systematic corpus extraction.
+  * <span class="tag">Active</span> Automated harvesting running; expanding from ad-hoc sampling to systematic corpus extraction.
 
 </div>
 <div>
@@ -270,11 +222,11 @@ Columbia University | Sustainable Development (SIPA)
 <div>
 
 * **Standalone Research Deliverables:**
-  * The harmonized panel dataset and the data processing pipeline are standalone research assets.
+  * The harmonized panel dataset and the processing pipeline are valuable standalone research assets.
 * **The Open-Source Data Fusion Library:**
   * Automates multi-modal ingestion (satellite rasters, point events, price feeds).
   * Standardizes spatiotemporal boundaries (Admin-2 / district-month).
-  * Automated cleaning, spatial matching, and missingness audits.
+  * Automated cleaning, spatial joins, and missingness audits.
 * **Core Technical Contribution:**
   * Transforms high-dimensional Earth observation rasters (CHIRPS precipitation, night lights) into structured, tabular context variables alongside conflict logs (ACLED/UCDP) and market feeds (WFP).
 * **Proof of Concept:** Somalia and Sudan pipelines rebuilt with 100% hash matching on CI.
@@ -306,7 +258,7 @@ Columbia University | Sustainable Development (SIPA)
   * Dense green zones: Cash in peaceful agricultural settings.
   * Blank/red deserts: Parametric insurance, anticipatory cash, or social safety nets under active conflict.
 * **Current Status:**
-  * <span class="tag">Yellow</span> Proof-of-concept classification complete on initial paper sample; scaling across the corpus.
+  * <span class="tag">Active</span> Proof-of-concept classification complete on initial paper sample; scaling across the corpus.
 
 </div>
 <div>
@@ -317,7 +269,7 @@ Columbia University | Sustainable Development (SIPA)
 </div>
 
 <!-- Note:
-"In Component 2.1, we structure both academic literature and grey literature using the 3ie taxonomy. We construct country-specific evidence matrices—starting with Somalia and Sudan. Rather than reading dozens of disjointed reports, planners can view an evidence heatmap that immediately shows where interventions have strong empirical backing and where severe evidence deserts exist."
+"In Component 2.1, we move from qualitative reading to quantitative mapping. By applying 3ie's taxonomy, we construct evidence heatmaps across interventions and outcomes for specific crisis geographies, such as Somalia and Sudan. This systematically flags 'evidence deserts'—for example, where parametric insurance has never been evaluated against displacement in conflict zones."
 -->
 
 ---
@@ -327,16 +279,15 @@ Columbia University | Sustainable Development (SIPA)
 <div class="columns">
 <div>
 
-* **Mining Whole Evaluation Repositories:**
-  * Drawing directly from full database corpuses:
-    * [AEA Data & Code](https://www.openicpsr.org/openicpsr/) (e.g., Niger cash/conflict rollout across 4,000 villages).
-    * [World Bank Microdata](https://microdata.worldbank.org/) / DIME (e.g., Bangladesh flood cash).
-    * [Harvard Dataverse](https://dataverse.harvard.edu/) & [J-PAL Dataverse](https://dataverse.harvard.edu/dataverse/jpal) (hundreds of open evaluation packages).
-* **Extracting Estimators:**
-  * Curating studies with open microdata and causally valid treatment estimators.
-* **The Decisive Geolocation Gate:**
-  * GPS coordinates are often masked in conflict zones for participant safety.
-  * *Core Challenge:* Obtaining unmasked village-level coordinates to link experimental treatment effects to satellite context grids.
+* **Candidate Corpus: Whole Evaluation Databases:**
+  * Curating trial data from complete public databases: **AEA Data and Code Repository**, **World Bank DIME / Microdata Catalog**, and **Harvard / J-PAL Dataverse**.
+  * Initial test cases: Cash transfer evaluations in Niger (4,000 villages), Bangladesh flood response, and Horn of Africa safety nets.
+* **The Geolocation Bottleneck (The Gate):**
+  * **The Challenge:** To link an experimental trial with local satellite and conflict context, we require village or cluster GPS coordinates.
+  * **The Hurdle:** Many public trial datasets mask GPS coordinates to protect participant privacy in fragile contexts.
+* **Resolution Strategy:**
+  * 1. Public spatial replication packages.
+  * 2. Author outreach and institutional agreements.
 
 </div>
 <div>
@@ -347,25 +298,24 @@ Columbia University | Sustainable Development (SIPA)
 </div>
 
 <!-- Note:
-"Component 2.2 taps into the major trial databases—the AEA repository, World Bank Microdata, Harvard Dataverse, and J-PAL Dataverse. We curate studies with open microdata and clean treatment estimators. But our primary bottleneck is precise geolocation: authors frequently mask GPS coordinates in conflict areas for safety. Resolving this join—ethically and securely—is the critical bridge to spatial context."
+"Component 2.2 builds our empirical trials repository. We aren't just downloading one-off studies; our candidate corpus encompasses complete evaluation databases like the AEA, World Bank DIME, and Harvard/J-PAL Dataverse. But here we encounter our primary empirical bottleneck: the Geolocation Gate. To anchor a trial to our satellite and conflict grids, we need coordinates, which are often masked for safety. Solving this unlocks the entire causal transportability agenda."
 -->
 
 ---
 
-# The Evidence Cycle: Iterative Feedback & Relative Trial Validity
+# Convergence & Empirical Validation: Relative Trial Validity
 
 <div class="columns">
 <div>
 
-* **Reinforcing Iterative Loops:**
-  * *Taxonomy $\leftrightarrow$ Search:* 2.1 gaps direct 1.1 targeted literature sweeps.
-  * *Trials $\leftrightarrow$ Fusion:* 2.2 trials inject context variables into 1.2; 1.2 fusion panels anchor 2.2 trial coordinates.
-* **Asymptotic Convergence:**
-  * Continuously expanding until evidence coverage for a target domain is as complete and searchable as possible.
-* **Context-Aware Relative Validity Checks:**
-  * Evaluating multiple trials of the same intervention across comparable context grids reveals relative validity.
-  * If 9 trials show positive effects but 1 is an extreme outlier under the same context, it exposes a study flaw or unmeasured confounder.
-* **Calibrating Priors:** Similarity weighting across related trials establishes empirical variance spreads for Bayesian priors.
+* **The Feedback Loop Between 1.2 and 2.2:**
+  * Unmasked trial sites merge with our subnational context panel (rainfall anomalies, market prices, local conflict intensity).
+* **Relative Trial Validity Check:**
+  * Instead of assessing a trial in a vacuum, we evaluate its treatment effect relative to similar trials across different contexts.
+* **Automated Outlier Detection:**
+  * *Example:* If an urban siege trial shows negative welfare effects while 9 rural cash trials show positive effects, the model flags an outlier.
+  * *Interpretation:* Unmeasured market collapse or extortion distorted the expected causal mechanism.
+* **Refining the Prior:** Outliers feed back into the 2×2 engine, flagging unmodeled structural variables.
 
 </div>
 <div>
@@ -376,26 +326,24 @@ Columbia University | Sustainable Development (SIPA)
 </div>
 
 <!-- Note:
-"These four components form an iterative cycle. Taxonomy gaps drive new searches; trials add new context features; and the fusion panel anchors trial coordinates. Over time, this converges toward an asymptotically complete knowledge corpus. Even more exciting: by controlling for spatial context, we can evaluate the relative validity of independent RCTs. If ten trials study cash transfers and one is a massive outlier under the same context, our model flags it, helping us calibrate realistic uncertainty bounds."
+"When context data merges with trial microdata, we achieve empirical convergence. We can conduct a relative validity check: comparing treatment effects across trials under varying contextual conditions. If a trial in an urban siege yields negative effects while other cash programs succeed, our pipeline flags it as a context-driven outlier, pointing directly to unmeasured market breakdown or armed extortion."
 -->
 
 ---
 
-# Causal Transportability in Practice: Satisficing Under Covariate Shift
+# Causal Transportability Under Covariate Shift: Satisficing in Crises
 
 <div class="columns">
 <div>
 
-* **The External Validity Dilemma:**
-  * Causal transportability is notoriously difficult even across peaceful settings ([Pritchett & Sandefur 2015](https://www.aeaweb.org/articles?id=10.1257/aer.p20151069); [Vivalt 2020](https://academic.oup.com/jeea/article/18/6/2782/5819777)).
-  * In crises, where primary data collection is impossible, waiting for perfect evidence is fatal.
+* **The Baseline Challenge: Covariate Shift:**
+  * External transportability fails even in peaceful settings: populations, market density, and baseline wealth differ across borders.
+  * Interventions are held constant, but the background environment changes ($X_{source} \neq X_{target}$).
 * **Satisficing Under Data Scarcity:**
-  * Generating the best, most reliable impact estimates possible with empirically grounded confidence bounds.
-* **The Standard Covariate Shift Problem:**
-  * Holding the intervention functionally constant (e.g., standard cash transfer).
-  * Context distributions shift (climate stress, market density, baseline poverty).
-* **Measuring Non-Applicability:**
-  * Estimating the degree to which existing evidence does *not* apply in a new setting by modeling impact variability across known environments.
+  * In active conflict and disasters, perfect identification is impossible because field surveys cannot be conducted.
+  * **The Goal is Satisficing:** Generating the best possible empirical estimates of potential impact with valid, honest confidence intervals.
+* **Quantifying What Does NOT Apply:**
+  * Measuring the degree to which past evidence does *not* translate, modeling effect variability from known trial dispersions.
 
 </div>
 <div>
@@ -406,23 +354,23 @@ Columbia University | Sustainable Development (SIPA)
 </div>
 
 <!-- Note:
-"Let's be candid about econometrics: external validity is notoriously hard even in peaceful settings. When we move into disasters and armed conflict, pure causal identification becomes harder still. But because primary data collection is impossible, doing nothing is not an option. We are satisficing: using the variability across known trials to measure the degree to which evidence does NOT apply, giving planners honest, context-adjusted impact estimates with realistic confidence intervals."
+"Causal transportability is difficult even between peaceful countries due to covariate shift. In crisis settings, where field surveys are impossible, we must satisfice. We aren't claiming to identify a perfect point estimate. Rather, we are measuring the degree to which prior evidence does NOT apply—yielding honest, empirically grounded confidence intervals that reflect the real friction of the new context."
 -->
 
 ---
 
-# Beyond Covariate Shift: Structural Breaks in Crisis Environments
+# Structural Breaks in Causal Linkages: When Mechanisms Collapse
 
 <div class="columns">
 <div>
 
-* **The Failure of Unstated Assumptions:**
+* **Beyond Covariate Shift: The Structural Break:**
   * *In Peace:* Cash to farmers increases drought resilience, assuming open trade corridors, functional mobile networks, and non-predatory authorities.
   * *In Conflict:* Armed groups extort recipients, mobile networks are jammed, or trade routes are blockaded. Causal linkages collapse.
 * **Structural Break as a Validity Check:**
   * An essential audit of whether the causal chain itself is intact before attempting covariate adjustment.
 * **Modeling Breakdowns with Directed Acyclic Graphs (DAGs):**
-  * Mapping nodes: $Transfer \rightarrow Liquidity \rightarrow Market \; Purchase \rightarrow Welfare$.
+  * Mapping nodes: Transfer &rarr; Liquidity &rarr; Market Purchase &rarr; Welfare.
   * Identifying friction nodes: Military blockades, inflation spikes, and extortion.
 * **Operational Route-Arounds:** If the market link is broken (inelastic supply), planners know cash will fail and in-kind food distribution is required.
 
@@ -445,15 +393,16 @@ Columbia University | Sustainable Development (SIPA)
 <div class="columns">
 <div>
 
-* **A Modular Set of Proposed Tools (Not a Single Estimator):**
+* **A Modular Set of Complementary Tools:**
+  * Not a single rigid equation, but a flexible toolkit tailored for different data environments.
 * **Bayesian Hierarchical Modeling (e.g., [Meager 2019](https://pubs.aeaweb.org/doi/10.1257/app.20170299)):**
   * Priors from past trials, updated by observed context shifts (from fusion panel) to yield posterior distributions for the target site.
 * **Synthetic Controls / Multi-Trial Weighting:**
-  * Weighting historical trials as a synthetic donor pool based on spatial and institutional similarity.
+  * Weighting historical trials as a synthetic donor pool based on spatial, climate, and institutional similarity.
 * **Double Machine Learning (DML; Chernozhukov et al.):**
   * High-dimensional regularized estimation to control for complex spatiotemporal confounders.
 * **Causal Neural Networks & Neural DAGs:**
-  * Using causal deep learning (e.g., Dragonnet, Causal VAEs, Neural SEMs) to learn representations under DAG constraints, modeling non-linear interactions across satellite rasters.
+  * Learning representations under structural graph constraints, modeling non-linear interactions across satellite rasters.
 
 </div>
 <div>
@@ -475,14 +424,14 @@ Columbia University | Sustainable Development (SIPA)
 <div>
 
 * **The Simulation Response Exercise:**
-  * Running the transport engine across multiple candidate interventions for the same crisis geography under a fixed budget:
-    * *Option A (Unconditional Cash):* High expected impact, but wide variance due to volatile local market prices.
-    * *Option B (In-Kind Food Aid):* Lower logistical efficiency, but immune to market supply blockades.
-    * *Option C (Parametric Index Payouts):* Rapid execution, but high basis risk.
-* **Comparing & Layering Interventions:**
-  * Modeling complementarities: evaluating whether layering cash with crop insurance or supply subsidies maximizes lives saved under budget caps.
-* **Active Case Engagement:**
-  * Ongoing practical collaboration with a foundation in Armenia to supply a structured evidence map and decision-support synthesis.
+  * Runs the transport engine across candidate interventions for a target district under hard budget constraints ($5M, 3-week window in Baidoa).
+  * Simulates predicted welfare gains, cost-effectiveness, and uncertainty bounds.
+* **Overcoming Inelastic Supply Corridors:**
+  * *Option A (Pure Cash):* Rapid delivery, but high risk of triggering hyper-local price inflation under armed blockade.
+  * *Option B (Food Aid Convoys):* Immune to local grain inflation, but heavy logistical overhead.
+  * *Option C (Layered Portfolio - Recommended):* Food convoys break supply inelasticity, allowing cash to restore family livelihoods.
+* **Active Real-World Engagement:**
+  * Collaborating with a foundation in Armenia to deploy this structured evidence mapping and decision simulation toolkit for emergency planning.
 
 </div>
 <div>
@@ -503,13 +452,16 @@ Columbia University | Sustainable Development (SIPA)
 <div class="columns">
 <div>
 
-* **Core Open Questions:**
-  * *Intervention Combining & Layering:* How do we model complementarities across interventions in a novel context?
-  * *Displacement & Migration Dynamics:* Does assistance facilitate safe evacuation or cause entrapment? Is displacement an outcome or a context filter?
-  * *Spatial Resolution Limits:* Resolving conflict and displacement tracking below Admin-2 (district) to match village trial clusters.
-  * *Proxy Surrogacy in Conflict:* When do satellite proxies (NDVI, night lights) fail statistical surrogacy for human welfare?
-* **Ideal Testbeds:** Cash transfers and index insurance in drought-induced famine settings (Somalia and Sudan testbeds).
-* **Immediate Roadmap:** Finalize village GPS linkages $\rightarrow$ Scale 3ie taxonomy classification $\rightarrow$ Complete transport proof of concept $\rightarrow$ Working paper for spring presentation.
+* **Core Theoretical & Empirical Frontiers:**
+  * **Intervention Combining & Layering:** Modeling positive complementarities when cash, food aid, and insurance are combined.
+  * **Displacement & Mobility Dynamics:** Does emergency aid facilitate safe evacuation or cause entrapment under armed siege?
+  * **Spatial Resolution Limits:** Resolving conflict events and mobility vectors below Admin-2 to match trial clusters.
+  * **Proxy Surrogacy in Conflict:** When do satellite indicators (NDVI, night lights) fail as proxies for welfare?
+* **Roadmap & Planned Milestones:**
+  * **Nov 2026 (Now):** Case study replication, reprokit v0.4.0 live, SusDev Brownbag, and geolocation data audit.
+  * **Spring 2027 (Evidence Scaling):** 2x2 matrix synthesis, OpenAlex corpus sweep, SusDev Seminar talk, and Working Paper 1.
+  * **Summer 2027 (Transport Models):** Formal causal transportability framework (covariate shift & DAG structural breaks).
+  * **Fall 2027 (Applied Case Test):** Simulation response exercise tested against real-world crisis scenario.
 
 </div>
 <div>
@@ -520,5 +472,5 @@ Columbia University | Sustainable Development (SIPA)
 </div>
 
 <!-- Note:
-"We have significant frontiers ahead. How do we model the layering of multiple interventions? How do we treat forced displacement? And how finely can we resolve conflict data below the district level? Our immediate roadmap focuses on testing village data linkages, scaling the 3ie taxonomy, and advancing our work in Armenia and the Horn of Africa, culminating in our working paper this spring. Thank you, and I look forward to your feedback."
+"We have significant frontiers ahead: modeling intervention layering, treating forced displacement endogenously, and resolving spatial data to match village trial clusters. Our roadmap moves deliberately from foundational case study replication now, to evidence scaling and our first working paper in Spring 2027, followed by formal causal transportability modeling in Summer 2027 and applied field testing in Fall 2027. Thank you, and I look forward to your feedback."
 -->

@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 550" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 560" width="100%" height="100%">
 
   <defs>
     <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.08" />
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.10" />
     </filter>
     <filter id="glow-red" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ef4444" flood-opacity="0.3" />
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ef4444" flood-opacity="0.35" />
     </filter>
     <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#475569" />
@@ -21,99 +21,99 @@
     </marker>
   </defs>
 
-  <rect width="800" height="550" fill="#f8fafc" rx="12" />
-  <text x="400" y="42" font-family="Segoe UI, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="middle">Component 1.1: Automated Literature Discovery Pipeline</text>
-  <text x="400" y="68" font-family="Segoe UI, sans-serif" font-size="13" fill="#64748b" text-anchor="middle">Collapsing Literature Search Costs from Months to Minutes</text>
+  <rect width="840" height="560" fill="#f8fafc" rx="12" />
+  <text x="420" y="44" font-family="Segoe UI, sans-serif" font-size="24" font-weight="bold" fill="#0f172a" text-anchor="middle">Component 1.1: Automated Literature Discovery Pipeline</text>
+  <text x="420" y="72" font-family="Segoe UI, sans-serif" font-size="15" fill="#475569" text-anchor="middle">Collapsing Literature Search Costs from Months to Minutes</text>
 
-  <!-- Step 1: OpenAlex & Web Harvester -->
-  <g transform="translate(40, 110)" filter="url(#shadow)">
-    <rect width="150" height="260" fill="#ffffff" stroke="#cbd5e1" rx="8" />
-    <rect width="150" height="34" fill="#1e293b" rx="8" />
-    <rect width="150" height="10" y="24" fill="#1e293b" />
-    <text x="75" y="22" font-family="Segoe UI, sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">1. API Harvester</text>
-    <g transform="translate(12, 50)" font-family="Segoe UI, sans-serif" font-size="11" fill="#475569">
-      <text y="16" font-weight="bold" fill="#0f172a">&bull; OpenAlex API</text>
-      <text y="32">Academic corpus</text>
-      <text y="58" font-weight="bold" fill="#0f172a">&bull; Grey Literature:</text>
-      <text y="74">ALNAP reports</text>
-      <text y="90">ReliefWeb</text>
-      <text y="106">World Bank OKR</text>
-      <rect y="125" width="126" height="50" fill="#f1f5f9" rx="4" />
-      <text x="63" y="145" font-size="9.5" fill="#64748b" text-anchor="middle">Continuous automated</text>
-      <text x="63" y="162" font-size="9.5" fill="#64748b" text-anchor="middle">keyword triggers</text>
+  <!-- Step 1: Harvester -->
+  <g transform="translate(35, 105)" filter="url(#shadow)">
+    <rect width="170" height="280" fill="#ffffff" stroke="#cbd5e1" rx="8" />
+    <rect width="170" height="38" fill="#1e293b" rx="8" />
+    <rect width="170" height="10" y="28" fill="#1e293b" />
+    <text x="85" y="25" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">1. API Harvester</text>
+    <g transform="translate(14, 55)" font-family="Segoe UI, sans-serif" font-size="13" fill="#475569">
+      <text y="18" font-weight="bold" fill="#0f172a">&bull; OpenAlex API</text>
+      <text y="36">Academic corpus</text>
+      <text y="68" font-weight="bold" fill="#0f172a">&bull; Grey Literature:</text>
+      <text y="88">ALNAP reports</text>
+      <text y="106">ReliefWeb</text>
+      <text y="124">World Bank OKR</text>
+      <rect y="150" width="142" height="55" fill="#f1f5f9" rx="6" />
+      <text x="71" y="174" font-size="11.5" fill="#475569" text-anchor="middle">Automated keyword</text>
+      <text x="71" y="192" font-size="11.5" fill="#475569" text-anchor="middle">&amp; taxonomy triggers</text>
     </g>
   </g>
 
-  <line x1="190" y1="240" x2="225" y2="240" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="205" y1="245" x2="235" y2="245" stroke="#64748b" stroke-width="2.5" marker-end="url(#arrow)" />
 
-  <!-- Step 2: Semantic Filtering -->
-  <g transform="translate(230, 110)" filter="url(#shadow)">
-    <rect width="150" height="260" fill="#ffffff" stroke="#cbd5e1" rx="8" />
-    <rect width="150" height="34" fill="#1e3a8a" rx="8" />
-    <rect width="150" height="10" y="24" fill="#1e3a8a" />
-    <text x="75" y="22" font-family="Segoe UI, sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">2. Filter Engine</text>
-    <g transform="translate(12, 50)" font-family="Segoe UI, sans-serif" font-size="11" fill="#475569">
-      <text y="16" font-weight="bold" fill="#0f172a">&bull; Geographic Tag</text>
-      <text y="32">Somalia, Sudan...</text>
-      <text y="58" font-weight="bold" fill="#0f172a">&bull; Hazard Vector</text>
-      <text y="74">Drought, flood, war</text>
-      <text y="100" font-weight="bold" fill="#0f172a">&bull; Program Type</text>
-      <text y="116">Cash, food, insurance</text>
-      <rect y="135" width="126" height="40" fill="#eff6ff" rx="4" />
-      <text x="63" y="152" font-size="9.5" font-weight="bold" fill="#1e40af" text-anchor="middle">Embedding similarity</text>
-      <text x="63" y="168" font-size="9.5" fill="#1e40af" text-anchor="middle">relevance score</text>
+  <!-- Step 2: Semantic Filter -->
+  <g transform="translate(235, 105)" filter="url(#shadow)">
+    <rect width="170" height="280" fill="#ffffff" stroke="#cbd5e1" rx="8" />
+    <rect width="170" height="38" fill="#1e3a8a" rx="8" />
+    <rect width="170" height="10" y="28" fill="#1e3a8a" />
+    <text x="85" y="25" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">2. Filter Engine</text>
+    <g transform="translate(14, 55)" font-family="Segoe UI, sans-serif" font-size="13" fill="#475569">
+      <text y="18" font-weight="bold" fill="#0f172a">&bull; Geographic Tag</text>
+      <text y="36">Somalia, Sudan...</text>
+      <text y="68" font-weight="bold" fill="#0f172a">&bull; Hazard Vector</text>
+      <text y="88">Drought, flood, war</text>
+      <text y="118" font-weight="bold" fill="#0f172a">&bull; Program Type</text>
+      <text y="136">Cash, food, insurance</text>
+      <rect y="155" width="142" height="50" fill="#eff6ff" rx="6" />
+      <text x="71" y="176" font-size="11.5" font-weight="bold" fill="#1e40af" text-anchor="middle">Embedding similarity</text>
+      <text x="71" y="194" font-size="11.5" fill="#1e40af" text-anchor="middle">relevance score</text>
     </g>
   </g>
 
-  <line x1="380" y1="240" x2="415" y2="240" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="405" y1="245" x2="435" y2="245" stroke="#64748b" stroke-width="2.5" marker-end="url(#arrow)" />
 
   <!-- Step 3: Citation Snowball -->
-  <g transform="translate(420, 110)" filter="url(#shadow)">
-    <rect width="150" height="260" fill="#ffffff" stroke="#cbd5e1" rx="8" />
-    <rect width="150" height="34" fill="#0f766e" rx="8" />
-    <rect width="150" height="10" y="24" fill="#0f766e" />
-    <text x="75" y="22" font-family="Segoe UI, sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">3. Snowball Graph</text>
-    <g transform="translate(12, 50)" font-family="Segoe UI, sans-serif" font-size="11" fill="#475569">
-      <text y="16" font-weight="bold" fill="#0f172a">&bull; Backward Tracing</text>
-      <text y="32">Ingests cited trials</text>
-      <text y="58" font-weight="bold" fill="#0f172a">&bull; Forward Tracing</text>
-      <text y="74">Captures replications</text>
-      <text y="100" font-weight="bold" fill="#0f172a">&bull; Co-authorship</text>
-      <text y="116">Follows research hubs</text>
-      <rect y="135" width="126" height="40" fill="#f0fdfa" rx="4" />
-      <text x="63" y="152" font-size="9.5" font-weight="bold" fill="#0f766e" text-anchor="middle">Discovers unindexed</text>
-      <text x="63" y="168" font-size="9.5" fill="#0f766e" text-anchor="middle">evaluation reports</text>
+  <g transform="translate(435, 105)" filter="url(#shadow)">
+    <rect width="170" height="280" fill="#ffffff" stroke="#cbd5e1" rx="8" />
+    <rect width="170" height="38" fill="#0f766e" rx="8" />
+    <rect width="170" height="10" y="28" fill="#0f766e" />
+    <text x="85" y="25" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">3. Snowball Graph</text>
+    <g transform="translate(14, 55)" font-family="Segoe UI, sans-serif" font-size="13" fill="#475569">
+      <text y="18" font-weight="bold" fill="#0f172a">&bull; Backward Trace</text>
+      <text y="36">Ingests cited trials</text>
+      <text y="68" font-weight="bold" fill="#0f172a">&bull; Forward Trace</text>
+      <text y="88">Captures replications</text>
+      <text y="118" font-weight="bold" fill="#0f172a">&bull; Co-authorship</text>
+      <text y="136">Traces research hubs</text>
+      <rect y="155" width="142" height="50" fill="#f0fdfa" rx="6" />
+      <text x="71" y="176" font-size="11.5" font-weight="bold" fill="#0f766e" text-anchor="middle">Discovers unindexed</text>
+      <text x="71" y="194" font-size="11.5" fill="#0f766e" text-anchor="middle">evaluations</text>
     </g>
   </g>
 
-  <line x1="570" y1="240" x2="605" y2="240" stroke="#059669" stroke-width="2" marker-end="url(#arrow-emerald)" />
+  <line x1="605" y1="245" x2="635" y2="245" stroke="#059669" stroke-width="2.5" marker-end="url(#arrow-emerald)" />
 
   <!-- Step 4: Standalone Usable Outputs -->
-  <g transform="translate(610, 110)" filter="url(#shadow)">
-    <rect width="150" height="260" fill="#ecfdf5" stroke="#059669" stroke-width="2" rx="8" />
-    <rect width="150" height="34" fill="#059669" rx="8" />
-    <rect width="150" height="10" y="24" fill="#059669" />
-    <text x="75" y="22" font-family="Segoe UI, sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">4. Usable Outputs</text>
-    <g transform="translate(12, 50)" font-family="Segoe UI, sans-serif" font-size="11" fill="#065f46">
-      <text y="16" font-weight="bold">&bull; Literature Review</text>
-      <text y="32">Formatted Markdown</text>
-      <text y="48">ready for publication</text>
-      <text y="74" font-weight="bold">&bull; Search Manifest</text>
-      <text y="90">Machine-readable</text>
-      <text y="106">references.yaml</text>
-      <rect y="125" width="126" height="50" fill="#ffffff" stroke="#a7f3d0" rx="4" />
-      <text x="63" y="145" font-size="9.5" font-weight="bold" fill="#047857" text-anchor="middle">&#x2713; Immediate utility</text>
-      <text x="63" y="162" font-size="9.5" fill="#047857" text-anchor="middle">for practitioners</text>
+  <g transform="translate(635, 105)" filter="url(#shadow)">
+    <rect width="170" height="280" fill="#ecfdf5" stroke="#059669" stroke-width="2.5" rx="8" />
+    <rect width="170" height="38" fill="#059669" rx="8" />
+    <rect width="170" height="10" y="28" fill="#059669" />
+    <text x="85" y="25" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#ffffff" text-anchor="middle">4. Usable Outputs</text>
+    <g transform="translate(14, 55)" font-family="Segoe UI, sans-serif" font-size="13" fill="#065f46">
+      <text y="18" font-weight="bold">&bull; Literature Review</text>
+      <text y="36">Formatted Markdown</text>
+      <text y="54">ready to publish</text>
+      <text y="88" font-weight="bold">&bull; Search Manifest</text>
+      <text y="106">Machine-readable</text>
+      <text y="124">references.yaml</text>
+      <rect y="150" width="142" height="55" fill="#ffffff" stroke="#a7f3d0" rx="6" />
+      <text x="71" y="174" font-size="11.5" font-weight="bold" fill="#047857" text-anchor="middle">&#x2713; Immediate utility</text>
+      <text x="71" y="192" font-size="11.5" fill="#047857" text-anchor="middle">for practitioners</text>
     </g>
   </g>
 
   <!-- Bottom Card -->
-  <g transform="translate(40, 395)" filter="url(#shadow)">
-    <rect width="720" height="120" fill="#ffffff" stroke="#e2e8f0" rx="8" />
-    <text x="360" y="28" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#0f172a" text-anchor="middle">Direct Value to Humanitarian Planning</text>
-    <text x="360" y="52" font-family="Segoe UI, sans-serif" font-size="12" fill="#475569" text-anchor="middle">Instead of spending 6 months in library searches, a response team generates a verified, structured literature digest in minutes,</text>
-    <text x="360" y="72" font-family="Segoe UI, sans-serif" font-size="12" fill="#475569" text-anchor="middle">instantly identifying what has been tried in similar contexts and what risks were reported.</text>
-    <rect x="250" y="85" width="220" height="22" fill="#ecfdf5" rx="4" />
-    <text x="360" y="100" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="bold" fill="#047857" text-anchor="middle">Feeds directly into 3ie Taxonomy &amp; Gap Analysis</text>
+  <g transform="translate(35, 410)" filter="url(#shadow)">
+    <rect width="770" height="125" fill="#ffffff" stroke="#e2e8f0" rx="8" />
+    <text x="385" y="30" font-family="Segoe UI, sans-serif" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Direct Value to Humanitarian Planning</text>
+    <text x="385" y="58" font-family="Segoe UI, sans-serif" font-size="13.5" fill="#475569" text-anchor="middle">Instead of spending 6 months in library searches, a response team generates a verified, structured literature digest in minutes,</text>
+    <text x="385" y="80" font-family="Segoe UI, sans-serif" font-size="13.5" fill="#475569" text-anchor="middle">instantly identifying what has been tried in similar contexts and what risks were reported.</text>
+    <rect x="260" y="94" width="250" height="24" fill="#ecfdf5" rx="4" />
+    <text x="385" y="110" font-family="Segoe UI, sans-serif" font-size="12" font-weight="bold" fill="#047857" text-anchor="middle">Feeds directly into 3ie Taxonomy &amp; Gap Analysis</text>
   </g>
 </svg>

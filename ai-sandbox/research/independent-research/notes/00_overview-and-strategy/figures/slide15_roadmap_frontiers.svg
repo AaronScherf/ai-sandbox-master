@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 550" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 560" width="100%" height="100%">
 
   <defs>
     <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.08" />
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.10" />
     </filter>
     <filter id="glow-red" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ef4444" flood-opacity="0.3" />
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ef4444" flood-opacity="0.35" />
     </filter>
     <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#475569" />
@@ -21,86 +21,86 @@
     </marker>
   </defs>
 
-  <rect width="800" height="550" fill="#f8fafc" rx="12" />
-  <text x="400" y="42" font-family="Segoe UI, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="middle">Research Frontiers &amp; Year 1 Milestone Roadmap</text>
-  <text x="400" y="68" font-family="Segoe UI, sans-serif" font-size="13" fill="#64748b" text-anchor="middle">Advancing from Technical Proof-of-Concept to Working Paper &amp; Seminar Presentation</text>
+  <rect width="840" height="560" fill="#f8fafc" rx="12" />
+  <text x="420" y="44" font-family="Segoe UI, sans-serif" font-size="24" font-weight="bold" fill="#0f172a" text-anchor="middle">Research Frontiers &amp; Year 1 Milestone Roadmap</text>
+  <text x="420" y="72" font-family="Segoe UI, sans-serif" font-size="15" fill="#475569" text-anchor="middle">Advancing from Technical Proof-of-Concept to Working Paper &amp; Seminar Presentation</text>
 
   <!-- Horizontal Timeline Bar -->
-  <line x1="80" y1="160" x2="720" y2="160" stroke="#cbd5e1" stroke-width="4" />
+  <line x1="70" y1="170" x2="770" y2="170" stroke="#cbd5e1" stroke-width="4" />
   
   <!-- Milestone 1: Nov 2026 (Now) -->
-  <g transform="translate(100, 120)">
-    <circle cx="20" cy="40" r="16" fill="#2563eb" stroke="#ffffff" stroke-width="3" />
-    <text x="20" y="45" font-family="Segoe UI, sans-serif" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">1</text>
-    <text x="20" y="10" font-family="Segoe UI, sans-serif" font-size="12" font-weight="bold" fill="#2563eb" text-anchor="middle">Nov 2026 (Current)</text>
+  <g transform="translate(90, 125)">
+    <circle cx="20" cy="45" r="18" fill="#2563eb" stroke="#ffffff" stroke-width="3" />
+    <text x="20" y="51" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">1</text>
+    <text x="20" y="12" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#2563eb" text-anchor="middle">Nov 2026 (Now)</text>
     
-    <rect x="-40" y="75" width="120" height="110" fill="#ffffff" stroke="#93c5fd" rx="6" filter="url(#shadow)" />
-    <text x="20" y="95" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="bold" fill="#1e3a8a" text-anchor="middle">Foundations</text>
-    <text x="-30" y="115" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#475569">&bull; CI hash builds pass</text>
-    <text x="-30" y="132" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#475569">&bull; reprokit v0.4.0 live</text>
-    <text x="-30" y="150" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#475569">&bull; SusDev Brownbag</text>
-    <text x="-30" y="168" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#475569">&bull; Geolocation audit</text>
+    <rect x="-60" y="80" width="160" height="125" fill="#ffffff" stroke="#93c5fd" stroke-width="1.8" rx="8" filter="url(#shadow)" />
+    <text x="20" y="104" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#1e3a8a" text-anchor="middle">Foundations</text>
+    <text x="-48" y="126" font-family="Segoe UI, sans-serif" font-size="12" fill="#475569">&bull; Case study replication</text>
+    <text x="-48" y="146" font-family="Segoe UI, sans-serif" font-size="12" fill="#475569">&bull; reprokit v0.4.0 live</text>
+    <text x="-48" y="166" font-family="Segoe UI, sans-serif" font-size="12" fill="#475569">&bull; SusDev Brownbag</text>
+    <text x="-48" y="186" font-family="Segoe UI, sans-serif" font-size="12" fill="#475569">&bull; Geolocation data audit</text>
   </g>
 
-  <!-- Milestone 2: Dec 2026 -->
-  <g transform="translate(280, 120)">
-    <circle cx="20" cy="40" r="16" fill="#0f766e" stroke="#ffffff" stroke-width="3" />
-    <text x="20" y="45" font-family="Segoe UI, sans-serif" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">2</text>
-    <text x="20" y="10" font-family="Segoe UI, sans-serif" font-size="12" font-weight="bold" fill="#0f766e" text-anchor="middle">Dec 2026</text>
+  <!-- Milestone 2: Spring 2027 -->
+  <g transform="translate(290, 125)">
+    <circle cx="20" cy="45" r="18" fill="#0f766e" stroke="#ffffff" stroke-width="3" />
+    <text x="20" y="51" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">2</text>
+    <text x="20" y="12" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#0f766e" text-anchor="middle">Spring 2027</text>
     
-    <rect x="-40" y="75" width="120" height="110" fill="#ffffff" stroke="#99f6e4" rx="6" filter="url(#shadow)" />
-    <text x="20" y="95" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="bold" fill="#0f766e" text-anchor="middle">Evidence Scaling</text>
-    <text x="-30" y="115" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#475569">&bull; Armenia pilot review</text>
-    <text x="-30" y="132" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#475569">&bull; 3ie taxonomy scale</text>
-    <text x="-30" y="150" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#475569">&bull; OpenAlex API sweep</text>
-    <text x="-30" y="168" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#475569">&bull; Author data outreach</text>
+    <rect x="-60" y="80" width="160" height="125" fill="#ffffff" stroke="#99f6e4" stroke-width="1.8" rx="8" filter="url(#shadow)" />
+    <text x="20" y="104" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#0f766e" text-anchor="middle">Evidence Scaling</text>
+    <text x="-48" y="126" font-family="Segoe UI, sans-serif" font-size="12" fill="#475569">&bull; 2x2 matrix synthesis</text>
+    <text x="-48" y="146" font-family="Segoe UI, sans-serif" font-size="12" fill="#475569">&bull; OpenAlex API sweep</text>
+    <text x="-48" y="166" font-family="Segoe UI, sans-serif" font-size="12" fill="#065f46" font-weight="bold">&bull; SusDev Seminar Talk</text>
+    <text x="-48" y="186" font-family="Segoe UI, sans-serif" font-size="12" fill="#065f46" font-weight="bold">&bull; Working Paper 1</text>
   </g>
 
-  <!-- Milestone 3: Jan-Feb 2027 -->
-  <g transform="translate(460, 120)">
-    <circle cx="20" cy="40" r="16" fill="#4338ca" stroke="#ffffff" stroke-width="3" />
-    <text x="20" y="45" font-family="Segoe UI, sans-serif" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">3</text>
-    <text x="20" y="10" font-family="Segoe UI, sans-serif" font-size="12" font-weight="bold" fill="#4338ca" text-anchor="middle">Jan &ndash; Feb 2027</text>
+  <!-- Milestone 3: Summer 2027 -->
+  <g transform="translate(490, 125)">
+    <circle cx="20" cy="45" r="18" fill="#4338ca" stroke="#ffffff" stroke-width="3" />
+    <text x="20" y="51" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">3</text>
+    <text x="20" y="12" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#4338ca" text-anchor="middle">Summer 2027</text>
     
-    <rect x="-40" y="75" width="120" height="110" fill="#ffffff" stroke="#c7d2fe" rx="6" filter="url(#shadow)" />
-    <text x="20" y="95" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="bold" fill="#4338ca" text-anchor="middle">Transport Models</text>
-    <text x="-30" y="115" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#475569">&bull; Bayesian updating run</text>
-    <text x="-30" y="132" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#475569">&bull; Synthetic donor pool</text>
-    <text x="-30" y="150" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#475569">&bull; Fusion library v1.0</text>
-    <text x="-30" y="168" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#475569">&bull; Layering simulation</text>
+    <rect x="-60" y="80" width="160" height="125" fill="#ffffff" stroke="#c7d2fe" stroke-width="1.8" rx="8" filter="url(#shadow)" />
+    <text x="20" y="104" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#4338ca" text-anchor="middle">Transport Models</text>
+    <text x="-48" y="126" font-family="Segoe UI, sans-serif" font-size="12" fill="#475569">&bull; Formal transport model</text>
+    <text x="-48" y="146" font-family="Segoe UI, sans-serif" font-size="12" fill="#475569">&bull; Covariate shift checks</text>
+    <text x="-48" y="166" font-family="Segoe UI, sans-serif" font-size="12" fill="#475569">&bull; DAG break formalization</text>
+    <text x="-48" y="186" font-family="Segoe UI, sans-serif" font-size="12" fill="#475569">&bull; Multi-trial weighting</text>
   </g>
 
-  <!-- Milestone 4: Spring 2027 -->
-  <g transform="translate(640, 120)">
-    <circle cx="20" cy="40" r="16" fill="#047857" stroke="#ffffff" stroke-width="3" />
-    <text x="20" y="45" font-family="Segoe UI, sans-serif" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">4</text>
-    <text x="20" y="10" font-family="Segoe UI, sans-serif" font-size="12" font-weight="bold" fill="#047857" text-anchor="middle">Spring 2027</text>
+  <!-- Milestone 4: Fall 2027 -->
+  <g transform="translate(690, 125)">
+    <circle cx="20" cy="45" r="18" fill="#047857" stroke="#ffffff" stroke-width="3" />
+    <text x="20" y="51" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">4</text>
+    <text x="20" y="12" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#047857" text-anchor="middle">Fall 2027</text>
     
-    <rect x="-40" y="75" width="120" height="110" fill="#ecfdf5" stroke="#047857" stroke-width="2" rx="6" filter="url(#shadow)" />
-    <text x="20" y="95" font-family="Segoe UI, sans-serif" font-size="10.5" font-weight="bold" fill="#047857" text-anchor="middle">Flagship Delivery</text>
-    <text x="-30" y="115" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#065f46">&bull; Flagship Working Paper</text>
-    <text x="-30" y="132" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#065f46">&bull; SusDev Seminar Talk</text>
-    <text x="-30" y="150" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#065f46">&bull; Public Open-Source</text>
-    <text x="-30" y="168" font-family="Segoe UI, sans-serif" font-size="9.5" fill="#065f46">&bull; Advisor alignment</text>
+    <rect x="-60" y="80" width="160" height="125" fill="#ecfdf5" stroke="#047857" stroke-width="2.5" rx="8" filter="url(#shadow)" />
+    <text x="20" y="104" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#047857" text-anchor="middle">Applied Testbed</text>
+    <text x="-48" y="126" font-family="Segoe UI, sans-serif" font-size="12" fill="#065f46">&bull; Simulation exercise</text>
+    <text x="-48" y="146" font-family="Segoe UI, sans-serif" font-size="12" fill="#065f46">&bull; Field crisis evaluation</text>
+    <text x="-48" y="166" font-family="Segoe UI, sans-serif" font-size="12" fill="#065f46">&bull; Public open source</text>
+    <text x="-48" y="186" font-family="Segoe UI, sans-serif" font-size="12" fill="#065f46">&bull; Decision tool release</text>
   </g>
 
   <!-- Bottom Core Frontiers Card -->
-  <g transform="translate(60, 340)" filter="url(#shadow)">
-    <rect width="680" height="180" fill="#ffffff" stroke="#cbd5e1" rx="8" />
-    <text x="340" y="28" font-family="Segoe UI, sans-serif" font-size="14" font-weight="bold" fill="#0f172a" text-anchor="middle">Core Theoretical &amp; Empirical Frontiers Ahead</text>
+  <g transform="translate(45, 345)" filter="url(#shadow)">
+    <rect width="750" height="190" fill="#ffffff" stroke="#cbd5e1" rx="10" />
+    <text x="375" y="32" font-family="Segoe UI, sans-serif" font-size="16" font-weight="bold" fill="#0f172a" text-anchor="middle">Core Theoretical &amp; Empirical Frontiers Ahead</text>
     
-    <g transform="translate(30, 50)" font-family="Segoe UI, sans-serif" font-size="11.5" fill="#334155">
-      <circle cx="5" cy="10" r="4" fill="#2563eb" />
-      <text x="20" y="14" font-weight="bold" fill="#0f172a">Intervention Combining &amp; Layering:</text>
-      <text x="20" y="30" fill="#64748b">Modeling positive complementarities when multiple interventions (cash + food + insurance) are deployed together.</text>
+    <g transform="translate(30, 54)" font-family="Segoe UI, sans-serif" font-size="13.5" fill="#334155">
+      <circle cx="6" cy="12" r="5" fill="#2563eb" />
+      <text x="24" y="17" font-weight="bold" fill="#0f172a">Intervention Combining &amp; Layering:</text>
+      <text x="24" y="36" fill="#64748b">Modeling positive complementarities when multiple interventions (cash + food + insurance) are deployed together.</text>
 
-      <circle cx="5" cy="55" r="4" fill="#0f766e" />
-      <text x="20" y="59" font-weight="bold" fill="#0f172a">Displacement &amp; Human Mobility Dynamics:</text>
-      <text x="20" y="75" fill="#64748b">Treating forced migration not as an error term, but as an endogenous outcome (evacuation vs. entrapment under siege).</text>
+      <circle cx="6" cy="62" r="5" fill="#0f766e" />
+      <text x="24" y="67" font-weight="bold" fill="#0f172a">Displacement &amp; Human Mobility Dynamics:</text>
+      <text x="24" y="86" fill="#64748b">Treating forced migration not as an error term, but as an endogenous outcome (evacuation vs. entrapment under siege).</text>
 
-      <circle cx="5" cy="100" r="4" fill="#4338ca" />
-      <text x="20" y="104" font-weight="bold" fill="#0f172a">Subnational Spatial Resolution Limits:</text>
-      <text x="20" y="120" fill="#64748b">Testing how finely conflict point events and displacement vectors can be resolved below Admin-2 to match trial clusters.</text>
+      <circle cx="6" cy="112" r="5" fill="#4338ca" />
+      <text x="24" y="117" font-weight="bold" fill="#0f172a">Subnational Spatial Resolution Limits:</text>
+      <text x="24" y="136" fill="#64748b">Testing how finely conflict point events and displacement vectors can be resolved below Admin-2 to match trial clusters.</text>
     </g>
   </g>
 </svg>

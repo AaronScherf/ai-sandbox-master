@@ -34,22 +34,20 @@ def convert_md_to_html(text):
     # Process classes like <!-- _class: lead -->
     text = re.sub(r'<!--\s*_class:\s*\w+\s*-->', '', text)
     
-    # Headers
+    # LaTeX replacements
+    text = text.replace(r'$\rightarrow$', '&rarr;')
+    text = text.replace(r'\rightarrow', '&rarr;')
+    text = text.replace(r'&rarr;', '&rarr;')
+    text = text.replace(r'\times', '&times;')
+    text = text.replace(r'\Delta', '&Delta;')
+    text = text.replace(r'\sigma', '&sigma;')
+
+    # Headers (multiline before bullet lists)
     text = re.sub(r'^# (.*?)$', r'<h1>\1</h1>', text, flags=re.MULTILINE)
     text = re.sub(r'^## (.*?)$', r'<h2>\1</h2>', text, flags=re.MULTILINE)
     text = re.sub(r'^### (.*?)$', r'<h3>\1</h3>', text, flags=re.MULTILINE)
     
-    # Bold & Italic
-    text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
-    text = re.sub(r'\*(.*?)\*', r'<em>\1</em>', text)
-    
-    # Inline code
-    text = re.sub(r'`(.*?)`', r'<code>\1</code>', text)
-    
-    # Links
-    text = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2">\1</a>', text)
-    
-    # Bullet points: convert lines starting with * or - into lists
+    # Bullet points: convert lines starting with * or - into lists BEFORE bold/italic processing
     lines = text.split('\n')
     new_lines = []
     in_list = False
@@ -63,7 +61,7 @@ def convert_md_to_html(text):
             item = stripped[2:]
             if indent >= 2:
                 if not in_nested_list:
-                    new_lines.append('<ul style="margin-top: 2px; margin-bottom: 4px; padding-left: 20px;">')
+                    new_lines.append('<ul style="margin-top: 3px; margin-bottom: 5px; padding-left: 22px;">')
                     in_nested_list = True
                 new_lines.append(f'<li>{item}</li>')
             else:
@@ -71,7 +69,7 @@ def convert_md_to_html(text):
                     new_lines.append('</ul>')
                     in_nested_list = False
                 if not in_list:
-                    new_lines.append('<ul style="margin-top: 4px; margin-bottom: 6px; padding-left: 20px;">')
+                    new_lines.append('<ul style="margin-top: 4px; margin-bottom: 6px; padding-left: 22px;">')
                     in_list = True
                 new_lines.append(f'<li>{item}</li>')
         else:
@@ -88,8 +86,19 @@ def convert_md_to_html(text):
     if in_list:
         new_lines.append('</ul>')
         
-    html_body = '\n'.join(new_lines)
-    return html_body, notes
+    text = '\n'.join(new_lines)
+
+    # Bold & Italic (applied after bullet markers are consumed)
+    text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
+    text = re.sub(r'\*(.*?)\*', r'<em>\1</em>', text)
+    
+    # Inline code
+    text = re.sub(r'`(.*?)`', r'<code>\1</code>', text)
+    
+    # Links
+    text = re.sub(r'\[(.*?)\]\((.*?)\)', r'<a href="\2">\1</a>', text)
+    
+    return text, notes
 
 # Convert all slides
 slides_html = []
@@ -117,15 +126,14 @@ for idx, st in enumerate(slide_texts):
             
             # Scope IDs per slide to prevent cross-slide ID collisions in multi-page DOM
             prefix = f"s{slide_num}_"
-            # Find all IDs
             ids = set(re.findall(r'id=[\'"]([^\'"]+)[\'"]', svg_code))
             for eid in ids:
                 svg_code = svg_code.replace(f'id="{eid}"', f'id="{prefix}{eid}"')
                 svg_code = svg_code.replace(f'url(#{eid})', f'url(#{prefix}{eid})')
                 svg_code = svg_code.replace(f'href="#{eid}"', f'href="#{prefix}{eid}"')
             
-            # Apply styling directly to inline <svg>
-            svg_style = 'width: 100%; height: auto; max-height: 490px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); margin-top: 5px; display: block;'
+            # Apply styling directly to inline <svg> with generous height to minimize whitespace
+            svg_style = 'width: 100%; height: auto; max-height: 570px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.12); margin-top: 4px; display: block;'
             if 'style="' in svg_code[:300]:
                 svg_code = re.sub(r'style="[^"]*"', f'style="{svg_style}"', svg_code, count=1)
             else:
@@ -181,7 +189,7 @@ full_html = f"""<!DOCTYPE html>
       width: 16in;
       height: 9in;
       background: #ffffff;
-      padding: 42px 56px 36px 56px;
+      padding: 34px 52px 28px 52px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -196,27 +204,28 @@ full_html = f"""<!DOCTYPE html>
       flex: 1;
       display: flex;
       flex-direction: column;
+      justify-content: flex-start;
     }}
     h1 {{
       color: #0f172a;
-      font-size: 32px;
+      font-size: 36px;
       margin-top: 0;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       border-bottom: 2px solid #e2e8f0;
-      padding-bottom: 8px;
+      padding-bottom: 6px;
       font-weight: 700;
       letter-spacing: -0.01em;
     }}
     h2 {{
       color: #1e3a8a;
-      font-size: 23px;
+      font-size: 24px;
       margin-top: 0;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       font-weight: 600;
     }}
     p, li {{
-      font-size: 17.5px;
-      line-height: 1.45;
+      font-size: 19.5px;
+      line-height: 1.48;
       color: #334155;
     }}
     li {{
@@ -239,8 +248,8 @@ full_html = f"""<!DOCTYPE html>
     }}
     .columns {{
       display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 36px;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
       align-items: start;
       flex: 1;
       margin-top: 4px;
@@ -249,8 +258,8 @@ full_html = f"""<!DOCTYPE html>
       display: inline-block;
       background: #e0e7ff;
       color: #3730a3;
-      font-size: 13px;
-      padding: 2px 8px;
+      font-size: 14px;
+      padding: 2px 9px;
       border-radius: 12px;
       font-weight: 600;
       text-transform: uppercase;
@@ -260,11 +269,11 @@ full_html = f"""<!DOCTYPE html>
     .slide-footer {{
       display: flex;
       justify-content: space-between;
-      font-size: 12px;
+      font-size: 13px;
       color: #94a3b8;
       border-top: 1px solid #f1f5f9;
-      padding-top: 10px;
-      margin-top: 10px;
+      padding-top: 8px;
+      margin-top: 8px;
     }}
     @media print {{
       body {{

@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 580" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 580" width="100%" height="100%">
 
   <defs>
     <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.08" />
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.10" />
     </filter>
     <filter id="glow-red" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ef4444" flood-opacity="0.3" />
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ef4444" flood-opacity="0.35" />
     </filter>
     <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#475569" />
@@ -21,91 +21,91 @@
     </marker>
   </defs>
 
-  <rect width="800" height="580" fill="#f8fafc" rx="12" />
-  <text x="400" y="42" font-family="Segoe UI, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="middle">reprokit Architecture: Standardizing Open Science</text>
-  <text x="400" y="68" font-family="Segoe UI, sans-serif" font-size="13" fill="#64748b" text-anchor="middle">Reproducible by Anyone &bull; Legible to Humans &bull; Scalable by AI Agents</text>
+  <rect width="840" height="580" fill="#f8fafc" rx="12" />
+  <text x="420" y="44" font-family="Segoe UI, sans-serif" font-size="24" font-weight="bold" fill="#0f172a" text-anchor="middle">reprokit Architecture: Standardizing Open Science</text>
+  <text x="420" y="72" font-family="Segoe UI, sans-serif" font-size="15" fill="#475569" text-anchor="middle">Reproducible by Anyone &bull; Legible to Humans &bull; Scalable by AI Agents</text>
 
   <!-- Block 1: Copier Template -->
-  <g transform="translate(40, 110)" filter="url(#shadow)">
-    <rect width="210" height="180" fill="#ffffff" stroke="#cbd5e1" rx="8" />
-    <rect width="210" height="36" fill="#1e293b" rx="8" />
-    <rect width="210" height="10" y="26" fill="#1e293b" />
-    <text x="105" y="23" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">1. Project Templates</text>
-    <g transform="translate(15, 52)" font-family="Segoe UI, sans-serif" font-size="11.5" fill="#334155">
-      <text y="15" font-weight="bold" fill="#0f172a">&bull; study:</text>
-      <text x="50" y="15" fill="#64748b">Empirical panels</text>
-      <text y="40" font-weight="bold" fill="#0f172a">&bull; evidence:</text>
-      <text x="65" y="40" fill="#64748b">Taxonomy maps</text>
-      <text y="65" font-weight="bold" fill="#0f172a">&bull; library:</text>
-      <text x="50" y="65" fill="#64748b">Analytics tools</text>
-      <rect y="82" width="180" height="26" fill="#f1f5f9" rx="4" />
-      <text x="90" y="99" font-family="monospace" font-size="10.5" fill="#047857" text-anchor="middle">copier copy template</text>
+  <g transform="translate(35, 105)" filter="url(#shadow)">
+    <rect width="230" height="200" fill="#ffffff" stroke="#cbd5e1" rx="8" />
+    <rect width="230" height="40" fill="#1e293b" rx="8" />
+    <rect width="230" height="10" y="30" fill="#1e293b" />
+    <text x="115" y="26" font-family="Segoe UI, sans-serif" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">1. Project Templates</text>
+    <g transform="translate(18, 60)" font-family="Segoe UI, sans-serif" font-size="14" fill="#334155">
+      <text y="16" font-weight="bold" fill="#0f172a">&bull; study:</text>
+      <text x="60" y="16" fill="#64748b">Empirical panels</text>
+      <text y="44" font-weight="bold" fill="#0f172a">&bull; evidence:</text>
+      <text x="75" y="44" fill="#64748b">Taxonomy maps</text>
+      <text y="72" font-weight="bold" fill="#0f172a">&bull; library:</text>
+      <text x="60" y="72" fill="#64748b">Analytics tools</text>
+      <rect y="92" width="194" height="32" fill="#f1f5f9" rx="4" />
+      <text x="97" y="113" font-family="monospace" font-size="12.5" font-weight="bold" fill="#047857" text-anchor="middle">copier copy template</text>
     </g>
   </g>
 
   <!-- Arrow 1 -> 2 -->
-  <line x1="250" y1="200" x2="285" y2="200" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="265" y1="205" x2="305" y2="205" stroke="#64748b" stroke-width="2.5" marker-end="url(#arrow)" />
 
   <!-- Block 2: Dual Interface -->
-  <g transform="translate(295, 110)" filter="url(#shadow)">
-    <rect width="210" height="180" fill="#ffffff" stroke="#3b82f6" stroke-width="2" rx="8" />
-    <rect width="210" height="36" fill="#2563eb" rx="8" />
-    <rect width="210" height="10" y="26" fill="#2563eb" />
-    <text x="105" y="23" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">2. Dual Interface</text>
-    <g transform="translate(15, 52)" font-family="Segoe UI, sans-serif" font-size="11.5" fill="#334155">
-      <text y="15" font-weight="bold" fill="#1e40af">&#x1F464; For Humans:</text>
-      <text y="32" font-size="10.5" fill="#64748b">Clear README &amp; protocol.md</text>
+  <g transform="translate(305, 105)" filter="url(#shadow)">
+    <rect width="230" height="200" fill="#ffffff" stroke="#3b82f6" stroke-width="2.5" rx="8" />
+    <rect width="230" height="40" fill="#2563eb" rx="8" />
+    <rect width="230" height="10" y="30" fill="#2563eb" />
+    <text x="115" y="26" font-family="Segoe UI, sans-serif" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">2. Dual Interface</text>
+    <g transform="translate(18, 60)" font-family="Segoe UI, sans-serif" font-size="14" fill="#334155">
+      <text y="16" font-weight="bold" fill="#1e40af">&#x1F464; For Humans:</text>
+      <text y="36" font-size="12.5" fill="#64748b">Clear README &amp; protocol.md</text>
       
-      <text y="60" font-weight="bold" fill="#059669">&#x1F916; For AI Agents:</text>
-      <text y="77" font-size="10.5" fill="#64748b">AGENTS.md + project.yaml</text>
+      <text y="70" font-weight="bold" fill="#059669">&#x1F916; For AI Agents:</text>
+      <text y="90" font-size="12.5" fill="#64748b">AGENTS.md + project.yaml</text>
       
-      <rect y="92" width="180" height="24" fill="#eff6ff" rx="4" />
-      <text x="90" y="108" font-size="10" font-weight="bold" fill="#2563eb" text-anchor="middle">Audit at machine scale</text>
+      <rect y="104" width="194" height="28" fill="#eff6ff" rx="4" />
+      <text x="97" y="123" font-size="12" font-weight="bold" fill="#2563eb" text-anchor="middle">Audit at machine scale</text>
     </g>
   </g>
 
   <!-- Arrow 2 -> 3 -->
-  <line x1="505" y1="200" x2="540" y2="200" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="535" y1="205" x2="575" y2="205" stroke="#64748b" stroke-width="2.5" marker-end="url(#arrow)" />
 
   <!-- Block 3: Verification Engine -->
-  <g transform="translate(550, 110)" filter="url(#shadow)">
-    <rect width="210" height="180" fill="#ffffff" stroke="#cbd5e1" rx="8" />
-    <rect width="210" height="36" fill="#0f172a" rx="8" />
-    <rect width="210" height="10" y="26" fill="#0f172a" />
-    <text x="105" y="23" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">3. Verification Engine</text>
-    <g transform="translate(15, 52)" font-family="Segoe UI, sans-serif" font-size="11.5" fill="#334155">
-      <text y="15" font-weight="bold" fill="#0f172a">&bull; SHA-256 Hashes:</text>
-      <text y="32" font-size="10" fill="#64748b">Pinned raw inputs &amp; outputs</text>
-      <text y="55" font-weight="bold" fill="#0f172a">&bull; CI Test Harness:</text>
-      <text y="72" font-size="10" fill="#64748b">Automated pytest suite</text>
-      <rect y="86" width="180" height="26" fill="#ecfdf5" rx="4" />
-      <text x="90" y="103" font-size="10.5" font-weight="bold" fill="#047857" text-anchor="middle">&#x2713; Green on Linux &amp; Windows</text>
+  <g transform="translate(575, 105)" filter="url(#shadow)">
+    <rect width="230" height="200" fill="#ffffff" stroke="#cbd5e1" rx="8" />
+    <rect width="230" height="40" fill="#0f172a" rx="8" />
+    <rect width="230" height="10" y="30" fill="#0f172a" />
+    <text x="115" y="26" font-family="Segoe UI, sans-serif" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">3. Verification Engine</text>
+    <g transform="translate(18, 60)" font-family="Segoe UI, sans-serif" font-size="14" fill="#334155">
+      <text y="16" font-weight="bold" fill="#0f172a">&bull; SHA-256 Hashes:</text>
+      <text y="36" font-size="12" fill="#64748b">Pinned raw inputs &amp; outputs</text>
+      <text y="64" font-weight="bold" fill="#0f172a">&bull; CI Test Harness:</text>
+      <text y="84" font-size="12" fill="#64748b">Automated pytest suite</text>
+      <rect y="100" width="194" height="30" fill="#ecfdf5" rx="4" />
+      <text x="97" y="120" font-size="12.5" font-weight="bold" fill="#047857" text-anchor="middle">&#x2713; Green on Linux &amp; Windows</text>
     </g>
   </g>
 
   <!-- Bottom Banner: Portability across crises -->
-  <g transform="translate(40, 325)" filter="url(#shadow)">
-    <rect width="720" height="215" fill="#ffffff" stroke="#e2e8f0" rx="8" />
-    <text x="360" y="32" font-family="Segoe UI, sans-serif" font-size="15" font-weight="bold" fill="#0f172a" text-anchor="middle">Why It Matters: Instant Portability Across Geographies</text>
+  <g transform="translate(35, 335)" filter="url(#shadow)">
+    <rect width="770" height="215" fill="#ffffff" stroke="#e2e8f0" rx="10" />
+    <text x="385" y="34" font-family="Segoe UI, sans-serif" font-size="17" font-weight="bold" fill="#0f172a" text-anchor="middle">Why It Matters: Instant Portability Across Geographies</text>
     
-    <g transform="translate(30, 60)" font-family="Segoe UI, sans-serif" font-size="12" fill="#334155">
-      <rect width="200" height="120" fill="#f8fafc" stroke="#cbd5e1" rx="6" />
-      <text x="100" y="25" font-weight="bold" fill="#1e3a8a" text-anchor="middle">Somalia Pilot</text>
-      <text x="15" y="52" fill="#64748b">&bull; Drought + ACLED + WFP</text>
-      <text x="15" y="74" fill="#64748b">&bull; 100% hash verified on CI</text>
-      <text x="15" y="98" font-weight="bold" fill="#059669">&#x2713; Completed baseline</text>
+    <g transform="translate(25, 60)" font-family="Segoe UI, sans-serif" font-size="13.5" fill="#334155">
+      <rect width="225" height="135" fill="#f8fafc" stroke="#cbd5e1" rx="8" />
+      <text x="112" y="28" font-size="15" font-weight="bold" fill="#1e3a8a" text-anchor="middle">Somalia Baseline</text>
+      <text x="18" y="58" fill="#64748b">&bull; Drought + ACLED + WFP</text>
+      <text x="18" y="82" fill="#64748b">&bull; 100% hash verified on CI</text>
+      <text x="18" y="110" font-weight="bold" fill="#059669">&#x2713; Completed pipeline</text>
 
-      <rect x="230" y="0" width="200" height="120" fill="#f8fafc" stroke="#cbd5e1" rx="6" />
-      <text x="330" y="25" font-weight="bold" fill="#1e3a8a" text-anchor="middle">Sudan Portability</text>
-      <text x="245" y="52" fill="#64748b">&bull; Swapped boundary rasters</text>
-      <text x="245" y="74" fill="#64748b">&bull; Same code runs cleanly</text>
-      <text x="245" y="98" font-weight="bold" fill="#059669">&#x2713; Portability check passed</text>
+      <rect x="245" y="0" width="225" height="135" fill="#f8fafc" stroke="#cbd5e1" rx="8" />
+      <text x="357" y="28" font-size="15" font-weight="bold" fill="#1e3a8a" text-anchor="middle">Sudan Portability</text>
+      <text x="263" y="58" fill="#64748b">&bull; Swapped boundary rasters</text>
+      <text x="263" y="82" fill="#64748b">&bull; Identical code runs cleanly</text>
+      <text x="263" y="110" font-weight="bold" fill="#059669">&#x2713; Portability confirmed</text>
 
-      <rect x="460" y="0" width="200" height="120" fill="#eff6ff" stroke="#3b82f6" rx="6" />
-      <text x="560" y="25" font-weight="bold" fill="#2563eb" text-anchor="middle">Next Crisis Setting</text>
-      <text x="475" y="52" fill="#1e40af">&bull; Ukraine / Armenia / Sahel</text>
-      <text x="475" y="74" fill="#1e40af">&bull; Zero pipeline re-engineering</text>
-      <text x="475" y="98" font-weight="bold" fill="#2563eb">&rarr; Ready to ingest</text>
+      <rect x="490" y="0" width="230" height="135" fill="#eff6ff" stroke="#3b82f6" stroke-width="2" rx="8" />
+      <text x="605" y="28" font-size="15" font-weight="bold" fill="#2563eb" text-anchor="middle">Next Crisis Setting</text>
+      <text x="508" y="58" fill="#1e40af">&bull; Ukraine / Armenia / Sahel</text>
+      <text x="508" y="82" fill="#1e40af">&bull; Zero pipeline re-engineering</text>
+      <text x="508" y="110" font-weight="bold" fill="#2563eb">&rarr; Ready to ingest</text>
     </g>
   </g>
 </svg>

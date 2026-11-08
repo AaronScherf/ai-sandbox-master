@@ -1,11 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 580" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 580" width="100%" height="100%">
 
   <defs>
     <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.08" />
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.10" />
     </filter>
     <filter id="glow-red" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ef4444" flood-opacity="0.3" />
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ef4444" flood-opacity="0.35" />
     </filter>
     <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#475569" />
@@ -21,91 +21,93 @@
     </marker>
   </defs>
 
-  <rect width="800" height="580" fill="#f8fafc" rx="12" />
-  <text x="400" y="40" font-family="Segoe UI, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="middle">The Methodological Toolkit: Estimating Impact in Novel Sites</text>
-  <text x="400" y="66" font-family="Segoe UI, sans-serif" font-size="13" fill="#64748b" text-anchor="middle">A Modular Set of Complementary Econometric &amp; Machine Learning Engines</text>
+  <rect width="840" height="580" fill="#f8fafc" rx="12" />
+  <text x="420" y="42" font-family="Segoe UI, sans-serif" font-size="24" font-weight="bold" fill="#0f172a" text-anchor="middle">The Methodological Toolkit: Estimating Impact in Novel Sites</text>
+  <text x="420" y="70" font-family="Segoe UI, sans-serif" font-size="15" fill="#475569" text-anchor="middle">A Modular Set of Complementary Econometric &amp; Machine Learning Engines</text>
 
   <!-- 3 Engine Columns -->
   <!-- Engine 1: Bayesian Hierarchical -->
-  <g transform="translate(40, 100)" filter="url(#shadow)">
-    <rect width="220" height="250" fill="#ffffff" stroke="#cbd5e1" rx="8" />
-    <rect width="220" height="34" fill="#1e3a8a" rx="8" />
-    <rect width="220" height="10" y="24" fill="#1e3a8a" />
-    <text x="110" y="22" font-family="Segoe UI, sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">1. Bayesian Hierarchical</text>
+  <g transform="translate(35, 100)" filter="url(#shadow)">
+    <rect width="235" height="260" fill="#ffffff" stroke="#cbd5e1" rx="8" />
+    <rect width="235" height="38" fill="#1e3a8a" rx="8" />
+    <rect width="235" height="10" y="28" fill="#1e3a8a" />
+    <text x="117" y="25" font-family="Segoe UI, sans-serif" font-size="14.5" font-weight="bold" fill="#ffffff" text-anchor="middle">1. Bayesian Hierarchical</text>
     
-    <g transform="translate(15, 52)" font-family="Segoe UI, sans-serif" font-size="11" fill="#475569">
-      <text y="16" font-weight="bold" fill="#0f172a">&bull; Prior Construction:</text>
-      <text y="32" font-size="10.5">Empirical treatment effects</text>
-      <text y="48" font-size="10.5">from historical trials (Meager '19)</text>
+    <g transform="translate(16, 56)" font-family="Segoe UI, sans-serif" font-size="13" fill="#475569">
+      <text y="18" font-weight="bold" fill="#0f172a">&bull; Prior Construction:</text>
+      <text y="36">Empirical treatment effects</text>
+      <text y="54">from historical trials (Meager '19)</text>
       
-      <text y="78" font-weight="bold" fill="#0f172a">&bull; Context Updating:</text>
-      <text y="94" font-size="10.5">Shifts prior distribution via</text>
-      <text y="110" font-size="10.5">observed target features (&Delta;X)</text>
+      <text y="88" font-weight="bold" fill="#0f172a">&bull; Context Updating:</text>
+      <text y="106">Shifts prior distribution via</text>
+      <text y="124">observed target features (&Delta;X)</text>
       
-      <rect y="132" width="190" height="48" fill="#eff6ff" rx="4" />
-      <text x="95" y="152" font-size="9.5" font-weight="bold" fill="#1e40af" text-anchor="middle">Full Posterior Distribution</text>
-      <text x="95" y="168" font-size="9" fill="#1e40af" text-anchor="middle">Generates intuitive credible bands</text>
+      <rect y="146" width="202" height="48" fill="#eff6ff" rx="4" />
+      <text x="101" y="168" font-size="11.5" font-weight="bold" fill="#1e40af" text-anchor="middle">Full Posterior Distribution</text>
+      <text x="101" y="186" font-size="11" fill="#1e40af" text-anchor="middle">Generates intuitive credible bands</text>
     </g>
   </g>
 
   <!-- Engine 2: Synthetic Controls -->
-  <g transform="translate(290, 100)" filter="url(#shadow)">
-    <rect width="220" height="250" fill="#ffffff" stroke="#cbd5e1" rx="8" />
-    <rect width="220" height="34" fill="#065f46" rx="8" />
-    <rect width="220" height="10" y="24" fill="#065f46" />
-    <text x="110" y="22" font-family="Segoe UI, sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">2. Synthetic Donor Pools</text>
+  <g transform="translate(302, 100)" filter="url(#shadow)">
+    <rect width="235" height="260" fill="#ffffff" stroke="#cbd5e1" rx="8" />
+    <rect width="235" height="38" fill="#065f46" rx="8" />
+    <rect width="235" height="10" y="28" fill="#065f46" />
+    <text x="117" y="25" font-family="Segoe UI, sans-serif" font-size="14.5" font-weight="bold" fill="#ffffff" text-anchor="middle">2. Synthetic Donor Pools</text>
     
-    <g transform="translate(15, 52)" font-family="Segoe UI, sans-serif" font-size="11" fill="#475569">
-      <text y="16" font-weight="bold" fill="#0f172a">&bull; Multi-Trial Weighting:</text>
-      <text y="32" font-size="10.5">Treats related trials as</text>
-      <text y="48" font-size="10.5">synthetic donor pool</text>
+    <g transform="translate(16, 56)" font-family="Segoe UI, sans-serif" font-size="13" fill="#475569">
+      <text y="18" font-weight="bold" fill="#0f172a">&bull; Multi-Trial Weighting:</text>
+      <text y="36">Treats related trials as</text>
+      <text y="54">synthetic donor pool</text>
       
-      <text y="78" font-weight="bold" fill="#0f172a">&bull; Similarity Distance:</text>
-      <text y="94" font-size="10.5">Weights assigned by spatial</text>
-      <text y="110" font-size="10.5">&amp; institutional proximity</text>
+      <text y="88" font-weight="bold" fill="#0f172a">&bull; Similarity Distance:</text>
+      <text y="106">Weights assigned by spatial</text>
+      <text y="124">&amp; institutional proximity</text>
       
-      <rect y="132" width="190" height="48" fill="#ecfdf5" rx="4" />
-      <text x="95" y="152" font-size="9.5" font-weight="bold" fill="#047857" text-anchor="middle">Synthetic Counterfactual</text>
-      <text x="95" y="168" font-size="9" fill="#047857" text-anchor="middle">Constructs target comparison site</text>
+      <rect y="146" width="202" height="48" fill="#ecfdf5" rx="4" />
+      <text x="101" y="168" font-size="11.5" font-weight="bold" fill="#047857" text-anchor="middle">Synthetic Counterfactual</text>
+      <text x="101" y="186" font-size="11" fill="#047857" text-anchor="middle">Constructs target comparison site</text>
     </g>
   </g>
 
   <!-- Engine 3: Causal Neural Networks -->
-  <g transform="translate(540, 100)" filter="url(#shadow)">
-    <rect width="220" height="250" fill="#ffffff" stroke="#cbd5e1" rx="8" />
-    <rect width="220" height="34" fill="#4338ca" rx="8" />
-    <rect width="220" height="10" y="24" fill="#4338ca" />
-    <text x="110" y="22" font-family="Segoe UI, sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">3. Causal Neural Nets</text>
+  <g transform="translate(570, 100)" filter="url(#shadow)">
+    <rect width="235" height="260" fill="#ffffff" stroke="#cbd5e1" rx="8" />
+    <rect width="235" height="38" fill="#4338ca" rx="8" />
+    <rect width="235" height="10" y="28" fill="#4338ca" />
+    <text x="117" y="25" font-family="Segoe UI, sans-serif" font-size="14.5" font-weight="bold" fill="#ffffff" text-anchor="middle">3. Causal Neural Nets</text>
     
-    <g transform="translate(15, 52)" font-family="Segoe UI, sans-serif" font-size="11" fill="#475569">
-      <text y="16" font-weight="bold" fill="#0f172a">&bull; Neural DAG Models:</text>
-      <text y="32" font-size="10.5">Learns representations under</text>
-      <text y="48" font-size="10.5">graph structural constraints</text>
+    <g transform="translate(16, 56)" font-family="Segoe UI, sans-serif" font-size="13" fill="#475569">
+      <text y="18" font-weight="bold" fill="#0f172a">&bull; Neural DAG Models:</text>
+      <text y="36">Learns representations under</text>
+      <text y="54">graph structural constraints</text>
       
-      <text y="78" font-weight="bold" fill="#0f172a">&bull; High-Dimensional Rasters:</text>
-      <text y="94" font-size="10.5">Ingests non-linear satellite</text>
-      <text y="110" font-size="10.5">&amp; conflict interactions (DML)</text>
+      <text y="88" font-weight="bold" fill="#0f172a">&bull; High-Dimensional Data:</text>
+      <text y="106">Ingests non-linear satellite</text>
+      <text y="124">&amp; conflict interactions (DML)</text>
       
-      <rect y="132" width="190" height="48" fill="#eef2ff" rx="4" />
-      <text x="95" y="152" font-size="9.5" font-weight="bold" fill="#4338ca" text-anchor="middle">Non-Linear Representation</text>
-      <text x="95" y="168" font-size="9" fill="#4338ca" text-anchor="middle">Resolves multi-modal complexity</text>
+      <rect y="146" width="202" height="48" fill="#eef2ff" rx="4" />
+      <text x="101" y="168" font-size="11.5" font-weight="bold" fill="#4338ca" text-anchor="middle">Non-Linear Representation</text>
+      <text x="101" y="186" font-size="11" fill="#4338ca" text-anchor="middle">Resolves multi-modal complexity</text>
     </g>
   </g>
 
   <!-- Convergence Arrows -->
-  <line x1="150" y1="355" x2="300" y2="400" stroke="#1e3a8a" stroke-width="2" marker-end="url(#arrow-blue)" />
-  <line x1="400" y1="355" x2="400" y2="395" stroke="#059669" stroke-width="2" marker-end="url(#arrow-emerald)" />
-  <line x1="650" y1="355" x2="500" y2="400" stroke="#4338ca" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="150" y1="365" x2="310" y2="410" stroke="#1e3a8a" stroke-width="2.5" marker-end="url(#arrow-blue)" />
+  <line x1="420" y1="365" x2="420" y2="405" stroke="#059669" stroke-width="2.5" marker-end="url(#arrow-emerald)" />
+  <line x1="690" y1="365" x2="530" y2="410" stroke="#4338ca" stroke-width="2.5" marker-end="url(#arrow)" />
 
-  <!-- Bottom Result Box -->
-  <g transform="translate(40, 410)" filter="url(#shadow)">
-    <rect width="720" height="135" fill="#0f172a" rx="8" />
-    <text x="360" y="32" font-family="Segoe UI, sans-serif" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">&#x2699; Unified Deliverable: Probabilistic Impact Profiles</text>
-    <g transform="translate(30, 52)" font-family="Segoe UI, sans-serif" font-size="12" fill="#94a3b8">
-      <text y="15">&bull; Rather than forcing a single brittle estimator, the toolkit outputs an <tspan fill="#ffffff" font-weight="bold">empirical distribution of predicted impact</tspan>.</text>
-      <text y="38">&bull; Gives the emergency planner realistic median estimates accompanied by honest credible bounds.</text>
-      <rect y="52" width="660" height="24" fill="#1e293b" rx="4" />
-      <text x="330" y="68" font-weight="bold" fill="#38bdf8" text-anchor="middle">Empowering the Simulation Response Exercise with Real Uncertainty Quantification</text>
+  <!-- Bottom Result Box (LIGHT BACKGROUND, DARK TEXT) -->
+  <g transform="translate(35, 415)" filter="url(#shadow)">
+    <rect width="770" height="145" fill="#f8fafc" stroke="#2563eb" stroke-width="2.5" rx="10" />
+    <rect width="770" height="36" fill="#dbeafe" rx="10" />
+    <rect width="770" height="10" y="26" fill="#dbeafe" />
+    <text x="385" y="25" font-family="Segoe UI, sans-serif" font-size="16" font-weight="bold" fill="#1e3a8a" text-anchor="middle">&#x2699; Unified Deliverable: Probabilistic Impact Profiles</text>
+    <g transform="translate(25, 54)" font-family="Segoe UI, sans-serif" font-size="13.5" fill="#1e293b">
+      <text y="18">&bull; Rather than forcing a single brittle point estimator, the toolkit outputs an <tspan fill="#0f172a" font-weight="bold">empirical distribution of predicted impact</tspan>.</text>
+      <text y="42">&bull; Provides the emergency planner with realistic median estimates accompanied by honest credible bounds.</text>
+      <rect y="56" width="720" height="26" fill="#eff6ff" stroke="#bfdbfe" rx="4" />
+      <text x="360" y="74" font-weight="bold" fill="#1d4ed8" text-anchor="middle">Empowering the Simulation Response Exercise with Honest Uncertainty Quantification</text>
     </g>
   </g>
 </svg>
