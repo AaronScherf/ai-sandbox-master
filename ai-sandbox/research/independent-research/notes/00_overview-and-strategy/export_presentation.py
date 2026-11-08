@@ -100,19 +100,43 @@ for idx, st in enumerate(slide_texts):
     body, notes = convert_md_to_html(st_clean)
     slide_num = len(slides_html) + 1
     
-    # Embed images as Base64 to ensure 100% self-contained rendering
-    def replace_img(match):
+    # Embed images: inline SVG for vector graphics, base64 data URI for PNGs
+    def replace_image_element(match):
+        full_tag = match.group(0)
         img_src = match.group(1)
-        # Resolve full path
         img_full_path = os.path.normpath(os.path.join(base_dir, img_src))
-        if os.path.exists(img_full_path):
+        if not os.path.exists(img_full_path):
+            return full_tag
+            
+        if img_src.endswith('.svg'):
+            with open(img_full_path, "r", encoding="utf-8") as f:
+                svg_code = f.read().strip()
+            # Clean XML declaration or doctype if present
+            svg_code = re.sub(r'<\?xml.*?\?>', '', svg_code, flags=re.DOTALL).strip()
+            svg_code = re.sub(r'<!DOCTYPE.*?>', '', svg_code, flags=re.DOTALL).strip()
+            
+            # Scope IDs per slide to prevent cross-slide ID collisions in multi-page DOM
+            prefix = f"s{slide_num}_"
+            # Find all IDs
+            ids = set(re.findall(r'id=[\'"]([^\'"]+)[\'"]', svg_code))
+            for eid in ids:
+                svg_code = svg_code.replace(f'id="{eid}"', f'id="{prefix}{eid}"')
+                svg_code = svg_code.replace(f'url(#{eid})', f'url(#{prefix}{eid})')
+                svg_code = svg_code.replace(f'href="#{eid}"', f'href="#{prefix}{eid}"')
+            
+            # Apply styling directly to inline <svg>
+            svg_style = 'width: 100%; height: auto; max-height: 490px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); margin-top: 5px; display: block;'
+            if 'style="' in svg_code[:300]:
+                svg_code = re.sub(r'style="[^"]*"', f'style="{svg_style}"', svg_code, count=1)
+            else:
+                svg_code = re.sub(r'<svg\s+', f'<svg style="{svg_style}" ', svg_code, count=1)
+            return svg_code
+        else:
             with open(img_full_path, "rb") as img_f:
                 b64_data = base64.b64encode(img_f.read()).decode('utf-8')
-            mime = "image/svg+xml" if img_src.endswith('.svg') else "image/png"
-            return f'src="data:{mime};base64,{b64_data}"'
-        return match.group(0)
+            return full_tag.replace(img_src, f"data:image/png;base64,{b64_data}")
         
-    body = re.sub(r'src="(figures/[^"]+)"', replace_img, body)
+    body = re.sub(r'<img\s+[^>]*?src=[\'"](figures/[^\'"]+)[\'"][^>]*>', replace_image_element, body)
     
     slide_card = f"""
     <section class="slide" id="slide-{slide_num}">
