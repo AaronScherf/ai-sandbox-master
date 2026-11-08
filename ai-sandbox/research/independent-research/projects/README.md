@@ -9,10 +9,10 @@ The [3R revision](../notes/00_overview-and-strategy/Ground%20Truth%20-%20PhD%20R
 | `transferability/` | Project 03 disaster-to-conflict transferability evidence review |
 | `data-fusion-toolkit/` | Project 04 prospective reusable library; review held until library-kind support exists |
 | `systems-dynamics/` | Project 05 scoping review; remains notes until its scope is settled |
-| `bangladesh-insurance-replication/` | Future study-kind empirical replication; private CSV held locally |
+| `bangladesh-insurance-replication/` | Separate private Git repository (git-ignored here; URL and commit in `repositories.json`). Study-kind replication of Hill et al. (2019); replication CSV stays local and git-ignored |
 | `math_thesis/` | Separate thesis work (Project 06 in the roadmap) |
 | `compound-shocks-panel/` | Separate Git repository (git-ignored here; URL and commit in `repositories.json`). The live Project 02 code and data panel for Somalia and Sudan |
-| `reprokit/` | Separate Git repository (git-ignored here). The reproducibility framework and project template that `compound-shocks-panel` pins by tag |
+| `reprokit/` | Separate Git repository (git-ignored here). The reproducibility framework and project template that `compound-shocks-panel` and `bangladesh-insurance-replication` pin by tag |
 
 Start project-specific data intake in the live `compound-shocks-panel/` repository using its source descriptors and manifests. Keep source downloads and credentials out of Git. Record source versions and checksums before transformation. The review-only folders above await settled scope and suitable reprokit kinds.
 

@@ -7,6 +7,7 @@ ai-sandbox/research/independent-research/projects/math_thesis/Novel-Omnibus-Norm
 ai-sandbox/research/independent-research/projects/compound-shocks-panel/
 ai-sandbox/research/independent-research/projects/reprokit/
 ai-sandbox/research/independent-research/projects/evidence-map/
+ai-sandbox/research/independent-research/projects/bangladesh-insurance-replication/
 
 # academic_notes/ is now its own separate git repo (same pattern as
 # personal-website/ above), so the tablet's Obsidian gitsync plugin can
@@ -141,7 +142,6 @@ ai-sandbox/research/journal-articles/**/*.pdf
 ai-sandbox/research/journal-articles/**/*.md
 ai-sandbox/research/journal-articles/**/images/
 ai-sandbox/research/independent-research/projects/02_compound_shocks/data/raw/
-ai-sandbox/research/independent-research/projects/bangladesh-insurance-replication/data/raw/
 ai-sandbox/research/**/*_pages_cache.json
 ai-sandbox/research/.index/chunks/
 # Visualization sub-agent output (.viz/) is derivative of corpus content the

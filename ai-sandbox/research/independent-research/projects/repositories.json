@@ -18,12 +18,17 @@
     {
       "path": "reprokit",
       "url": "https://github.com/AaronScherf/reprokit.git",
-      "commit": "1df3791a0a52cee8ae4d5e8f37079aad52c607d5"
+      "commit": "bfdabd2dc9612e956a1a09b2f55a3f21931af9c5"
     },
     {
       "path": "evidence-map",
       "url": "https://github.com/AaronScherf/evidence-map.git",
       "commit": "f34cf8e69414fc438e7746fbc315a8ba971bfe6f"
+    },
+    {
+      "path": "bangladesh-insurance-replication",
+      "url": "https://github.com/AaronScherf/bangladesh-insurance-replication.git",
+      "commit": "844ce98fe93bf9384abd6d5e64664d136082b6af"
     }
   ]
 }
