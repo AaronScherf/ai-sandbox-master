@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 580" width="100%" height="100%">
+
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.08" />
+    </filter>
+    <filter id="glow-red" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ef4444" flood-opacity="0.3" />
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#475569" />
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#2563eb" />
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#dc2626" />
+    </marker>
+    <marker id="arrow-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#059669" />
+    </marker>
+  </defs>
+
+  <rect width="800" height="580" fill="#f8fafc" rx="12" />
+  <text x="400" y="42" font-family="Segoe UI, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="middle">Divergence in Mandate: Researcher vs. Planner</text>
+  <text x="400" y="68" font-family="Segoe UI, sans-serif" font-size="13" fill="#64748b" text-anchor="middle">Internal Causal Identification vs. Real-World Portfolio Optimization</text>
+
+  <!-- Left Card: Academic Researcher -->
+  <g transform="translate(40, 95)" filter="url(#shadow)">
+    <rect width="340" height="445" fill="#ffffff" stroke="#cbd5e1" rx="10" />
+    <path d="M 0 10 Q 0 0 10 0 L 330 0 Q 340 0 340 10 L 340 45 L 0 45 Z" fill="#1e3a8a" />
+    <text x="170" y="28" font-family="Segoe UI, sans-serif" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">The Academic Mandate</text>
+    
+    <g transform="translate(20, 65)" font-family="Segoe UI, sans-serif" font-size="12.5" fill="#334155">
+      <text y="15" font-weight="bold" fill="#0f172a">Core Objective:</text>
+      <text y="35" fill="#475569">Isolate single causal parameter (internal validity).</text>
+      
+      <text y="75" font-weight="bold" fill="#0f172a">Primary Question:</text>
+      <rect y="88" width="300" height="42" fill="#eff6ff" stroke="#bfdbfe" rx="4" />
+      <text x="10" y="114" font-style="italic" fill="#1e40af">"Does Intervention X cause Outcome Y?"</text>
+      
+      <text y="160" font-weight="bold" fill="#0f172a">Intervention Framing:</text>
+      <text y="180" fill="#475569">Single intervention evaluated in isolation.</text>
+      
+      <text y="220" font-weight="bold" fill="#0f172a">Time Horizon:</text>
+      <text y="240" fill="#475569">3 to 5 years (design, survey, peer review).</text>
+
+      <text y="280" font-weight="bold" fill="#0f172a">Tolerance for Uncertainty:</text>
+      <text y="300" fill="#475569">Low: Prefers no estimate over an unverified proxy.</text>
+      
+      <rect y="335" width="300" height="32" fill="#f1f5f9" rx="4" />
+      <text x="150" y="356" font-weight="bold" fill="#475569" text-anchor="middle">&#x2713; Gold Standard: Clustered RCT</text>
+    </g>
+  </g>
+
+  <!-- Right Card: Humanitarian Planner -->
+  <g transform="translate(420, 95)" filter="url(#shadow)">
+    <rect width="340" height="445" fill="#ffffff" stroke="#cbd5e1" rx="10" />
+    <path d="M 0 10 Q 0 0 10 0 L 330 0 Q 340 0 340 10 L 340 45 L 0 45 Z" fill="#047857" />
+    <text x="170" y="28" font-family="Segoe UI, sans-serif" font-size="15" font-weight="bold" fill="#ffffff" text-anchor="middle">The Humanitarian Planner Mandate</text>
+    
+    <g transform="translate(20, 65)" font-family="Segoe UI, sans-serif" font-size="12.5" fill="#334155">
+      <text y="15" font-weight="bold" fill="#0f172a">Core Objective:</text>
+      <text y="35" fill="#475569">Maximize lives saved under hard budget caps.</text>
+      
+      <text y="75" font-weight="bold" fill="#0f172a">Primary Question:</text>
+      <rect y="88" width="300" height="52" fill="#ecfdf5" stroke="#a7f3d0" rx="4" />
+      <text x="10" y="108" font-style="italic" fill="#065f46">"Given $5M and 3 weeks in District Z,</text>
+      <text x="10" y="126" font-style="italic" fill="#065f46">what mix of A, B, or C minimizes loss?"</text>
+      
+      <text y="168" font-weight="bold" fill="#0f172a">Intervention Framing:</text>
+      <text y="188" fill="#475569">Open portfolio choice &amp; program layering.</text>
+      
+      <text y="228" font-weight="bold" fill="#0f172a">Time Horizon:</text>
+      <text y="248" fill="#475569">Days or weeks before emergency peak.</text>
+
+      <text y="288" font-weight="bold" fill="#0f172a">Tolerance for Uncertainty:</text>
+      <text y="308" fill="#047857" font-weight="bold">Satisficing: Needs honest probabilistic bounds.</text>
+      
+      <rect y="335" width="300" height="32" fill="#ecfdf5" rx="4" />
+      <text x="150" y="356" font-weight="bold" fill="#047857" text-anchor="middle">&#x2713; Goal: Simulation Response Exercise</text>
+    </g>
+  </g>
+</svg>

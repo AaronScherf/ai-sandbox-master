@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 580" width="100%" height="100%">
+
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.08" />
+    </filter>
+    <filter id="glow-red" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ef4444" flood-opacity="0.3" />
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#475569" />
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#2563eb" />
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#dc2626" />
+    </marker>
+    <marker id="arrow-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#059669" />
+    </marker>
+  </defs>
+
+  <rect width="800" height="580" fill="#f8fafc" rx="12" />
+  <text x="400" y="38" font-family="Segoe UI, sans-serif" font-size="20" font-weight="bold" fill="#0f172a" text-anchor="middle">The 2x2 System Architecture</text>
+  <text x="400" y="62" font-family="Segoe UI, sans-serif" font-size="13" fill="#64748b" text-anchor="middle">Continuous Ingestion &bull; Quantitative Evidence &bull; Reusable Knowledge Corpus</text>
+
+  <!-- 2x2 Box Layout -->
+  <!-- Top Left: 1.1 Literature Discovery -->
+  <g transform="translate(60, 90)" filter="url(#shadow)">
+    <rect width="320" height="175" fill="#ffffff" stroke="#cbd5e1" rx="8" />
+    <rect width="320" height="34" fill="#1e293b" rx="8" />
+    <rect width="320" height="10" y="24" fill="#1e293b" />
+    <text x="15" y="22" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff">1.1 Literature Search &amp; Synthesis</text>
+    <g transform="translate(15, 48)" font-family="Segoe UI, sans-serif" font-size="11" fill="#475569">
+      <text y="16" font-weight="bold" fill="#0f172a">&bull; Automated OpenAlex harvester</text>
+      <text y="34">&bull; Snowball citation graph expansion</text>
+      <text y="52">&bull; Grey literature: ALNAP, ReliefWeb, World Bank</text>
+      <rect y="68" width="290" height="24" fill="#f1f5f9" rx="4" />
+      <text x="145" y="84" font-weight="bold" fill="#0f172a" text-anchor="middle">Standalone Synthesis Review Output</text>
+    </g>
+  </g>
+
+  <!-- Top Right: 2.1 3ie Taxonomy -->
+  <g transform="translate(420, 90)" filter="url(#shadow)">
+    <rect width="320" height="175" fill="#ffffff" stroke="#cbd5e1" rx="8" />
+    <rect width="320" height="34" fill="#1e3a8a" rx="8" />
+    <rect width="320" height="10" y="24" fill="#1e3a8a" />
+    <text x="15" y="22" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff">2.1 3ie Taxonomy &amp; Gap Analysis</text>
+    <g transform="translate(15, 48)" font-family="Segoe UI, sans-serif" font-size="11" fill="#475569">
+      <text y="16" font-weight="bold" fill="#0f172a">&bull; Multi-dimensional matrix classification</text>
+      <text y="34">&bull; Interventions &times; Outcomes &times; Countries</text>
+      <text y="52">&bull; Pinpoints acute "evidence deserts" in conflict</text>
+      <rect y="68" width="290" height="24" fill="#eff6ff" rx="4" />
+      <text x="145" y="84" font-weight="bold" fill="#1e40af" text-anchor="middle">Quantified Evidence Coverage Heatmaps</text>
+    </g>
+  </g>
+
+  <!-- Bottom Left: 1.2 Context Data Fusion -->
+  <g transform="translate(60, 290)" filter="url(#shadow)">
+    <rect width="320" height="175" fill="#ffffff" stroke="#cbd5e1" rx="8" />
+    <rect width="320" height="34" fill="#0f766e" rx="8" />
+    <rect width="320" height="10" y="24" fill="#0f766e" />
+    <text x="15" y="22" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff">1.2 Context Data Fusion Panel</text>
+    <g transform="translate(15, 48)" font-family="Segoe UI, sans-serif" font-size="11" fill="#475569">
+      <text y="16" font-weight="bold" fill="#0f172a">&bull; Multi-modal spatial ingestion library</text>
+      <text y="34">&bull; CHIRPS rain, ACLED points, WFP prices</text>
+      <text y="52">&bull; Admin-2 district-month harmonization</text>
+      <rect y="68" width="290" height="24" fill="#f0fdfa" rx="4" />
+      <text x="145" y="84" font-weight="bold" fill="#0f766e" text-anchor="middle">Harmonized Subnational Panel Dataset</text>
+    </g>
+  </g>
+
+  <!-- Bottom Right: 2.2 Reproducible Trials -->
+  <g transform="translate(420, 290)" filter="url(#shadow)">
+    <rect width="320" height="175" fill="#ffffff" stroke="#cbd5e1" rx="8" />
+    <rect width="320" height="34" fill="#4338ca" rx="8" />
+    <rect width="320" height="10" y="24" fill="#4338ca" />
+    <text x="15" y="22" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff">2.2 Reproducible Trials Repository</text>
+    <g transform="translate(15, 48)" font-family="Segoe UI, sans-serif" font-size="11" fill="#475569">
+      <text y="16" font-weight="bold" fill="#0f172a">&bull; Curates open crisis RCT microdata</text>
+      <text y="34">&bull; AEA, World Bank, Harvard/J-PAL Dataverse</text>
+      <text y="52">&bull; Village GPS coordinate audit (the gate)</text>
+      <rect y="68" width="290" height="24" fill="#eef2ff" rx="4" />
+      <text x="145" y="84" font-weight="bold" fill="#4338ca" text-anchor="middle">Causally Valid Treatment Estimators</text>
+    </g>
+  </g>
+
+  <!-- Connecting arrows for feedback loops -->
+  <path d="M 380 170 L 420 170" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow-blue)" />
+  <path d="M 420 190 L 380 190" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+  <path d="M 220 265 L 220 290" stroke="#059669" stroke-width="2" marker-end="url(#arrow-emerald)" />
+  <path d="M 580 265 L 580 290" stroke="#4338ca" stroke-width="2" marker-end="url(#arrow)" />
+  <path d="M 380 375 L 420 375" stroke="#059669" stroke-width="2" marker-end="url(#arrow-emerald)" />
+
+  <!-- Bottom Convergence Box -->
+  <g transform="translate(60, 485)" filter="url(#shadow)">
+    <rect width="680" height="70" fill="#0f172a" rx="8" />
+    <text x="340" y="28" font-family="Segoe UI, sans-serif" font-size="13" font-weight="bold" fill="#ffffff" text-anchor="middle">&darr; CONVERGENCE: Causal Transportability &amp; Simulation Engine &darr;</text>
+    <text x="340" y="48" font-family="Segoe UI, sans-serif" font-size="11.5" fill="#94a3b8" text-anchor="middle">Anchoring Trial Estimators to Context Grids &bull; Predicting Impact in Novel Crises</text>
+  </g>
+</svg>
