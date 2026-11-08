@@ -42,7 +42,7 @@ Evidence labels throughout: **implemented** means the script exists; **fixture-t
 
 ## Task 1 — Probe EA and define safe discovery
 
-**Files (implementation stage):** Child-repo `Excalidraw/Scripts/Auto-Frame Slides.md`; optional outer-repo `tests/pipelines/transcribe_notes/auto_frame_slides.test.cjs` for Node's built-in test runner (Node 24 is available). Keep pure planning functions in the script accessible to a mock-EA test harness without importing Obsidian. No new runtime package dependency.
+**Files (implementation stage):** Child-repo `Excalidraw/Scripts/Auto-Frame Slides.md`; outer-repo `tests/pipelines/transcribe_notes/test_auto_frame_slides.cjs` for Node's built-in test runner (Node 24 is available). Keep pure planning functions in the script accessible to a mock-EA test harness without importing Obsidian. No new runtime package dependency.
 
 - [ ] On a scratch canvas, verify `ea.getViewElements()` yields actual scene objects while `ea.getElements()` yields workbench objects. Test `copyViewElementsToEAforEditing`, `addFrame`, `addElementsToFrame`, and `addElementsToView` in the installed 2.29.1 plugin; record any signature/version mismatch. Restore the scratch copy after the probe.
 - [ ] Implement `classify(elements, embeddedFileMap)` with explicit slide, Markdown-image, and `freedraw` evidence. Use aspect tolerance and asset link; ratio alone cannot classify an arbitrary image. Ignore deleted elements and unrelated rectangles. Return `{elementId, kind, reason}` plus warnings.

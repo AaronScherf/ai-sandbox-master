@@ -2,11 +2,15 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
+const nodePath = require("node:path");
 const {execFileSync} = require("node:child_process");
 const {createHash,webcrypto} = require("node:crypto");
 
-const path = process.env.AUTO_FRAME_SCRIPT;
-if (!path) throw new Error("Set AUTO_FRAME_SCRIPT to the child-worktree script path");
+const path = process.env.AUTO_FRAME_SCRIPT ||
+  nodePath.resolve(__dirname,
+    "../../../../academic-hub/academic_notes/Excalidraw/Scripts/Auto-Frame Slides.md");
+if (!fs.existsSync(path))
+  throw new Error("Set AUTO_FRAME_SCRIPT to the child-worktree script path");
 const context = {__AUTO_FRAME_TEST__: true,crypto:webcrypto,TextEncoder};
 vm.runInNewContext(fs.readFileSync(path, "utf8"), context, {filename:path});
 const af = context.__AUTO_FRAME_EXPORTS__;
