@@ -19,6 +19,11 @@
       "path": "reprokit",
       "url": "https://github.com/AaronScherf/reprokit.git",
       "commit": "1df3791a0a52cee8ae4d5e8f37079aad52c607d5"
+    },
+    {
+      "path": "evidence-map",
+      "url": null,
+      "commit": "22a4ef1b540d06b6ab1c3b55655cd987f532ad88"
     }
   ]
 }
