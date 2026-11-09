@@ -1,6 +1,6 @@
 # Research presentation narrative: humanitarian evidence across decision horizons
 
-*Discussion draft in the format of the [original presentation strategy](Research%20Presentation%20Narrative%20-%20Humanitarian%20Transportability%20Pipeline.md), 2026-11-09. Read with the [critique analysis](Humanitarian%20Evidence%20Agenda%20-%20Critique%20Analysis.md). This revises the narrative for discussion; it does not change project approvals or claim that a live decision-support system exists.*
+*Discussion draft in the format of the [original presentation strategy](Research%20Presentation%20Narrative%20-%20Humanitarian%20Transportability%20Pipeline.md), 2026-11-09. Read with the [critique analysis](Humanitarian%20Evidence%20Agenda%20-%20Critique%20Analysis.md) and [primary-source verification](Humanitarian%20Evidence%20Agenda%20-%20Source%20Verification.md). This revises the narrative for discussion; it does not change project approvals or claim that a live decision-support system exists.*
 
 ## 1. Executive summary: the humanitarian planner's dilemma
 
@@ -26,7 +26,7 @@ The presentation retains the original 2×2 architecture and trial-transportabili
 
 The humanitarian–development nexus organizes these questions by **transition**, not by a single “humanitarian” label. An acute response may prioritize rapid feasibility and minimum standards. A prolonged crisis permits iterative monitoring, implementation research, and sometimes credible causal evaluation. Development and resilience work can invest in baseline systems, forecast calibration, social protection, and preparedness before the next shock. The transitions can reverse when conflict intensifies or a new disaster hits.
 
-This framing also makes the original disagreement a research object. The critique argues that political and logistical constraints dominate; the original memo emphasizes inaccessible causal evidence. Both may be true in different institutions, sectors, and phases. The program should map actual planning gates and document when evidence was requested, what was available, what choice was open, and whether it changed the choice.
+This framing also makes the original disagreement a research object. The critique argues that political and logistical constraints dominate; the original memo emphasizes inaccessible causal evidence. Both may be true in different institutions, sectors, and phases. ALNAP's [field study](https://alnap.cdn.ngo/media/documents/alnap-beyond-assumptions-how-humanitarians-make-operational-decisions.pdf) observed multiple decision styles, while its [evidence review](https://calpnetwork.org/wp-content/uploads/2020/01/alnap-insufficient-evidence.pdf) supports good evidence use; neither warrants a universal anti-RCT claim. The program should map actual planning gates and document when evidence was requested, what was available, what choice was open, and whether it changed the choice.
 
 ## 3. The 2×2 mutually reinforcing architecture
 
@@ -64,7 +64,7 @@ Formal transport estimators, hierarchical models, synthetic comparisons, and mac
 
 ### Slide 3: State of the art and the evidence-use question
 
-**Takeaway:** Academic evaluations, evidence maps, operational platforms, and practitioner judgment answer different questions. **Content:** Treat the claim of an “unmet integrated tool” as a testable proposition; compare existing systems on timeliness, decision fit, quality, and user uptake. **Visual:** Evidence type × decision horizon matrix, with known and unknown cells.
+**Takeaway:** Academic evaluations, evidence maps, operational platforms, and practitioner judgment answer different questions. **Content:** Treat the claim of an “unmet integrated tool” as a testable proposition; compare [REACH's JMMI API](https://marketsincrises.net/wp-content/uploads/2025/08/REACH-Joint-Market-Monitoring-Initiative-JMMI-Guidance-Document-V1-2025.pdf), [DEEP](https://docs.thedeep.io/), and [DRC Foresight](https://drc.ngo/en/pages/foresight-displacement-forecasts/) on timeliness, decision fit, quality, and user uptake. Their existence narrows, but does not settle, the proposed research gap. **Visual:** Evidence type × decision horizon matrix, with known and unknown cells.
 
 ### Slide 4: Foundational architecture: `reprokit`
 
@@ -80,7 +80,7 @@ Formal transport estimators, hierarchical models, synthetic comparisons, and mac
 
 ### Slide 7: Component 1.2, subnational and operational data
 
-**Takeaway:** The Somalia/Sudan panel is a research foundation; logistics and implementation need a separate data audit. **Content:** Candidate sources include market monitoring, needs assessments, 3W/4W, displacement, procurement, and logistics records. Check spatial unit, update lag, selection, and access before joining. **Visual:** Dataset cards displaying those limitations, not a seamless “live feed.”
+**Takeaway:** The Somalia/Sudan panel is a research foundation; logistics and implementation need a separate data audit. **Content:** Candidate sources include market monitoring, needs assessments, 3W/4W, displacement, procurement, and logistics records. REACH has a public JMMI API, while IOM's public [DTM API](https://dtm.iom.int/data-and-analysis/dtm-api) serves non-sensitive aggregates. Check spatial unit, update lag, selection, and access before joining. **Visual:** Dataset cards displaying those limitations, not a seamless “live feed.”
 
 ### Slide 8: Component 2.1, evidence coverage
 
@@ -112,7 +112,7 @@ Formal transport estimators, hierarchical models, synthetic comparisons, and mac
 
 ### Slide 15: Frontiers and roadmap
 
-**Takeaway:** The agenda tests evidence use as well as methods. **Content:** Near-term: verify literature claims and audit one operational dataset alongside the existing panel and trial work. Later possibilities: test a specific transport estimand, evaluate prolonged-crisis adaptation, and compare anticipatory triggers or insurance payouts. All remain proposals subject to data and owner decisions. **Visual:** Three research questions by horizon, each with a falsification test.
+**Takeaway:** The agenda tests evidence use as well as methods. **Content:** Near-term: use the companion source audit to verify literature claims and audit one operational dataset alongside the existing panel and trial work. Later possibilities: test a specific transport estimand, evaluate prolonged-crisis adaptation, and compare anticipatory triggers or insurance payouts. Documented [Bangladesh](https://www.csae.ox.ac.uk/anticipatory-cash-transfers-in-climate-disaster-response) and [Nepal](https://www.wfp.org/publications/nepal-anticipatory-action-impact-evaluation) evaluations make the anticipatory-action question concrete; they do not establish the transcript's named “GoDARTS” platform. All further work remains subject to data and owner decisions. **Visual:** Three research questions by horizon, each with a falsification test.
 
 ## 5. Additional section: operational effectiveness and logistical efficiency
 
