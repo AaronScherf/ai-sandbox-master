@@ -62,7 +62,7 @@ Conventions:
 | **Blogging strategy** | - | none | Planning docs. | [`projects/blogging_strategy`](projects/blogging_strategy) | Blog posts exist for the academic hub, none for research. |
 | **Ground truth and 3R plan** (portfolio strategy) | - | none | Current scope document; the numbered portfolio it describes is retired. | [3R Revision](notes/00_overview-and-strategy/Ground%20Truth%20-%20PhD%20Research%20Plan%20-%203R%20Revision.md), [presentation narrative](notes/00_overview-and-strategy/Research%20Presentation%20Narrative%20-%20Humanitarian%20Transportability%20Pipeline.md), [roadmap](projects/research_projects_plan_fall26%20-%203R%20Revision.md), [original](notes/00_overview-and-strategy/Ground%20Truth%20-%20PhD%20Research%20Plan.md) | None. |
 | **Research indexer** (your planned project indexer; PROJECTS.md is the hand-kept stopgap) | - | Not located in any branch or worktree | Mentioned by you on 2026-11-06; no code or notes found. Once it exists, PROJECTS.md should become its input or be replaced. | - | - |
-| **Monorepo split evaluation** | - | none | Project-wide structure decision. The evaluation doc is on remote branch `origin/claude/monorepo-split-handoff` (6 commits, `docs/MONOREPO_SPLIT_EVALUATION.md`), **not on main**. To land under `academic-rag-model/docs/` (for example `docs/trackers/`). | Affects where research repos live. | - |
+| **Monorepo split evaluation** | - | none | Project-wide structure decision; evaluation doc landed 2026-11-09 under the academic-rag-model trackers. Nothing decided yet. | Affects where research repos live. | [Evaluation](../../academic-rag-model/docs/trackers/monorepo_split_evaluation.md) | - |
 
 ## Your manual items
 
@@ -79,6 +79,6 @@ Landed on `main` since the first sweep: the evidence-kind design spec and plan; 
 
 Still open:
 1. Option B plan, Option C plan and new-data-sources notes: the sessions have not run, so no output exists (confirmed).
-2. Monorepo split evaluation: remote branch only; to be placed under `academic-rag-model/docs/`.
-3. Evidence-map repo working directory: deleted with its worktree on 2026-11-08 and re-cloned from the remote; unpushed work may be gone (loss check pending). Rule: never remove a worktree before checking it for ignored child repositories.
+2. Monorepo split evaluation: landed under `academic-rag-model/docs/trackers/`; the old branch `claude/monorepo-split-handoff` can be deleted.
+3. Evidence-map repo working directory: deleted with its worktree on 2026-11-08 and re-cloned from the remote; the Codex loss check found nothing lost. Rule: never remove a worktree before checking it for ignored child repositories.
 4. Leftover ignored directories remain in the main checkout from the folder reorganization (`projects/02_compound_shocks/`, empty `projects/03_transferability/`); they hold only git-ignored raw data.
