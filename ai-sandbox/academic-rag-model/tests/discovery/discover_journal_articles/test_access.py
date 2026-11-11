@@ -375,5 +375,48 @@ class TestResolveFullText(unittest.TestCase):
         mock_fetch.assert_not_called()
 
 
+class TestLandingPageFallback(unittest.TestCase):
+    """OpenAlex often lists a publisher landing page as the OA location; its citation_pdf_url meta tag points at
+    the real PDF (confirmed live 2026-11-11 for PLOS ONE)."""
+
+    @staticmethod
+    def _landing(html, url="https://journals.example.org/article?id=1"):
+        return MagicMock(status_code=200, headers={"Content-Type": "text/html"}, text=html, url=url, content=html.encode())
+
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
+    def test_follows_citation_pdf_url_once(self, mock_fetch, mock_pace):
+        page = self._landing('<meta name="citation_pdf_url" content="/article/file?id=1&amp;type=printable">')
+        mock_fetch.side_effect = [page, _pdf_response()]
+        work = _work(oa_url="https://doi.org/10.1/abc")
+
+        result = resolve_full_text(work, "me@example.com", ezproxy_cookie=None, pace_per_hour=25)
+
+        self.assertEqual(result, AccessResult(status="fetched", content=_REAL_PDF_BYTES, tier="open_access"))
+        self.assertEqual(mock_fetch.call_args_list[1].args[1], "https://journals.example.org/article/file?id=1&type=printable")
+
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
+    def test_reversed_attribute_order(self, mock_fetch, mock_pace):
+        page = self._landing('<meta content="https://cdn.example.org/p.pdf" name="citation_pdf_url" />')
+        mock_fetch.side_effect = [page, _pdf_response()]
+        result = resolve_full_text(_work(oa_url="https://doi.org/10.1/abc"), "me@example.com", None, 25)
+        self.assertEqual(result.status, "fetched")
+
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
+    def test_never_follows_a_second_landing_page(self, mock_fetch, mock_pace):
+        page = self._landing('<meta name="citation_pdf_url" content="https://x.org/next">')
+        mock_fetch.return_value = page  # every URL, including the followed link, is another landing page
+        result = resolve_full_text(_work(oa_url="https://doi.org/10.1/abc"), "me@example.com", None, 25)
+        self.assertEqual(result.status, "needs_manual")  # terminates: the hop is followed once, never chained
+
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
+    def test_landing_page_without_the_tag_is_needs_manual(self, mock_fetch, mock_pace):
+        mock_fetch.return_value = self._landing("<html>no pdf link here</html>")
+        result = resolve_full_text(_work(oa_url="https://doi.org/10.1/abc"), "me@example.com", None, 25)
+        self.assertEqual(result.status, "needs_manual")
+
 if __name__ == "__main__":
     unittest.main()

@@ -24,8 +24,11 @@ needlessly slow with no actual safety benefit.
 """
 from __future__ import annotations
 
+import html
+import re
 import time
 from dataclasses import dataclass
+from urllib.parse import urljoin
 
 from discovery.discover_journal_articles.discovery import Work
 from discovery.discover_journal_articles.http_utils import (
@@ -127,7 +130,32 @@ def build_ezproxy_url(target_url: str) -> str:
     return f"{_EZPROXY_PREFIX}{target_url}"
 
 
-def _download(url: str, pace_per_hour: float, cookies: dict | None = None) -> bytes | None:
+# Both attribute orders occur in the wild (name before content, and the reverse).
+_CITATION_PDF_META = (
+    re.compile(r'''<meta[^>]+name=["']citation_pdf_url["'][^>]+content=["']([^"']+)["']''', re.IGNORECASE),
+    re.compile(r'''<meta[^>]+content=["']([^"']+)["'][^>]+name=["']citation_pdf_url["']''', re.IGNORECASE),
+)
+
+
+def _citation_pdf_url(response) -> str | None:
+    """The direct-PDF link a publisher landing page advertises in its <meta name="citation_pdf_url"> tag (the
+    Highwire/Google Scholar convention, used by PLOS, BMJ, Springer and others), resolved against the page URL.
+    OpenAlex often lists the landing page, not the PDF, as a paper's open-access location (confirmed live
+    2026-11-11: PLOS ONE returned a normal 200 HTML page whose tag pointed at the PDF)."""
+    try:
+        text = response.text
+    except Exception:
+        return None
+    if not isinstance(text, str):
+        return None
+    for pattern in _CITATION_PDF_META:
+        match = pattern.search(text)
+        if match:
+            return urljoin(getattr(response, "url", "") or "", html.unescape(match.group(1)).strip())
+    return None
+
+
+def _download(url: str, pace_per_hour: float, cookies: dict | None = None, _follow_landing: bool = True) -> bytes | None:
     paced_sleep(pace_per_hour)
     try:
         response = fetch_with_retries(
@@ -139,6 +167,14 @@ def _download(url: str, pace_per_hour: float, cookies: dict | None = None) -> by
         # than returning a response for a non-retryable status. This tier
         # simply didn't work for this paper; the caller falls through to
         # the next tier / needs_manual, exactly like a non-PDF response.
+        return None
+    if response.status_code == 200 and not is_pdf_response(response) and _follow_landing:
+        # A landing page, not a PDF: follow its advertised PDF link once (never recursively), unpaced because
+        # it is the same publisher host just contacted. Publishers that bot-block still fail here and fall
+        # through to the next tier / needs_manual exactly as before.
+        pdf_url = _citation_pdf_url(response)
+        if pdf_url and pdf_url != url:
+            return _download(pdf_url, 0, cookies, _follow_landing=False)
         return None
     if response.status_code != 200 or not is_pdf_response(response) or not is_valid_pdf_bytes(response.content):
         return None
