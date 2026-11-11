@@ -376,6 +376,12 @@ class TestResolveFullText(unittest.TestCase):
 
 
 class TestLandingPageFallback(unittest.TestCase):
+    def setUp(self):
+        patcher = patch("discovery.discover_journal_articles.access.socket.getaddrinfo",
+                        return_value=[(2, 1, 6, "", ("93.184.216.34", 0))])
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     """OpenAlex often lists a publisher landing page as the OA location; its citation_pdf_url meta tag points at
     the real PDF (confirmed live 2026-11-11 for PLOS ONE)."""
 
@@ -419,33 +425,50 @@ class TestLandingPageFallback(unittest.TestCase):
         self.assertEqual(result.status, "needs_manual")
 
 class TestLandingPageFollowSafety(unittest.TestCase):
-    """The advertised PDF link is page-controlled: cookies stay on the same host, internal targets are refused."""
-
-    def test_cookies_only_to_same_host(self):
-        from discovery.discover_journal_articles.access import _followup_cookies
-        jar = {"ezproxy": "secret"}
-        self.assertEqual(_followup_cookies("https://a.org/x", "https://a.org/p.pdf", jar), (True, jar))
-        self.assertEqual(_followup_cookies("https://a.org/x", "https://cdn.b.org/p.pdf", jar), (True, None))
-        self.assertEqual(_followup_cookies("https://a.org/x", "http://a.org/p.pdf", jar), (True, None))  # no cookies over http
+    """The advertised PDF link is page-controlled: no credentials, no internal targets, redirects re-checked."""
 
     def test_refuses_internal_and_non_http_targets(self):
-        from discovery.discover_journal_articles.access import _followup_cookies
+        from discovery.discover_journal_articles.access import _is_public_http_url
         for bad in (
             "http://127.0.0.1/p.pdf", "http://localhost/p.pdf", "http://10.0.0.5/p.pdf",
             "http://169.254.169.254/latest", "http://[::1]/p.pdf", "file:///etc/passwd", "ftp://a.org/p.pdf",
         ):
-            self.assertEqual(_followup_cookies("https://a.org/x", bad, {"c": "v"}), (False, None), bad)
+            self.assertFalse(_is_public_http_url(bad), bad)
+
+    @patch("discovery.discover_journal_articles.access.socket.getaddrinfo")
+    def test_hostname_resolving_to_private_address_refused(self, mock_dns):
+        from discovery.discover_journal_articles.access import _is_public_http_url
+        mock_dns.return_value = [(2, 1, 6, "", ("192.168.1.10", 0))]
+        self.assertFalse(_is_public_http_url("https://rebind.example.org/p.pdf"))
+        mock_dns.return_value = [(2, 1, 6, "", ("93.184.216.34", 0)), (2, 1, 6, "", ("10.0.0.1", 0))]
+        self.assertFalse(_is_public_http_url("https://mixed.example.org/p.pdf"))
+        mock_dns.return_value = [(2, 1, 6, "", ("93.184.216.34", 0))]
+        self.assertTrue(_is_public_http_url("https://ok.example.org/p.pdf"))
 
     @patch("discovery.discover_journal_articles.access.paced_sleep")
     @patch("discovery.discover_journal_articles.access.fetch_with_retries")
-    def test_cross_host_hop_sends_no_cookies(self, mock_fetch, mock_pace):
+    def test_landing_page_not_followed_when_cookies_in_play(self, mock_fetch, mock_pace):
         from discovery.discover_journal_articles.access import _download
         page = MagicMock(status_code=200, headers={"Content-Type": "text/html"}, url="https://a.org/x",
-                         text='<meta name="citation_pdf_url" content="https://evil.example/p.pdf">', content=b"")
-        mock_fetch.side_effect = [page, _pdf_response()]
-        _download("https://a.org/x", 25, cookies={"ezproxy": "secret"})
-        self.assertIsNone(mock_fetch.call_args_list[1].kwargs.get("cookies"))
-        self.assertEqual(mock_fetch.call_args_list[0].kwargs.get("cookies"), {"ezproxy": "secret"})
+                         text='<meta name="citation_pdf_url" content="https://a.org/p.pdf">', content=b"")
+        mock_fetch.return_value = page
+        self.assertIsNone(_download("https://a.org/x", 25, cookies={"ezproxy": "secret"}))
+        self.assertEqual(mock_fetch.call_count, 1)  # the cookie never travels on a page-controlled hop
+
+    @patch("discovery.discover_journal_articles.access.socket.getaddrinfo",
+           return_value=[(2, 1, 6, "", ("93.184.216.34", 0))])
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
+    def test_redirect_to_internal_address_is_refused(self, mock_fetch, mock_pace, mock_dns):
+        from discovery.discover_journal_articles.access import _download
+        page = MagicMock(status_code=200, headers={"Content-Type": "text/html"}, url="https://a.org/x",
+                         text='<meta name="citation_pdf_url" content="https://a.org/p.pdf">', content=b"")
+        redirect = MagicMock(status_code=302, headers={"Location": "http://169.254.169.254/latest"}, content=b"")
+        mock_fetch.side_effect = [page, redirect]
+        self.assertIsNone(_download("https://a.org/x", 25))
+        self.assertEqual(mock_fetch.call_count, 2)  # landing + first hop; the internal Location is never fetched
+        self.assertFalse(mock_fetch.call_args_list[1].kwargs.get("allow_redirects", True))
+
 
 if __name__ == "__main__":
     unittest.main()

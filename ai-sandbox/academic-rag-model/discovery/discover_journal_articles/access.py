@@ -27,6 +27,7 @@ from __future__ import annotations
 import html
 import ipaddress
 import re
+import socket
 import time
 from dataclasses import dataclass
 from urllib.parse import urljoin, urlparse
@@ -156,26 +157,58 @@ def _citation_pdf_url(response) -> str | None:
     return None
 
 
-def _followup_cookies(source_url: str, pdf_url: str, cookies: dict | None):
-    """Decides whether a landing page's advertised PDF link may be followed, and with which cookies. The link
-    comes from page content, so it is untrusted: only http(s) targets, never a loopback/private/link-local
-    address or localhost, and the caller's cookies (the EZProxy session) go only to the same host the page
-    came from, and only over https. Returns (ok, cookies_for_the_hop)."""
-    src, dst = urlparse(source_url), urlparse(pdf_url)
-    host = (dst.hostname or "").lower().rstrip(".")
-    if dst.scheme not in ("http", "https") or not host or host == "localhost" or host.endswith(".localhost"):
-        return False, None
-    try:
-        address = ipaddress.ip_address(host)
-    except ValueError:
-        address = None  # a hostname, not an IP literal
-    if address is not None and (
+_MAX_FOLLOW_REDIRECTS = 3
+
+
+def _address_is_public(address) -> bool:
+    return not (
         address.is_private or address.is_loopback or address.is_link_local or address.is_reserved
         or address.is_multicast or address.is_unspecified
-    ):
-        return False, None
-    same_host = host == (src.hostname or "").lower().rstrip(".")
-    return True, (cookies if same_host and dst.scheme == "https" else None)
+    )
+
+
+def _is_public_http_url(url: str) -> bool:
+    """True only for an http(s) URL whose host is not localhost and whose every resolved address is public. The
+    link comes from page content, so it is untrusted. A DNS answer can change between this check and the connect
+    (rebinding); closing that needs pinning the connection to the validated address, which this does not do."""
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower().rstrip(".")
+    if parsed.scheme not in ("http", "https") or not host or host == "localhost" or host.endswith(".localhost"):
+        return False
+    try:
+        return _address_is_public(ipaddress.ip_address(host))
+    except ValueError:
+        pass  # a hostname: resolve it
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except OSError:
+        return False
+    try:
+        return bool(infos) and all(_address_is_public(ipaddress.ip_address(info[4][0])) for info in infos)
+    except ValueError:
+        return False
+
+
+def _fetch_followup_pdf(url: str) -> bytes | None:
+    """Fetches a page-advertised PDF link without credentials, following at most _MAX_FOLLOW_REDIRECTS redirects
+    by hand so every Location is re-validated (requests would otherwise follow them unchecked)."""
+    for _ in range(_MAX_FOLLOW_REDIRECTS + 1):
+        if not _is_public_http_url(url):
+            return None
+        try:
+            response = fetch_with_retries(
+                "GET", url, headers={"User-Agent": _USER_AGENT}, timeout=30, allow_redirects=False,
+            )
+        except FetchError:
+            return None
+        location = response.headers.get("Location")
+        if response.status_code in (301, 302, 303, 307, 308) and location:
+            url = urljoin(url, location)
+            continue
+        if response.status_code == 200 and is_pdf_response(response) and is_valid_pdf_bytes(response.content):
+            return response.content
+        return None
+    return None
 
 
 def _download(url: str, pace_per_hour: float, cookies: dict | None = None, _follow_landing: bool = True) -> bytes | None:
@@ -191,15 +224,14 @@ def _download(url: str, pace_per_hour: float, cookies: dict | None = None, _foll
         # simply didn't work for this paper; the caller falls through to
         # the next tier / needs_manual, exactly like a non-PDF response.
         return None
-    if response.status_code == 200 and not is_pdf_response(response) and _follow_landing:
-        # A landing page, not a PDF: follow its advertised PDF link once (never recursively), unpaced because
-        # it is the same publisher host just contacted. Publishers that bot-block still fail here and fall
-        # through to the next tier / needs_manual exactly as before.
+    if response.status_code == 200 and not is_pdf_response(response) and _follow_landing and not cookies:
+        # A landing page, not a PDF: follow its advertised PDF link once, without credentials. Never done when
+        # cookies are in play (the EZProxy tier): the link is page-controlled and the session cookie must not
+        # travel on a hop or its redirects. Bot-blocking publishers still fail here and fall through to the
+        # next tier / needs_manual exactly as before.
         pdf_url = _citation_pdf_url(response)
         if pdf_url and pdf_url != url:
-            ok, hop_cookies = _followup_cookies(getattr(response, "url", "") or url, pdf_url, cookies)
-            if ok:
-                return _download(pdf_url, 0, hop_cookies, _follow_landing=False)
+            return _fetch_followup_pdf(pdf_url)
         return None
     if response.status_code != 200 or not is_pdf_response(response) or not is_valid_pdf_bytes(response.content):
         return None
