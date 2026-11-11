@@ -3936,7 +3936,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-21T13:14:04.579999+00:00",
-    "content_hash": "16c82389fa0b83b9",
+    "content_hash": "bf0de5e82a91b8f7",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/econometrics/part_1/lecture_notes/Econometrics 2026-09-09 10.11.39.excalidraw.svg"
   },
@@ -4725,7 +4725,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-21T13:14:43.729802+00:00",
-    "content_hash": "9f880db08c0baa0f",
+    "content_hash": "a8ae0956092c2f28",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/econometrics/part_1/lecture_notes/Econometrics 2026-09-14 10.08.12.excalidraw.svg"
   },
@@ -5514,7 +5514,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-21T13:15:32.527645+00:00",
-    "content_hash": "ea88cc396b79910d",
+    "content_hash": "04d62a9f4757b030",
     "needs_indexing": false,
     "source_asset_path": "academic_resources/econometrics/part_1/lecture_notes/Econometrics 2026-09-16 10.06.15.excalidraw.svg"
   },
@@ -6304,7 +6304,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T13:25:14.528627+00:00",
-    "content_hash": "ca28128f624cf2d4",
+    "content_hash": "0eb1b391cca592e0",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -7107,7 +7107,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T16:18:19.116672+00:00",
-    "content_hash": "69fbd937016cd301",
+    "content_hash": "7575aa04cb4b0c91",
     "needs_indexing": false
   },
   {
@@ -7896,7 +7896,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T16:22:25.736815+00:00",
-    "content_hash": "95e331c3d24296cb",
+    "content_hash": "899c8f1f3045a593",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -8699,7 +8699,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T16:22:40.064235+00:00",
-    "content_hash": "b6bb856a3ad8430b",
+    "content_hash": "bbb872bf63be879d",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -9532,7 +9532,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-09-23T16:22:58.002511+00:00",
-    "content_hash": "fc784b0f63951d05",
+    "content_hash": "23f66925de55fdde",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -10329,7 +10329,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T17:38:58.484132+00:00",
-    "content_hash": "2e6614d528944f60",
+    "content_hash": "f36aae9dec36e0ee",
     "needs_indexing": false
   },
   {
@@ -11118,7 +11118,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T17:39:07.078386+00:00",
-    "content_hash": "b922469ed0bcf8b6",
+    "content_hash": "69341c735b6ed605",
     "needs_indexing": false
   },
   {
@@ -11907,7 +11907,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T17:39:27.519265+00:00",
-    "content_hash": "f62840cd55279292",
+    "content_hash": "035a15e4b0d1cdc7",
     "needs_indexing": false
   },
   {
@@ -12696,7 +12696,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:04:08.206950+00:00",
-    "content_hash": "74469e9bae8e32cf",
+    "content_hash": "fa0c896165f771d9",
     "needs_indexing": false
   },
   {
@@ -13485,7 +13485,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:04:39.988099+00:00",
-    "content_hash": "b251edcba1360c1e",
+    "content_hash": "ca57cbcc1f3240fd",
     "needs_indexing": false
   },
   {
@@ -14274,7 +14274,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:04:58.375499+00:00",
-    "content_hash": "486d153379fc8670",
+    "content_hash": "17613ad57bf4c3a1",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -15071,7 +15071,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:05:20.845422+00:00",
-    "content_hash": "90e6ad0dbe878c4f",
+    "content_hash": "856e91c79b7ed8cb",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -15868,7 +15868,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:05:42.699672+00:00",
-    "content_hash": "895b3ecd67194969",
+    "content_hash": "a0be808149717db4",
     "needs_indexing": false
   },
   {
@@ -16657,7 +16657,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:06:05.230012+00:00",
-    "content_hash": "fcc54e31bcad338f",
+    "content_hash": "e8b84e0c468dbf9f",
     "needs_indexing": false
   },
   {
@@ -17446,7 +17446,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:06:31.096134+00:00",
-    "content_hash": "5d3319ad1126f29b",
+    "content_hash": "1dfaa2a0812e4bea",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -18243,7 +18243,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:07:00.572873+00:00",
-    "content_hash": "c93f36d7f30bd0b7",
+    "content_hash": "c22ebb11de60fb98",
     "needs_indexing": false
   },
   {
@@ -19032,7 +19032,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:10:42.242614+00:00",
-    "content_hash": "5e6caa044272252e",
+    "content_hash": "5ab5e2db23eb6930",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -19829,7 +19829,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:10:49.524143+00:00",
-    "content_hash": "3659773b1e70bbf2",
+    "content_hash": "714a160cb7a67fcc",
     "needs_indexing": false
   },
   {
@@ -20618,7 +20618,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:10:57.304692+00:00",
-    "content_hash": "cd31ec6d5b1a0f9e",
+    "content_hash": "62bf581e9099b14a",
     "needs_indexing": false
   },
   {
@@ -21407,7 +21407,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:11:03.381532+00:00",
-    "content_hash": "f23943aac8d49677",
+    "content_hash": "03de9e623f3265c9",
     "needs_indexing": false
   },
   {
@@ -22196,7 +22196,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:11:17.340711+00:00",
-    "content_hash": "8f79dbaa36ae1518",
+    "content_hash": "b2c09afa813ef70b",
     "needs_indexing": false
   },
   {
@@ -22985,7 +22985,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:11:39.393785+00:00",
-    "content_hash": "21b8bbc8a395255d",
+    "content_hash": "6cb57ee5c6305220",
     "needs_indexing": false
   },
   {
@@ -23774,7 +23774,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:11:59.187944+00:00",
-    "content_hash": "8a01ed5d67659ba5",
+    "content_hash": "e3259bf48190719b",
     "needs_indexing": false
   },
   {
@@ -24563,7 +24563,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:12:18.567722+00:00",
-    "content_hash": "e882a1d024e0c693",
+    "content_hash": "5043a4f5198adf08",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -25360,7 +25360,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:12:41.102362+00:00",
-    "content_hash": "9d4962fc5d88bc1b",
+    "content_hash": "616fbdbb98dffdb4",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -26157,7 +26157,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:12:57.734756+00:00",
-    "content_hash": "96626d91e0728e13",
+    "content_hash": "0229e97e4e3a8fed",
     "needs_indexing": false
   },
   {
@@ -26946,7 +26946,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:13:18.942898+00:00",
-    "content_hash": "6bc5dd22681b2bf8",
+    "content_hash": "6fdf1ebf6ad45c1a",
     "needs_indexing": false
   },
   {
@@ -27735,7 +27735,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:13:44.743218+00:00",
-    "content_hash": "9244d21e025280e4",
+    "content_hash": "bf232c3093f93c7e",
     "needs_indexing": false
   },
   {
@@ -28524,7 +28524,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:14:09.348713+00:00",
-    "content_hash": "75a5a091f60e9da5",
+    "content_hash": "99647407a284b63c",
     "needs_indexing": false
   },
   {
@@ -29313,7 +29313,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-03T18:14:32.992177+00:00",
-    "content_hash": "43533f79bfced865",
+    "content_hash": "6b7a8c724fb7630f",
     "needs_indexing": false
   },
   {
@@ -30103,7 +30103,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-04T14:58:44.775913+00:00",
-    "content_hash": "375fadfdd2fb1b86",
+    "content_hash": "53e6f1bb976fd23e",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -30901,7 +30901,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-04T14:58:46.263410+00:00",
-    "content_hash": "d2c6d381fb10e71b",
+    "content_hash": "245bcc8de5e74cae",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -31699,7 +31699,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-04T14:58:47.482844+00:00",
-    "content_hash": "bbdfb260da7a0808",
+    "content_hash": "adc14272d0b53a40",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -32497,7 +32497,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-04T14:58:48.779305+00:00",
-    "content_hash": "d6439f8153fd35fb",
+    "content_hash": "25c956dbfc2b98a3",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -33295,7 +33295,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-04T14:58:49.924764+00:00",
-    "content_hash": "1de3d3356431763c",
+    "content_hash": "fbfe83b408141c18",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -34093,7 +34093,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-04T14:58:51.783375+00:00",
-    "content_hash": "54d4df6c800a42fe",
+    "content_hash": "bf84d4909c08ddec",
     "needs_indexing": false,
     "related_offerings": [
       {
@@ -34891,7 +34891,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-06T01:05:34.933818+00:00",
-    "content_hash": "89f9e88a23cb3516",
+    "content_hash": "061378cfe80fcecb",
     "needs_indexing": false
   },
   {
@@ -35681,7 +35681,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-06T01:06:03.468731+00:00",
-    "content_hash": "a394dd4d15730e89",
+    "content_hash": "d0273b9a94216aba",
     "needs_indexing": false
   },
   {
@@ -36471,7 +36471,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-06T01:06:27.559663+00:00",
-    "content_hash": "92d386a92bc06104",
+    "content_hash": "97dbba835fc54c17",
     "needs_indexing": false
   },
   {
@@ -37261,7 +37261,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:57:01.559721+00:00",
-    "content_hash": "78d47e008fd720f1",
+    "content_hash": "a462b12575bdcf99",
     "needs_indexing": false
   },
   {
@@ -38051,7 +38051,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:57:01.718830+00:00",
-    "content_hash": "4efc4446cc6018ec",
+    "content_hash": "a824dd5d6c5d6aef",
     "needs_indexing": false
   },
   {
@@ -38841,7 +38841,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:57:01.898763+00:00",
-    "content_hash": "71ca4b5d24771a0b",
+    "content_hash": "d1d92702de600647",
     "needs_indexing": false
   },
   {
@@ -39631,7 +39631,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:57:02.034289+00:00",
-    "content_hash": "a9b9978d8e7c2e43",
+    "content_hash": "28ea23d87a2046e4",
     "needs_indexing": false
   },
   {
@@ -41211,7 +41211,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:57:02.177477+00:00",
-    "content_hash": "80cca82d466a1e86",
+    "content_hash": "526bfcfacaeba64b",
     "needs_indexing": false
   },
   {
@@ -42001,7 +42001,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:57:02.338821+00:00",
-    "content_hash": "dec3455bb59b9e37",
+    "content_hash": "f81db8ffdced6528",
     "needs_indexing": false
   },
   {
@@ -45951,7 +45951,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:27:53.166273+00:00",
-    "content_hash": "11d18868250012b2",
+    "content_hash": "9fe68c48572aa8c4",
     "needs_indexing": false
   },
   {
@@ -46741,7 +46741,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:30:01.593402+00:00",
-    "content_hash": "37102c03164d5a81",
+    "content_hash": "32bd5839bccf36da",
     "needs_indexing": false
   },
   {
@@ -47531,7 +47531,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:30:17.888748+00:00",
-    "content_hash": "9bbbe96f88e3fa48",
+    "content_hash": "6c8900a2c978e97f",
     "needs_indexing": false
   },
   {
@@ -48321,7 +48321,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:30:55.181999+00:00",
-    "content_hash": "cce31e5b1da45327",
+    "content_hash": "fad9008de4e65977",
     "needs_indexing": false
   },
   {
@@ -49111,7 +49111,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:31:17.407390+00:00",
-    "content_hash": "06de89f73d51d1ea",
+    "content_hash": "b1258045b2804875",
     "needs_indexing": false
   },
   {
@@ -49901,7 +49901,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:31:37.221038+00:00",
-    "content_hash": "e87c09fa4d676c38",
+    "content_hash": "55f2c7d87f674430",
     "needs_indexing": false
   },
   {
@@ -50690,7 +50690,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:52:42.483210+00:00",
-    "content_hash": "8ad44777729b0f1c",
+    "content_hash": "512fc2076d056611",
     "offering_label": null,
     "duplicate_of_file_id": "7c6c051e3714da17",
     "duplicate_of_path": "academic_notes/econometrics/part_1/problem_sets/processed_outputs/00-review-questions.md"
@@ -51482,7 +51482,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:55:05.302567+00:00",
-    "content_hash": "8fde8380917e406f",
+    "content_hash": "0fc9811e9403f408",
     "needs_indexing": false
   },
   {
@@ -52272,7 +52272,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:55:07.500498+00:00",
-    "content_hash": "b050ac3d2cd01030",
+    "content_hash": "a15fc032fd5aca59",
     "needs_indexing": false
   },
   {
@@ -53062,7 +53062,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:55:14.985934+00:00",
-    "content_hash": "20435fdbb686496a",
+    "content_hash": "0b0bc73c57763325",
     "needs_indexing": false
   },
   {
@@ -53852,7 +53852,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:55:45.619620+00:00",
-    "content_hash": "5dcebb251539c55d",
+    "content_hash": "7d29672f3b4070fd",
     "needs_indexing": false
   },
   {
@@ -54642,7 +54642,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:55:50.849812+00:00",
-    "content_hash": "1d84cc8a4963a72e",
+    "content_hash": "de25526055aee51c",
     "needs_indexing": false
   },
   {
@@ -56222,7 +56222,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:56:10.069515+00:00",
-    "content_hash": "0316d223c423970d",
+    "content_hash": "b0dd9b0d174046d9",
     "needs_indexing": false
   },
   {
@@ -57012,7 +57012,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:56:20.006106+00:00",
-    "content_hash": "269c6e8035d79e8c",
+    "content_hash": "2e1fe0f6a33de476",
     "needs_indexing": false
   },
   {
@@ -57802,7 +57802,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:56:26.392701+00:00",
-    "content_hash": "ef985b2bdd8253fc",
+    "content_hash": "7d178b7ee4e64ddc",
     "needs_indexing": false
   },
   {
@@ -58592,7 +58592,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:56:37.695338+00:00",
-    "content_hash": "301784f977dff2b4",
+    "content_hash": "bb95fc9856b7139e",
     "needs_indexing": false
   },
   {
@@ -59382,7 +59382,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:56:39.491249+00:00",
-    "content_hash": "fb6e2ec2d1011de7",
+    "content_hash": "c49bf392b99a36ed",
     "needs_indexing": false
   },
   {
@@ -60172,7 +60172,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:56:41.275710+00:00",
-    "content_hash": "c71d52729ab5c93c",
+    "content_hash": "88d41055e83aa584",
     "needs_indexing": false
   },
   {
@@ -60962,7 +60962,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:56:42.905657+00:00",
-    "content_hash": "347955fe784e52b2",
+    "content_hash": "5f83b14827d3ab89",
     "needs_indexing": false
   },
   {
@@ -61752,7 +61752,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:56:44.866517+00:00",
-    "content_hash": "5c276739c173932f",
+    "content_hash": "daa8b1fd981103b3",
     "needs_indexing": false
   },
   {
@@ -62542,7 +62542,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:56:46.819962+00:00",
-    "content_hash": "05058e92a3837022",
+    "content_hash": "0c6fdcdd754297f5",
     "needs_indexing": false
   },
   {
@@ -63332,7 +63332,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-15T03:57:01.073973+00:00",
-    "content_hash": "01138335a34a8ff5",
+    "content_hash": "1b0d930e574367f6",
     "needs_indexing": false
   },
   {
@@ -64122,7 +64122,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-11-03T01:15:18.172062+00:00",
-    "content_hash": "9a36866ce7dc6ad2",
+    "content_hash": "302d0b5666451db5",
     "needs_indexing": false
   },
   {
@@ -64912,7 +64912,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-19T17:06:24.227452+00:00",
-    "content_hash": "5140553324bb015d",
+    "content_hash": "7a69aec2e0dc2b24",
     "needs_indexing": false
   },
   {
@@ -65702,7 +65702,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-11-03T01:15:32.963167+00:00",
-    "content_hash": "649fd6bdaa6d0a34",
+    "content_hash": "44c6f0446eec6484",
     "needs_indexing": false
   },
   {
@@ -66492,7 +66492,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-11-03T01:14:31.576875+00:00",
-    "content_hash": "cf66c8349226a96a",
+    "content_hash": "7bd13ed32dcff3ca",
     "needs_indexing": false
   },
   {
@@ -67282,7 +67282,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-11-03T01:14:48.180605+00:00",
-    "content_hash": "d3826d0ef59d0384",
+    "content_hash": "c8ee50c602fff6d4",
     "needs_indexing": false
   },
   {
@@ -68072,7 +68072,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-19T17:42:39.965341+00:00",
-    "content_hash": "5114f27613341685",
+    "content_hash": "3bc186abf0146f3b",
     "needs_indexing": false
   },
   {
@@ -68862,7 +68862,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-19T18:24:56.775123+00:00",
-    "content_hash": "88deff29f87043df",
+    "content_hash": "ca835173c694112d",
     "needs_indexing": false
   },
   {
@@ -69652,7 +69652,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-19T18:25:38.234488+00:00",
-    "content_hash": "3f5e89c783cc17a9",
+    "content_hash": "4b5de14f4c2350cd",
     "needs_indexing": false
   },
   {
@@ -70442,7 +70442,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-19T18:26:05.696931+00:00",
-    "content_hash": "9476de808f938ecb",
+    "content_hash": "304e0c418c689334",
     "needs_indexing": false
   },
   {
@@ -71232,7 +71232,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-10-19T18:26:17.771058+00:00",
-    "content_hash": "ad96edf5604ecec5",
+    "content_hash": "dbe15585afbbfd76",
     "needs_indexing": false
   },
   {
@@ -72022,7 +72022,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-11-02T18:49:12.011521+00:00",
-    "content_hash": "80750f2db6c683c5",
+    "content_hash": "deda37e04e0645f7",
     "needs_indexing": false,
     "source_kind": "markdown_only",
     "companion_of_file_id": null,
@@ -72816,7 +72816,7 @@
     ],
     "embedding_model": "gemini-embedding-001:768",
     "source_updated_at": "2026-11-02T18:50:13.344903+00:00",
-    "content_hash": "848db3906844ab03",
+    "content_hash": "05291fac91c27cef",
     "needs_indexing": false,
     "source_kind": "markdown_only",
     "companion_of_file_id": null,
@@ -73615,7 +73615,8 @@
     "source_kind": "markdown_only",
     "companion_of_file_id": "a32981f9ad99894b",
     "companion_role": "solutions",
-    "relationship_basis": "unique_category_stem"
+    "relationship_basis": "unique_category_stem",
+    "hub_id": "cc3f405bfcc7"
   },
   {
     "file_id": "adea7ad6fcb6afd0",
@@ -74409,7 +74410,8 @@
     "source_kind": "markdown_only",
     "companion_of_file_id": "a32981f9ad99894b",
     "companion_role": "solutions",
-    "relationship_basis": "unique_category_stem"
+    "relationship_basis": "unique_category_stem",
+    "hub_id": "00bee8d78a94"
   },
   {
     "file_id": "95a5cb0c477e20ab",
@@ -75203,7 +75205,8 @@
     "source_kind": "markdown_only",
     "companion_of_file_id": "b4331cf218f015a2",
     "companion_role": "solutions",
-    "relationship_basis": "unique_category_stem"
+    "relationship_basis": "unique_category_stem",
+    "hub_id": "35ea7a388899"
   },
   {
     "file_id": "ed1d4c6861ae0876",
@@ -75997,7 +76000,8 @@
     "source_kind": "markdown_only",
     "companion_of_file_id": "b4331cf218f015a2",
     "companion_role": "solutions",
-    "relationship_basis": "unique_category_stem"
+    "relationship_basis": "unique_category_stem",
+    "hub_id": "6343d53f66bc"
   },
   {
     "file_id": "7d238b89b98e7ae4",
@@ -76791,7 +76795,8 @@
     "source_kind": "markdown_only",
     "companion_of_file_id": "b4331cf218f015a2",
     "companion_role": "solutions",
-    "relationship_basis": "unique_category_stem"
+    "relationship_basis": "unique_category_stem",
+    "hub_id": "307d73399006"
   },
   {
     "file_id": "3fed2792b694eebb",
@@ -77585,7 +77590,8 @@
     "source_kind": "markdown_only",
     "companion_of_file_id": null,
     "companion_role": null,
-    "relationship_basis": null
+    "relationship_basis": null,
+    "hub_id": "aa3db10b205e"
   },
   {
     "file_id": "1768764c6b591311",
