@@ -235,6 +235,34 @@ test("an overlapping unmanaged frame is not duplicated", () => {
   assert.equal(record.reason,"unmanaged_existing_frame");
 });
 
+test("a nearby unmarked frame without exact members is not adopted", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const e=md("e",1000,0,"c".repeat(40));
+  const first=af.planFrames([s,e],registry,
+    {slides:[entry(s,1)]}).plans[0];
+  const f={id:"manual",type:"frame",x:first.bounds.x,y:first.bounds.y,
+    width:first.bounds.w,height:first.bounds.h,name:"Manual page"};
+  const record=af.planFrames([s,e,f],registry,
+    {slides:[entry(s,1)]}).plans[0];
+  assert.equal(record.action,"skip");
+  assert.equal(record.reason,"unmanaged_existing_frame");
+  assert.equal(record.frameId,null);
+});
+
+test("an unmarked frame with exact linked members can be adopted", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const e=md("e",1000,0,"c".repeat(40));
+  const first=af.planFrames([s,e],registry,
+    {slides:[entry(s,1)]}).plans[0];
+  const f={id:"linked",type:"frame",x:first.bounds.x,y:first.bounds.y,
+    width:first.bounds.w,height:first.bounds.h,name:"Manual page"};
+  s.frameId="linked";e.frameId="linked";
+  const record=af.planFrames([s,e,f],registry,
+    {slides:[entry(s,1)]}).plans[0];
+  assert.equal(record.action,"update");
+  assert.equal(record.frameId,"linked");
+});
+
 test("sidecar template hashes the linked PNG and rejects a stale hash", async () => {
   const image=png("s",0,0,"a".repeat(40));
   const file={path:"lecture/note.excalidraw.md"};
@@ -337,6 +365,10 @@ test("optional read-only live scene inventory", {skip:!process.env.AUTO_FRAME_LI
   const byId=new Map(elements.map(e=>[e.id,e]));
   const conflicts=diagnostic.plans.filter(p=>p.action==="skip").map(p=>({
     slideId:p.slideId,reason:p.reason,
+    slideAt:[byId.get(p.slideId)?.x,byId.get(p.slideId)?.y],
+    conflicting:(p.conflictingIds||[]).map(id=>({id,
+      type:byId.get(id)?.type,x:byId.get(id)?.x,y:byId.get(id)?.y,
+      width:byId.get(id)?.width,height:byId.get(id)?.height})),
     conflictingTypes:Object.fromEntries([...new Set((p.conflictingIds||[])
       .map(id=>byId.get(id)?.type))].map(type=>[type,
       (p.conflictingIds||[]).filter(id=>byId.get(id)?.type===type).length]))

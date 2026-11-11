@@ -1,6 +1,6 @@
 # Excalidraw Auto-Framer Script — engineering specification
 
-**Status:** Partial implementation in task branches as of 2026-11-08. The user observed two persistent scratch frames and correctly ordered PDF export in the existing vault. That first live run omitted handwriting; revised ink expansion is fixture-tested and pending another in-Obsidian scratch run. The original LIML2 note remains unchanged.
+**Status (2026-11-11):** Limited-release candidate in task branches. The user observed two persistent scratch frames, correctly ordered PDF export, and handwriting captured after the ink-expansion update. A read-only check of the saved scratch scene finds two no-op frame plans and all 56 matched strokes inside slide 18's frame. PDF export after the ink update still needs explicit confirmation. The full LIML2 scene has changed independently and is not validated for an unattended whole-deck run.
 **Owner surface:** In-vault Obsidian Excalidraw script `Auto-Frame Slides.md`.
 **Source:** `docs/brainstorms/2026-11-07-excalidraw-slide-explainer-and-auto-framer.md` (untracked in the main checkout at spec time).
 
