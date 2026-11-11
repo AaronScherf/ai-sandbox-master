@@ -76,6 +76,43 @@ test("handwriting is included spatially without modifying strokes", () => {
   assert.equal(JSON.stringify(i),before);
 });
 
+test("matched scratch-layout handwriting expands an existing frame", () => {
+  const s=png("s",-1481,-371,"a".repeat(40));
+  const e=md("e",-2500,-371,"c".repeat(40));
+  const upper=stroke("upper",-260,-455,45,78);
+  const lower=stroke("lower",-20,205,29,30);
+  const core=af.frameBounds([s,e],[]);
+  const old={id:"f",type:"frame",x:core.x,y:core.y,
+    width:core.w,height:core.h,name:"001 Slide 18",
+    customData:{autoFrameSlidesKey:"e|s"}};
+  const report=af.planFrames([s,e,upper,lower,old],registry,
+    {slides:[entry(s,18)]});
+  const plan=report.plans[0];
+  assert.equal(plan.action,"update");
+  assert.equal(plan.frameId,"f");
+  assert.ok(plan.bounds.w>core.w);
+  assert.ok(plan.bounds.h>core.h);
+  assert.ok(af.contains(plan.bounds,af.box(upper)));
+  assert.ok(af.contains(plan.bounds,af.box(lower)));
+  assert.equal(plan.inkWarning,null);
+});
+
+test("image beside matched handwriting keeps the core frame and warns", () => {
+  const s=png("s",-1481,-371,"a".repeat(40));
+  const e=md("e",-2500,-371,"c".repeat(40));
+  const ink=stroke("ink",-260,-400,40,70);
+  const other={id:"other",type:"image",x:-250,y:-100,
+    width:100,height:100,fileId:"missing"};
+  const core=af.frameBounds([s,e],[]);
+  const report=af.planFrames([s,e,ink,other],registry,
+    {slides:[entry(s,18)]});
+  const plan=report.plans[0];
+  assert.equal(plan.action,"create");
+  assert.equal(plan.bounds.w,core.w);
+  assert.equal(plan.inkWarning,"partial_ink");
+  assert.deepEqual([...plan.atRiskInkIds],["ink"]);
+});
+
 test("ambiguous ink is reported instead of assigned", () => {
   const a=png("a",0,0,"a".repeat(40));
   const b=png("b",3000,0,"b".repeat(40));
@@ -310,7 +347,11 @@ test("optional read-only live scene inventory", {skip:!process.env.AUTO_FRAME_LI
     explanations:kinds.explanations.length,strokes:kinds.ink.length,
     regions:regions.length,frames:kinds.frames.length,
     inkAmbiguous:matched.warnings.length
-  },diagnostic:{actions,reasons,conflicts,ambiguousPairs},
+  },diagnostic:{actions,reasons,conflicts,ambiguousPairs,
+    inkPlans:diagnostic.plans.filter(p=>p.inkIds.length).map(p=>({
+      slideId:p.slideId,action:p.action,frameId:p.frameId,
+      inkStrokes:p.inkIds.length,atRiskInkStrokes:(p.atRiskInkIds||[]).length,
+      bounds:p.bounds}))},
     firstSlide:kinds.slides.slice(0,3).map(x=>x.id)}));
   assert.ok(kinds.slides.length>0);
 });
