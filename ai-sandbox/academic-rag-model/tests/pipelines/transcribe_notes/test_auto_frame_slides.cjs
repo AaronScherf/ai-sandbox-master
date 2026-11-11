@@ -324,8 +324,12 @@ test("optional read-only live scene inventory", {skip:!process.env.AUTO_FRAME_LI
   const kinds=af.classify(elements,registry);
   const regions=af.clusterInk(kinds.ink);
   const matched=af.matchInk(kinds.slides,regions);
-  const diagnostic=af.planFrames(elements,registry,
-    {slides:kinds.slides.map((s,i)=>entry(s,i+1))});
+  const sidecar=source.replace(/\.excalidraw\.md$/,
+    ".excalidraw.slide-order.json");
+  const manifest=fs.existsSync(sidecar) ?
+    JSON.parse(fs.readFileSync(sidecar,"utf8")) :
+    {slides:kinds.slides.map((s,i)=>entry(s,i+1))};
+  const diagnostic=af.planFrames(elements,registry,manifest);
   const actions=Object.fromEntries([...new Set(diagnostic.plans.map(p=>p.action))]
     .map(action=>[action,diagnostic.plans.filter(p=>p.action===action).length]));
   const reasons=Object.fromEntries([...new Set(diagnostic.plans.map(p=>p.reason).filter(Boolean))]
