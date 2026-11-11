@@ -206,3 +206,35 @@ the fix and hasn't been re-run, so it's not confirmed whether a UA alone
 would clear EZProxy's specific wall too (the original finding pointed at
 TLS/JS fingerprinting as well, not just the UA string) -- worth
 re-testing if EZProxy volume ever becomes worth revisiting.
+
+## Route 4: Fetch an explicit DOI list
+
+When you already know exactly which papers you want (for example the
+references of a literature check), skip discovery and name them:
+
+```powershell
+python -m discovery.discover_journal_articles.fetch_dois --doi-file dois.txt --folder novelty-check --dry-run
+python -m discovery.discover_journal_articles.fetch_dois --doi-file dois.txt --folder novelty-check
+```
+
+- `--doi-file`: one DOI per line; `#` starts a comment (kept as the DOI's
+  label in the report); blank lines, CRLF, `doi:` / `doi.org` prefixes and
+  duplicates are handled, and DOIs containing parentheses or colons are
+  kept intact. `--doi` (repeatable) takes DOIs on the command line.
+- No relevance model is loaded and nothing is filtered. Each DOI is
+  resolved in OpenAlex, fetched through the same OA -> arXiv -> EZProxy
+  chain, and recorded in the same manifest, so anything that cannot be
+  fetched lands on `needs_manual_downloads.md`. A DOI already `fetched`
+  or `downloaded` is skipped without a network lookup; a `needs_manual`
+  one is retried.
+- `--folder NAME` puts the whole batch in one folder under the articles
+  dir (default is the usual top-concept routing).
+- `--dry-run` resolves each DOI in OpenAlex and reports whether OpenAlex
+  lists an open-access copy; it downloads and writes nothing.
+- A DOI OpenAlex does not know is reported as `not_in_openalex` and gets
+  no manifest entry. `doi_fetch_report.md` (beside `seen.json`) lists
+  every DOI's outcome: fetched, already_seen, needs_manual,
+  not_in_openalex, not_a_doi, not_attempted_time_budget.
+- Not checked: that a downloaded PDF is really the requested paper. Use
+  `tools.reconcile_needs_manual` (DOI/title match on the converted `.md`)
+  after conversion.
