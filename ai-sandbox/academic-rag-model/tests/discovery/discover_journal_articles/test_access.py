@@ -418,5 +418,34 @@ class TestLandingPageFallback(unittest.TestCase):
         result = resolve_full_text(_work(oa_url="https://doi.org/10.1/abc"), "me@example.com", None, 25)
         self.assertEqual(result.status, "needs_manual")
 
+class TestLandingPageFollowSafety(unittest.TestCase):
+    """The advertised PDF link is page-controlled: cookies stay on the same host, internal targets are refused."""
+
+    def test_cookies_only_to_same_host(self):
+        from discovery.discover_journal_articles.access import _followup_cookies
+        jar = {"ezproxy": "secret"}
+        self.assertEqual(_followup_cookies("https://a.org/x", "https://a.org/p.pdf", jar), (True, jar))
+        self.assertEqual(_followup_cookies("https://a.org/x", "https://cdn.b.org/p.pdf", jar), (True, None))
+        self.assertEqual(_followup_cookies("https://a.org/x", "http://a.org/p.pdf", jar), (True, None))  # no cookies over http
+
+    def test_refuses_internal_and_non_http_targets(self):
+        from discovery.discover_journal_articles.access import _followup_cookies
+        for bad in (
+            "http://127.0.0.1/p.pdf", "http://localhost/p.pdf", "http://10.0.0.5/p.pdf",
+            "http://169.254.169.254/latest", "http://[::1]/p.pdf", "file:///etc/passwd", "ftp://a.org/p.pdf",
+        ):
+            self.assertEqual(_followup_cookies("https://a.org/x", bad, {"c": "v"}), (False, None), bad)
+
+    @patch("discovery.discover_journal_articles.access.paced_sleep")
+    @patch("discovery.discover_journal_articles.access.fetch_with_retries")
+    def test_cross_host_hop_sends_no_cookies(self, mock_fetch, mock_pace):
+        from discovery.discover_journal_articles.access import _download
+        page = MagicMock(status_code=200, headers={"Content-Type": "text/html"}, url="https://a.org/x",
+                         text='<meta name="citation_pdf_url" content="https://evil.example/p.pdf">', content=b"")
+        mock_fetch.side_effect = [page, _pdf_response()]
+        _download("https://a.org/x", 25, cookies={"ezproxy": "secret"})
+        self.assertIsNone(mock_fetch.call_args_list[1].kwargs.get("cookies"))
+        self.assertEqual(mock_fetch.call_args_list[0].kwargs.get("cookies"), {"ezproxy": "secret"})
+
 if __name__ == "__main__":
     unittest.main()

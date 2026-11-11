@@ -25,10 +25,11 @@ needlessly slow with no actual safety benefit.
 from __future__ import annotations
 
 import html
+import ipaddress
 import re
 import time
 from dataclasses import dataclass
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from discovery.discover_journal_articles.discovery import Work
 from discovery.discover_journal_articles.http_utils import (
@@ -155,6 +156,28 @@ def _citation_pdf_url(response) -> str | None:
     return None
 
 
+def _followup_cookies(source_url: str, pdf_url: str, cookies: dict | None):
+    """Decides whether a landing page's advertised PDF link may be followed, and with which cookies. The link
+    comes from page content, so it is untrusted: only http(s) targets, never a loopback/private/link-local
+    address or localhost, and the caller's cookies (the EZProxy session) go only to the same host the page
+    came from, and only over https. Returns (ok, cookies_for_the_hop)."""
+    src, dst = urlparse(source_url), urlparse(pdf_url)
+    host = (dst.hostname or "").lower().rstrip(".")
+    if dst.scheme not in ("http", "https") or not host or host == "localhost" or host.endswith(".localhost"):
+        return False, None
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        address = None  # a hostname, not an IP literal
+    if address is not None and (
+        address.is_private or address.is_loopback or address.is_link_local or address.is_reserved
+        or address.is_multicast or address.is_unspecified
+    ):
+        return False, None
+    same_host = host == (src.hostname or "").lower().rstrip(".")
+    return True, (cookies if same_host and dst.scheme == "https" else None)
+
+
 def _download(url: str, pace_per_hour: float, cookies: dict | None = None, _follow_landing: bool = True) -> bytes | None:
     paced_sleep(pace_per_hour)
     try:
@@ -174,7 +197,9 @@ def _download(url: str, pace_per_hour: float, cookies: dict | None = None, _foll
         # through to the next tier / needs_manual exactly as before.
         pdf_url = _citation_pdf_url(response)
         if pdf_url and pdf_url != url:
-            return _download(pdf_url, 0, cookies, _follow_landing=False)
+            ok, hop_cookies = _followup_cookies(getattr(response, "url", "") or url, pdf_url, cookies)
+            if ok:
+                return _download(pdf_url, 0, hop_cookies, _follow_landing=False)
         return None
     if response.status_code != 200 or not is_pdf_response(response) or not is_valid_pdf_bytes(response.content):
         return None
