@@ -1,0 +1,41 @@
+# Documentation Probe - Kenya Data and Replication Sweep - v1
+
+**Date:** 2026-11-12  
+**Author:** Gemini (Antigravity session)  
+**Scope:** Time-boxed documentation and data-availability sweep for Kenya Hunger Safety Net Programme (HSNP) Phase 1 and 2 evaluations, prepared for Aaron's Friday peer talk.  
+**Search Scope:** FCDO IATI / DevTracker (`GB-1-204258`), World Bank Microdata Library, FAO Microdata Catalogue, UK Data Service, Harvard Dataverse, 3ie Replication Paper Series & Evidence Portal, Google Scholar, and *Journal of Development Effectiveness*.
+
+---
+
+## 1. Evidence and Verification Table
+
+| # | Question / Document | Source URL | Epistemic Tag | Verbatim Quote (under 25 words) | Page / Section |
+|---|---------------------|------------|---------------|----------------------------------|----------------|
+| 1a | **Report URL & Verification:** HSNP Phase 2 Business Case (cites Phase 1 RCT: 24 T / 24 C sub-locations, 1,434 T / 1,433 C HHs) | `https://iati.fcdo.gov.uk/iati_documents/4857207.odt` | `FULL-TEXT-READ` | *"A randomised control trial was designed, with fieldwork in 24 'treatment' and 24 'control' sub-locations, randomly selected. A sample of 1,434 treatment and 1,433 control households."* | DevTracker `GB-1-204258` Doc 4857207, Footnote 74, p. 43 |
+| 1b | **Report URL & Verification:** OPM (2013) Analysis for Phase II Business Case | `https://iati.fcdo.gov.uk/iati_documents/4857207.odt` | `FULL-TEXT-READ` | *"OPM (2013) Kenya Hunger Safety Net Programme: Monitoring and Evaluation Component Analysis for HSNP Phase II Business Case. 24 February 2013"* | DevTracker `GB-1-204258` Doc 4857207, Footnote 77, p. 44 |
+| 1c | **Report URL & Verification:** HSNP Monitoring & Evaluation Component Impact Evaluation Final Report (2009 to 2012) | `https://microdata.worldbank.org//catalog/1917/download/29600` | `FULL-TEXT-READ` | *"All the evaluation reports can be found at http://www.opml.co.uk/projects/kenya-hunger-safety-net-programme-monitoring-and-evaluation-component ."* | OPM/IDS Final Report (June 2013), Section 1, Footnote 5, p. 20 & Table 1, p. 22 |
+| 1d | **Report URL & Verification:** Local Economy Wide Impact Evaluation (LEWIE) in Phase 2 Completion Review | `https://iati.fcdo.gov.uk/iati_documents/50441178.odt` | `FULL-TEXT-READ` | *"A mixed-methods, quasi-experimental impact evaluation approach was employed utilising a local economy-wide impact evaluation (LEWIE), regression discontinuity design... and propensity score matching"* | DevTracker `GB-1-204258` Doc 50441178 (PCR), Section B, Output 4, p. 19 |
+| 1e | **Report URL & Verification:** Local Fiscal Multiplier finding from LEWIE in Phase 2 PCR | `https://iati.fcdo.gov.uk/iati_documents/50441178.odt` | `FULL-TEXT-READ` | *"Data from the evaluation showed that for each KES injected into the economy, overall income rises by between 0.38 and 0.93 KES."* | DevTracker `GB-1-204258` Doc 50441178 (PCR), Section A, p. 3 |
+| 2a | **Data Availability:** 2012 Impact Evaluation Microdata (World Bank Microdata Library) | `https://microdata.worldbank.org/catalog/1917/get-microdata` | `FULL-TEXT-READ` | *"To access data for this study, user must be logged in. Click on the links below to login or register for a free account."* | Study `KEN_2012_HSNP-FU2_v01_M`, Catalog 1917, DOI `10.48529/3jkx-m214`, Get Microdata tab |
+| 2b | **Data Availability:** LEWIE / Phase 2 Survey Microdata (FAO & World Bank Microdata) | `https://microdata.worldbank.org/index.php/catalog/3650` | `FULL-TEXT-READ` | *"The datasets have been anonymised and are available as a Public Use Dataset. They are accessible to all for statistical and research purposes only"* | FAO Catalog 1520 / WB Catalog 3650 (`KEN_2016_HSNPS_v01_EN_M_v01_A_OCS`), Access conditions |
+| 2c | **Data Availability:** UK Data Service | `https://ukdataservice.ac.uk/` | `NOT FOUND` | *(Search query `"Hunger Safety Net Programme" site:ukdataservice.ac.uk` returned 0 datasets)* | UK Data Service catalog search |
+| 2d | **Data Availability:** Harvard Dataverse | `https://dataverse.harvard.edu/` | `NOT FOUND` | *(Search query `"Hunger Safety Net Programme" site:dataverse.harvard.edu` returned 0 primary study datasets)* | Harvard Dataverse catalog search |
+| 3a | **Replication Record:** 3ie Replication Paper Series | `https://www.3ieimpact.org/evidence-hub/publications/replication-paper-series` | `NOT FOUND` | *(Search queries `"Replication Paper Series" "Hunger Safety Net"` and `"HSNP"` returned 0 replication papers)* | 3ie RPS Repository |
+| 3b | **Replication Record:** Journal of Development Effectiveness | `https://www.tandfonline.com/toc/rjde20/current` | `NOT FOUND` | *(Search query `"Journal of Development Effectiveness" "Hunger Safety Net"` returned no primary evaluation or replication study)* | Taylor & Francis RJDE index |
+| 3c | **Academic Publication vs Grey Literature:** Peer-reviewed status of primary evaluation | `https://microdata.worldbank.org//catalog/1917/download/29600` | `FULL-TEXT-READ` | *"Table 1 Description of HSNP evaluation outputs"* | OPM/IDS Final Report (June 2013), p. 22. Primary evaluation published solely as project consultancy reports, never in an academic journal |
+| 3d | **Secondary Reanalysis Record:** Song & Imai (2019) Multidimensional Poverty Reanalysis | `https://doi.org/10.1080/21665095.2019.1582347` | `ABSTRACT-READ` | *"The purpose of this research is to evaluate the short-term impact and long-term sustainability of Kenya’s Hunger Safety Net Programme (HSNP)."* | *Development Studies Research*, 6(1): 180-191 / OPHI Working Paper 122, Abstract |
+| 4a | **Eligibility Signals:** Pre-analysis plan, registry, or trial registration in Phase 1 evaluation | `https://microdata.worldbank.org//catalog/1917/download/29600` | `FULL-TEXT-READ` | *(Full text scan of 154 pages for `pre-analysis`, `trial registration`, `RIDIE`, `ISRCTN`, `open access`, `data sharing` yielded 0 hits)* | OPM/IDS Final Report (June 2013), pp. 1–154 |
+| 4b | **Eligibility Signals:** Pre-analysis plan or registry in Phase 2 Business Case | `https://iati.fcdo.gov.uk/iati_documents/4857207.odt` | `FULL-TEXT-READ` | *(Full text scan of 195,518 characters in `content.xml` for `pre-analysis`, `registry`, `trial registration`, `RIDIE` yielded 0 hits)* | DevTracker `GB-1-204258` Doc 4857207, pp. 1–77 |
+
+---
+
+## 2. Synthesis Answers
+
+**(a) Is the data public?**  
+Yes. Microdata for the 2012 Phase 1 impact evaluation (second follow-up round) is publicly available in the World Bank Microdata Library under Study Reference `KEN_2012_HSNP-FU2_v01_M` (Catalog ID 1917, DOI `10.48529/3jkx-m214`) as a Public Use Dataset upon free user registration; additionally, the 2016 Phase 2 / LEWIE microdata (household, business, and livestock trader surveys) is publicly accessible via the FAO Microdata Catalogue (`KEN_2016_HSNPS_v01_EN_M_v01_A_OCS`, Catalog 1520) and World Bank Microdata Library (Catalog 3650).
+
+**(b) Is there a replication record?**  
+No pure computational reproduction or replication study exists in the dedicated replication literature (e.g., 3ie Replication Paper Series, *Journal of Development Effectiveness*, RePEc, or *Journal of Applied Econometrics*), and the primary evaluation was published strictly as commissioned grey literature reports (OPM/IDS) rather than in a peer-reviewed journal; the sole peer-reviewed secondary reanalysis is Sophie Song and Katsushi S. Imai (2018/2019, *Development Studies Research* 6(1): 180-191 / OPHI Working Paper 122), which re-analyzed the 2009–2012 public microdata to assess multidimensional poverty impacts.
+
+**(c) What a reproduction would need that is missing:**  
+A strict reproduction would require: (1) the original OPM/IDS Stata analysis scripts (do-files) and data-cleaning code used to construct consumption aggregates, adult-equivalent scales, local price deflators, and clustered standard error adjustments (only raw microdata and blank survey instruments are archived); (2) the exact cluster randomisation sequence, stratification keys, and village sampling frames that determined the 24 treatment and 24 control sub-locations; and (3) a formal pre-analysis plan or registered study protocol (which was never created or registered on AEA RCT Registry or 3ie RIDIE, leaving variable construction and covariate choices unanchored).
