@@ -30,7 +30,7 @@ This framing also makes the original disagreement a research object. The critiqu
 
 ## 3. The 2×2 mutually reinforcing architecture
 
-The four components remain standalone, reproducible outputs, with `reprokit` as a research reproducibility framework (see the [tracker's project entry](../../PROJECTS.md); its separate repository is present only in the main checkout). They support several possible analyses rather than feeding inevitably into a single simulator.
+The four components remain standalone, reproducible outputs, with `reprokit` as a research reproducibility framework (see the [tracker's project entry](../../../PROJECTS.md); its separate repository is present only in the main checkout). They support several possible analyses rather than feeding inevitably into a single simulator.
 
 | Component | Retained contribution | Expanded question and validation gate |
 |---|---|---|
@@ -41,7 +41,7 @@ The four components remain standalone, reproducible outputs, with `reprokit` as 
 
 The feedback loop is an **auditable research cycle**: a decision question guides search; search identifies relevant datasets and missing evidence; data audits constrain the estimand; replication and implementation evidence inform hypotheses; observed failures revise the taxonomy. The output may be a synthesis, a panel, a replication, a feasibility assessment, an uncertainty range, or an explicit “cannot infer.” Corpus completeness and operational deployment are not presumed.
 
-The [tracker](../../PROJECTS.md) provides the current anchors: the compound-shocks panel has reproduced Somalia and Sudan builds; `reprokit` v0.4.0 is released; the Bangladesh insurance replication has an unresolved village-coordinate gate; the evidence map is in brainstorming; the data-fusion toolkit is deferred; and transferability remains a planned evidence line. These are different maturity states. The revised story should not present the 2×2 as an integrated working product.
+The [tracker](../../../PROJECTS.md) provides the current anchors: the compound-shocks panel has reproduced Somalia and Sudan builds; `reprokit` v0.4.0 is released; the Bangladesh insurance replication has an unresolved village-coordinate gate; the evidence map is in brainstorming; the data-fusion toolkit is deferred; and transferability remains a planned evidence line. These are different maturity states. The revised story should not present the 2×2 as an integrated working product.
 
 ### Conditional methods and decision outputs
 

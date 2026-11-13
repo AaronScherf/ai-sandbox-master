@@ -1,6 +1,6 @@
 # Review and brainstorm: a cohesive nexus evidence agenda (v9)
 
-*Claude, 2026-11-12, ninth pass. Records the owner's decisions after v8, restates the three research questions, and sets the plan for the slide draft. [v8](Review%20-%20Cohesive%20Nexus%20Evidence%20Agenda%20Recommendation%20-%20v8.md) is carried by reference except where this file replaces it. Review only: Presentation Strategy v3, the deck, tracker and project plans are untouched. Companion: [Abstract v2](Abstract%20-%20Nexus%20Evidence%20Agenda%20-%20v2.md).*
+*Claude, 2026-11-12, ninth pass. Records the owner's decisions after v8, restates the three research questions, and sets the plan for the slide draft. [v8](Review%20-%20Cohesive%20Nexus%20Evidence%20Agenda%20Recommendation%20-%20v8.md) is carried by reference except where this file replaces it. Review only: Presentation Strategy v3, the deck, tracker and project plans are untouched. Companion: [Abstract v2](../05_slides-and-talk/Abstract%20-%20Nexus%20Evidence%20Agenda%20-%20v2.md).*
 
 **Tags.** **[C]** checked by me against the text. **[S]** Gemini's reading only. **[I]** interpretation. **[P]** proposal. **[O]** owner decision.
 

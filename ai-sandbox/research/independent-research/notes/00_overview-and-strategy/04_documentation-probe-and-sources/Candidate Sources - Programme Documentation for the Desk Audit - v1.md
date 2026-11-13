@@ -1,6 +1,6 @@
 # Candidate sources for the desk audit (v1)
 
-*Claude, 2026-11-10. A small sanity-check list for the retrospective desk audit described in the [review v5](Review%20-%20Cohesive%20Nexus%20Evidence%20Agenda%20Recommendation%20-%20v5.md) §7. Built from the repo's existing register plus about eight web searches and four page fetches. **Search-result summaries only: I did not open most documents, and two page fetches failed (below).** Treat every row as a lead, not a verified source. Superseding versions will be new files (`- v2`).*
+*Claude, 2026-11-10. A small sanity-check list for the retrospective desk audit described in the [review v5](../02_agenda-strategy-and-reviews/Review%20-%20Cohesive%20Nexus%20Evidence%20Agenda%20Recommendation%20-%20v5.md) §7. Built from the repo's existing register plus about eight web searches and four page fetches. **Search-result summaries only: I did not open most documents, and two page fetches failed (below).** Treat every row as a lead, not a verified source. Superseding versions will be new files (`- v2`).*
 
 **Tags.** **[V]** already verified in the repo. **[S]** reported by a web-search summary, not opened by me. **[I]** my inference or prior knowledge, unverified.
 

@@ -42,7 +42,7 @@
 
 ## Research Project Plan:
 
-**Keep in sync with `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan.md`.** That doc owns the full research narrative, faculty outreach plan, and month-by-month timeline; this table only tracks the publishing angle on top of it. If a project in Ground Truth's `#projects` section gets added, dropped, or rescheduled — or its `#timeline` shifts — update this table in the same sitting. Same in reverse: if a blog-driven deadline forces a project's timeline to move, that change belongs in Ground Truth first.
+**Keep in sync with `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/01_ground-truth-and-research-plan/Ground Truth - PhD Research Plan.md`.** That doc owns the full research narrative, faculty outreach plan, and month-by-month timeline; this table only tracks the publishing angle on top of it. If a project in Ground Truth's `#projects` section gets added, dropped, or rescheduled — or its `#timeline` shifts — update this table in the same sitting. Same in reverse: if a blog-driven deadline forces a project's timeline to move, that change belongs in Ground Truth first.
 
 Five self-contained first-year projects come out of Ground Truth's `#projects` section, each already scoped to a semester or less with no RCT/IRB blockers beyond Project 03. Target months below match Ground Truth's own `#timeline` "portfolio"-tagged items.
 

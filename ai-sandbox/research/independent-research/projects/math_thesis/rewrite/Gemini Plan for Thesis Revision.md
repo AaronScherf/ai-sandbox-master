@@ -184,7 +184,7 @@ A structured revision of the manuscript requires a deliberate transition from a 
 
 ### Prioritization Note (synced with PhD research timeline, added 2026-09-10)
 
-Four adjustments to the phase plan below, made after checking it against the broader first-year research schedule (`notes/00_overview-and-strategy/Ground Truth - PhD Research Plan.md`, Project 06):
+Four adjustments to the phase plan below, made after checking it against the broader first-year research schedule (`notes/00_overview-and-strategy/01_ground-truth-and-research-plan/Ground Truth - PhD Research Plan.md`, Project 06):
 
 - **Do Phase 1 and the low-risk Phase 3 items first, in parallel with each other.** Vectorization, deterministic covariance estimation, and the second-order difference matrix are cheap, largely independent of the rest, and unblock everything downstream. Target September–October.
 - **Data-driven λ (GCV/REML) changes what "the null distribution" means.** Once λ is selected per-sample rather than fixed, the finite-sample null distribution of the test statistic $g$ is itself selection-dependent — referencing a fixed asymptotic or chi-square distribution after adaptive selection will generally misstate size. Before finalizing Phase 4, recalibrate via a parametric bootstrap that re-runs the GCV/REML selection step under simulated null data, rather than treating the reference distribution as fixed.

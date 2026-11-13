@@ -26,7 +26,7 @@
 
 ## 1. Novelty status after the spot check
 
-Sources: Gemini's `Novelty Check - Claim Spot Check - v1` and my [Claude Claim Check v1](Novelty%20Check%20-%20Claude%20Claim%20Check%20-%20v1.md). Papers read were the 13 priority-1 transcripts; three RQ1 documents (ALNAP, IDinsight, Elrha) were not obtained.
+Sources: Gemini's `Novelty Check - Claim Spot Check - v1` and my [Claude Claim Check v1](../03_novelty-check/Novelty%20Check%20-%20Claude%20Claim%20Check%20-%20v1.md). Papers read were the 13 priority-1 transcripts; three RQ1 documents (ALNAP, IDinsight, Elrha) were not obtained.
 
 | RQ | Status | Basis |
 |---|---|---|

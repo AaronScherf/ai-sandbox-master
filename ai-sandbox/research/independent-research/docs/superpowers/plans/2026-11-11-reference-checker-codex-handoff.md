@@ -4,7 +4,7 @@ Why
 Gemini wrote four literature-check notes for Aaron's PhD agenda and tagged every reference [VERIFIED]. Claude resolved the 38 `doi.org` links in them against Crossref: only 13 resolved to the cited paper, 13 resolved to a different paper, and 12 did not resolve (a few for benign reasons). Two citations also had wrong authors, journal and finding. The errors look like identifiers recalled from memory rather than copied from a source page. If the literature taxonomy or evidence-map pipelines take metadata from model output, the same silent error can enter them. A mechanical checker catches this class of error cheaply. Use the Gemini notes as a regression set but do not edit them.
 
 Read first
-- notes/00_overview-and-strategy/Novelty Check - Claude Spot Check - v1.md (under ai-sandbox/research/independent-research/ in the `codex-nexus-presentation-strategy-v3` worktree; ask Aaron for the path if it has moved)
+- notes/00_overview-and-strategy/03_novelty-check/Novelty Check - Claude Spot Check - v1.md (under ai-sandbox/research/independent-research/ in the `codex-nexus-presentation-strategy-v3` worktree; ask Aaron for the path if it has moved)
 - The Gemini notes, read-only, in the `gemini-nexus-novelty-check` worktree: `Novelty Check - RQ1/RQ2/RQ3/Summary - v1.md` under the same folder
 - docs/AGENT_ROUTING.md and the existing code conventions (package layout, test runner, dependency tool) of whichever subproject you choose
 

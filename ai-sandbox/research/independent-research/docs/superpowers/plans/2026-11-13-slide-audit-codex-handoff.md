@@ -6,7 +6,7 @@ PhD students in economics and environmental science. They know causal inference 
 ## Review in two passes, in this order (the order matters)
 
 **Pass 1: cold read (no context files).** Read only the deck:
-`ai-sandbox/research/independent-research/notes/00_overview-and-strategy/nexus_evidence_agenda_slides.marp.md`
+`ai-sandbox/research/independent-research/notes/00_overview-and-strategy/05_slides-and-talk/nexus_evidence_agenda_slides.marp.md`
 (on branch `claude/nexus-marp-deck`; the rendered `nexus_evidence_agenda_slides.pdf` beside it shows the visuals, which are SVG files in `figures/` named `nexus_*.svg`; open the PDF as well, since the visuals carry much of the content).
 Read the slides in order, ignoring the `<!-- Note: -->` speaker notes and appendix. For every slide record, as a newcomer: what the slide claims; any term, abbreviation or shorthand not defined on or before that slide; any sentence whose meaning you cannot pin down; any step in the argument that does not follow from the previous slide; anything that reads as if it assumes knowledge you do not have. Write these down **before** opening any other file.
 

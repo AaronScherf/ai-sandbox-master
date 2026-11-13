@@ -35,7 +35,7 @@
 - *Against:* a process is not a falsifiable object, and it is the framing that let slide 12 drift. "Adaptation" can mean anything from a literature brief to a model.
 
 **B. Conditional causal-transfer model (original, narrowed).** The object is a transport model: when does a source effect travel, and what is the target estimate?
-- *For:* sharpest; has a theory (selection diagrams, Pearl–Bareinboim; conditional-effect exchangeability and positivity, Dahabreh et al., both cited in the [follow-up critique](../03_rct-transportability/Follow-up%20-%20Data%20Availability%20and%20Transportability%20Critique.md)).
+- *For:* sharpest; has a theory (selection diagrams, Pearl–Bareinboim; conditional-effect exchangeability and positivity, Dahabreh et al., both cited in the [follow-up critique](../../03_rct-transportability/Follow-up%20-%20Data%20Availability%20and%20Transportability%20Critique.md)).
 - *Against:* assumes decision relevance, which is the owner's explicit objection; and the critique's own verdict is *yellow*: eligible trials and site coordinates are not established **[V]**. Risks a methods paper with no data.
 
 **C. A graded transfer claim, with its decision value tested (recommended).** The object is a **transfer claim for one decision**, with two linked questions:

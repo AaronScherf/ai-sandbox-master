@@ -252,7 +252,7 @@ Naming suggestions, all optional:
 
 Each group has one `Cross-Group Connections.md` that pulls the relevant ideas out of files that belong to several groups, so you don't have to reopen the big shared documents.
 
-- [`00_overview-and-strategy/Cross-Group Connections.md`](00_overview-and-strategy/Cross-Group%20Connections.md)
+- [`00_overview-and-strategy/06_data-sources-and-handoffs/Cross-Group Connections.md`](00_overview-and-strategy/06_data-sources-and-handoffs/Cross-Group%20Connections.md)
 - [`01_compound-shocks-panel/Cross-Group Connections.md`](01_compound-shocks-panel/Cross-Group%20Connections.md)
 - [`02_literature-and-evidence-map/Cross-Group Connections.md`](02_literature-and-evidence-map/Cross-Group%20Connections.md)
 - [`03_rct-transportability/Cross-Group Connections.md`](03_rct-transportability/Cross-Group%20Connections.md)

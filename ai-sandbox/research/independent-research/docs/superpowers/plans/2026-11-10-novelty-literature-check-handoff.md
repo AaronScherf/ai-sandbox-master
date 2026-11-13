@@ -6,9 +6,9 @@ Goal
 Aaron is planning a PhD research agenda on how external causal and other evidence can be found, assessed, adapted and used for decisions in prolonged or recurrent crises and the humanitarian-development transition. The agenda has three research questions. For EACH, find out whether it already has a well-defined answer in past research, so Aaron knows whether it is a useful contribution or already done. "Not novel" is a valuable result. Do not try to make the questions look novel.
 
 Read first (in the main checkout; the review files may exist only in the Codex worktree until landed, so ask Aaron for the path if you cannot find them)
-- Review v5: notes/00_overview-and-strategy/Review - Cohesive Nexus Evidence Agenda Recommendation - v5.md (pipeline, gates, validation definitions)
+- Review v5: notes/00_overview-and-strategy/02_agenda-strategy-and-reviews/Review - Cohesive Nexus Evidence Agenda Recommendation - v5.md (pipeline, gates, validation definitions)
 - v3 sections 2 and 3 for the RQ definitions and the value-of-information framing
-- notes/00_overview-and-strategy/Humanitarian Evidence Agenda - Source Verification.md (the standard for what counts as a verified claim)
+- notes/00_overview-and-strategy/02_agenda-strategy-and-reviews/Humanitarian Evidence Agenda - Source Verification.md (the standard for what counts as a verified claim)
 - notes/03_rct-transportability/Follow-up - Data Availability and Transportability Critique.md (transportability background)
 All paths are under ai-sandbox/research/independent-research/.
 

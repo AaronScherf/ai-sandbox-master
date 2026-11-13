@@ -16,7 +16,7 @@ This memorandum provides the empirical and theoretical literature review require
 
 The objective is to equip Aaron to select a defensible research question and econometric identification strategy before any modeling begins. In accordance with the Review Gate charter, this memo:
 1. Evaluates existing publications to determine whether the proposed compound-shock research duplicates prior work;
-2. Assesses the theoretical contribution against **Direction I** of the PhD research plan (climate adaptation, forced migration, and cash transfers under conflict; [Ground Truth - PhD Research Plan.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan.md>), section 03);
+2. Assesses the theoretical contribution against **Direction I** of the PhD research plan (climate adaptation, forced migration, and cash transfers under conflict; [Ground Truth - PhD Research Plan.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/00_overview-and-strategy/01_ground-truth-and-research-plan/Ground Truth - PhD Research Plan.md>), section 03);
 3. Examines what econometric identification strategies remain credible given the severe price sparsity, temporal disjoints, and selection biases uncovered in Phase A;
 4. Identifies and evaluates candidate additional datasets to address the audit's data gaps and bridge the panel toward Direction I.
 
@@ -139,7 +139,7 @@ A comprehensive external search across OpenAlex, Semantic Scholar, NBER, CEPR, 3
 ### Question 2: What Is the Specific Contribution? Does It Advance Direction I of the PhD Plan?
 **Finding:** A compound climate-conflict paper advances the **thematic foundation** of Direction I, but **fails to complete the core empirical requirement** unless social protection or cash transfer data is added.
 * **Alignment with PhD Plan Direction I:**
-  * [Ground Truth - PhD Research Plan.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan.md>) (Section 03) defines Direction I as: *"Climate adaptation, migration & cash transfers under conflict... The core question: does investment in climate-adaptive resilience reduce the probability that a shock becomes a displacement event, and does that relationship change — or break down — once you condition on active conflict?"*
+  * [Ground Truth - PhD Research Plan.md](<C:/Users/theaa/ai-sandbox-master/ai-sandbox/research/independent-research/notes/00_overview-and-strategy/01_ground-truth-and-research-plan/Ground Truth - PhD Research Plan.md>) (Section 03) defines Direction I as: *"Climate adaptation, migration & cash transfers under conflict... The core question: does investment in climate-adaptive resilience reduce the probability that a shock becomes a displacement event, and does that relationship change — or break down — once you condition on active conflict?"*
 * **The Contribution Gap:**
   * The current panel contains only *shocks* (`events`, `fatalities`, `precip_mm`) and *outcomes* (`displacement`). It contains **zero social assistance, cash transfer, or climate adaptation variables**.
   * If executed solely on the current panel, the paper contributes to the *climate-security and environmental displacement literature* (joining Thalheimer et al. 2023 and Harari & La Ferrara 2018). It does *not* advance the reputation-defining cash transfer / social protection component of Direction I.

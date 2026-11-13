@@ -149,7 +149,7 @@ style: |
 <div>
 
 * **Standardizing Open Science & Data Science:**
-  * Orchestrated via [`reprokit`](../../projects/reprokit/README.md) (v0.4.0 released, open-source).
+  * Orchestrated via [`reprokit`](../../../projects/reprokit/README.md) (v0.4.0 released, open-source).
   * Independent verification regardless of technical background.
 * **Three Project Archetypes:**
   * `study`: Empirical pipelines with automated hash verification.

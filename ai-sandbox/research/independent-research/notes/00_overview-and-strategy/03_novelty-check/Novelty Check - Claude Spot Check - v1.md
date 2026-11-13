@@ -1,6 +1,6 @@
 # Spot check of Gemini's novelty-check notes (v1)
 
-*Claude, 2026-11-11. Checks Gemini's four notes (`Novelty Check - Summary / RQ1 / RQ2 / RQ3 - v1.md`, in the worktree `gemini-nexus-novelty-check`) against the [handoff](../../docs/superpowers/plans/2026-11-10-novelty-literature-check-handoff.md)'s evidence standard. I did not edit Gemini's files. This is a spot check, not a full audit.*
+*Claude, 2026-11-11. Checks Gemini's four notes (`Novelty Check - Summary / RQ1 / RQ2 / RQ3 - v1.md`, in the worktree `gemini-nexus-novelty-check`) against the [handoff](../../../docs/superpowers/plans/2026-11-10-novelty-literature-check-handoff.md)'s evidence standard. I did not edit Gemini's files. This is a spot check, not a full audit.*
 
 **Tags.** **[C]** checked by me against Crossref or a search result. **[S]** from a web-search summary, not opened at the source. **[I]** my inference or prior knowledge, unverified.
 

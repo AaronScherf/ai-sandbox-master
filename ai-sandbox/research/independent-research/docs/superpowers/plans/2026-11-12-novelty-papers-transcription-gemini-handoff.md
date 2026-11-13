@@ -3,7 +3,7 @@ You are a Gemini (Antigravity) session. Task: transcribe the novelty-check journ
 Where things are
 - PDFs: `C:\Users\theaa\ai-sandbox-master\ai-sandbox\research\journal-articles\novelty-check\` (main checkout; about 46 PDFs; Aaron added the manually downloaded ones). PDFs, converted Markdown and images under `research/journal-articles/` are git-ignored because this repo is public and these are third-party copyrighted papers. Do not copy any PDF or paper text anywhere else in the repo, and never paste long passages into notes (short quotations with citation only).
 - Pipeline: `ai-sandbox/academic-rag-model/pipelines/convert_journal_articles/` (read its README first, "Step 2: Run it"). Default driver is `agent`: it stages task cards, you fill them in Antigravity following the printed contract, then `--submit`. It does not use the paid API.
-- Reference list for what each PDF should be: `notes/00_overview-and-strategy/Novelty Check - Fetch List and Priorities - v1.md` and `docs/superpowers/plans/2026-11-11-novelty-check-fetch-dois.txt` in the `codex-nexus-presentation-strategy-v3` worktree under `ai-sandbox/research/independent-research/` (uncommitted; read from there).
+- Reference list for what each PDF should be: `notes/00_overview-and-strategy/03_novelty-check/Novelty Check - Fetch List and Priorities - v1.md` and `docs/superpowers/plans/2026-11-11-novelty-check-fetch-dois.txt` in the `codex-nexus-presentation-strategy-v3` worktree under `ai-sandbox/research/independent-research/` (uncommitted; read from there).
 
 Important: path arguments
 Run commands from `ai-sandbox/academic-rag-model`. The pipeline's default folders resolve relative to the code, which is wrong in a worktree, so pass explicit absolute paths:

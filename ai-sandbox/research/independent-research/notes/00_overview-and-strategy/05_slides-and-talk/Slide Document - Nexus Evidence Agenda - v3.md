@@ -1,6 +1,6 @@
-# Slide document: matching evidence to decisions in prolonged crises (v4)
+# Slide document: matching evidence to decisions in prolonged crises (v3)
 
-*Claude, 2026-11-12, fourth pass. Supersedes [v3](Slide%20Document%20-%20Nexus%20Evidence%20Agenda%20-%20v3.md): slide 11 is rewritten around the expert-in-the-loop design (the RQ2 causal map and the planner's judgment of "close enough"), with selection diagrams explained in plain language; slides 8 and 9 link to it and slide 9 gets a working definition of "comparable". Changes in v3 relative to [v2](Slide%20Document%20-%20Nexus%20Evidence%20Agenda%20-%20v2.md): slide 4 now situates the work in neighbouring literatures; slide 10 names the 3ie evidence gap map as the model, adds the data-fusion and discovery-loop detail and corrects the replication gate; slide 11 is cut to four approaches in three groups. Changes in v2 relative to [v1](Slide%20Document%20-%20Nexus%20Evidence%20Agenda%20-%20v1.md): the Kenya and replication slides are merged into slide 5 as motivating cases; slide 10 is now the 2×2 pipeline; slide 11 adds transport-model approaches and context data; slide 12 adds progress and J-PAL outreach. The text-based source for the Friday talk. Each slide has its assertion, what goes on it, why it is there, where the evidence stands, speaker notes and a "do not say" line. A new Marp file is built from this, not from the old `presentation_slides.marp.md`, which still holds claims we removed. Built from [v9](Review%20-%20Cohesive%20Nexus%20Evidence%20Agenda%20Recommendation%20-%20v9.md), [v7](Review%20-%20Cohesive%20Nexus%20Evidence%20Agenda%20Recommendation%20-%20v7.md), [v8](Review%20-%20Cohesive%20Nexus%20Evidence%20Agenda%20Recommendation%20-%20v8.md), the restored v3 to v5 material, and the [process audit](Review%20-%20Process%20Audit%20and%20Slide%20Document%20Gap%20-%20v1.md). Not touched: Presentation Strategy v3, the old deck, tracker, plans.*
+*Claude, 2026-11-12, third pass. Supersedes [v2](Slide%20Document%20-%20Nexus%20Evidence%20Agenda%20-%20v2.md): slide 4 now situates the work in neighbouring literatures; slide 10 names the 3ie evidence gap map as the model, adds the data-fusion and discovery-loop detail and corrects the replication gate; slide 11 is cut to four approaches in three groups. Changes in v2 relative to [v1](Slide%20Document%20-%20Nexus%20Evidence%20Agenda%20-%20v1.md): the Kenya and replication slides are merged into slide 5 as motivating cases; slide 10 is now the 2×2 pipeline; slide 11 adds transport-model approaches and context data; slide 12 adds progress and J-PAL outreach. The text-based source for the Friday talk. Each slide has its assertion, what goes on it, why it is there, where the evidence stands, speaker notes and a "do not say" line. A new Marp file is built from this, not from the old `presentation_slides.marp.md`, which still holds claims we removed. Built from [v9](../02_agenda-strategy-and-reviews/Review%20-%20Cohesive%20Nexus%20Evidence%20Agenda%20Recommendation%20-%20v9.md), [v7](../02_agenda-strategy-and-reviews/Review%20-%20Cohesive%20Nexus%20Evidence%20Agenda%20Recommendation%20-%20v7.md), [v8](../02_agenda-strategy-and-reviews/Review%20-%20Cohesive%20Nexus%20Evidence%20Agenda%20Recommendation%20-%20v8.md), the restored v3 to v5 material, and the [process audit](Review%20-%20Process%20Audit%20and%20Slide%20Document%20Gap%20-%20v1.md). Not touched: Presentation Strategy v3, the old deck, tracker, plans.*
 
 **Setting.** Friday, 30 minutes including questions, for PhD peers (economists and environmental scientists), not specialists in humanitarian work **[O]**. About 13 slides at roughly 1.5 minutes each; slide 5 now carries three cases (about three minutes), and slide 4 carries a five-row table (about two minutes), so slides 12–13 can merge if time runs short. The longer April 2027 faculty talk reuses this document with the appendix expanded.
 
@@ -128,8 +128,6 @@ Goal: more successful interventions, judged by whether pre-registered prediction
 
 **Evidence status.** v9 redefined RQ2 compared with v3–v5 (constraints, scenarios, thresholds). Decide whether the old log-frame example becomes the illustration here (owner choice, process audit §3i). No precedent found for participatory elicitation of causal maps with practitioners; Tennant et al. is **not** one **[C]**.
 
-**Link to RQ3.** The causal chain, blockers and log-frame assumptions are the input to the transport model on slide 11: they say which links a source study must be checked on, and the planner reviews them at each staged deliverable **[P]**.
-
 ## 9. RQ3: how far does a finding travel? What counts as comparable
 **Assertion.** Whether a result transfers depends on how the source and target differ, and "comparable" has to be defined along named dimensions.
 
@@ -138,8 +136,6 @@ Goal: more successful interventions, judged by whether pre-registered prediction
 **Why it is here.** It is the core of the transfer question and the answer to "why not just apply the result?".
 
 **Evidence status.** General argument: Pritchett and Sandefur (2015), transport error larger than local bias in most of their cases **[C]**. Transport theory, bounds (Gechter) and site selection (Montiel Olea et al.) exist **[S]**. The definition of "comparable" is under investigation **[O]**.
-
-**Working definition to test [P].** Settings are comparable for a decision when the differences on the links the planner's causal map says matter are small enough for the planner to accept. This ties "comparable" to RQ2's map and to the decision-maker's judgment (slide 11).
 
 ## 10. The pipeline already under construction: the 2×2
 **Assertion.** The first steps toward the causal transport model are a set of open-source, reproducible tools that can run largely automatically. Some are built and some are planned. They are not yet linked, but they reinforce each other through iterative evidence discovery. The aim is a proof of concept for a pipeline that can be re-run on any decision, not a one-off study; the dissertation validates it on one applied case.
@@ -162,37 +158,28 @@ Goal: more successful interventions, judged by whether pre-registered prediction
 
 **Do not say.** "Integrated", "deployed" or "validated"; that the transport model exists; that every step is automated (screening and judgment remain).
 
-## 11. The causal transport model: built with the decision-maker, not around them
-**Assertion.** The transport model is not a black-box predictor trained in isolation. It starts from the decision-maker's own causal map of the programme (RQ2), and the planner judges whether the source setting is close enough on the links that matter. Four approaches, in three groups, are still to be explored and compared; remote sensing and other context data feed all of them.
+## 11. The causal transport model: four approaches to explore
+**Assertion.** The transport model is the methodologically open part. Four approaches, in three groups, are the ones still to be explored and compared; remote sensing and other context data feed all of them.
 
 **On the slide.**
 
-*The expert-in-the-loop idea, in four steps:*
-1. **RQ2 supplies the map.** The planner's causal chain from activities to outcomes, the blockers and assumptions in the log-frame, and the thresholds that would force a different choice.
-2. **Flag the links that differ.** For each candidate source study, mark the links where its setting differs from the target (payment system, market access, security, delivery institution). This is what a *selection diagram* does: an ordinary causal graph with a marker on each link that differs between the two settings.
-3. **Measure and judge.** Context data (remote sensing, conflict, prices, displacement) measure the flagged links. The planner decides whether each difference is small enough to borrow, and which differences rule a source out.
-4. **Compute and return.** The model gives a prediction of the stated type; the planner checks it against what they know, corrects the map, and the loop repeats at each staged deliverable.
-
-*Four approaches, in three groups:*
-
-| Group | Approach | What it does | Where the expert enters |
+| Group | Approach | What it does | What it needs |
 |---|---|---|---|
-| **What can be carried over?** | **1. Selection diagrams** | Says which differences must be measured and whether a transport formula exists at all | The graph itself comes from the planner's map; the planner flags the differing links |
-| **How to combine evidence** | **2. Hierarchical Bayesian models** | Treats each site's effect as drawn from a distribution; predicts a new site's effect with uncertainty (Meager) | Priors and which sites count as exchangeable are set with the planner |
-| **How to combine evidence** | **3. Similarity-weighted borrowing** | Weights source sites by closeness to the target on the variables that matter: reweighting and synthetic-control-style weights | The planner's map decides which variables, and how close is "close enough" |
-| **What if it cannot?** | **4. Partial-identification bounds** (Gechter) | Reports bounds or a sign when overlap or assumptions fail | The planner supplies the assumptions the bounds rest on (for example the sign of an effect) |
+| **What can be carried over?** (identification) | **1. Selection diagrams** (Pearl and Bareinboim) | A causal graph of how source and target differ; says which differences must be measured and whether a transport formula exists at all | A causal graph the planner and the study authors would accept |
+| **How to combine evidence** (borrowing) | **2. Hierarchical Bayesian models** | Treat each site's effect as drawn from a distribution; predict a new site's effect with uncertainty; the prior comes from the literature (partial pooling; Meager) | Several comparable studies with effect estimates |
+| | **3. Similarity-weighted borrowing** | Weight source sites or studies by how closely their context matches the target: reweighting on measured modifiers and synthetic-control-style weights | Context measures for sources and target; overlap between them |
+| **What if it cannot?** (bounding) | **4. Partial-identification bounds** (Gechter) | Report bounds or a sign when overlap or assumptions fail, instead of a point estimate | Weaker assumptions; usually wider answers |
 
-- **Design choices around the approaches (not methods):** which settings count as comparable (for example insecure regions in different countries); which studies to replicate next (k-median site selection); a trigger to re-audit when a shock changes the setting.
-- **Context data:** remote sensing (rainfall such as CHIRPS, already in the panel; vegetation indices from Landsat, MODIS and Sentinel-2; night lights) and conflict events, prices, displacement, boundaries. Limits: satellites describe environment and activity, not treatment or welfare; resolution has to suit the unit; site coordinates decide what can be linked.
+- **Design choices around the approaches (not methods themselves):** which settings count as comparable (for example insecure regions in different countries rather than the rest of one's own); which studies to replicate next (k-median site selection, Montiel Olea et al.); a trigger to re-audit when a shock changes the setting.
+- **Context data:** remote sensing (rainfall such as CHIRPS, already in the panel; vegetation indices from Landsat, MODIS and Sentinel-2; night lights) and conflict events, prices, displacement, boundaries. These measure how close a target is to a source and supply effect modifiers.
+- **Limits:** satellites describe environment and activity, not treatment or welfare; resolution has to suit the unit (Landsat pixels suit smallholder plots, MODIS can blur them); site coordinates decide what can be linked.
 - **Output:** a stated prediction type (estimate, bounds, sign or uncertainty), pre-registered with an informativeness criterion and a power calculation.
 
-**Why it is here.** It makes the key design commitment explicit: "distance" is defined by an expert-validated causal map and judged by the person who will use the answer, not by a generic similarity score. It also gives a first working definition of "comparable" for open question 3: *settings are comparable for a decision when the differences on the links the planner's map says matter are small enough for the planner to accept* **[P]**. The Egger versus HSNP pair is the first test: do the four approaches agree on whether a result carried from one setting to the other?
+**Why it is here.** This is the methodologically most interesting part, and where the environmental-science half of the audience comes in. The Egger versus HSNP pair is the first test: do the four approaches agree on whether a result carried from one setting to the other?
 
-**Evidence status.** The expert-in-the-loop design is a proposal **[P]**. The RQ2 products it uses (log-frames per scenario, per-node data inventory and decision thresholds, the relevance check with the decision-maker before the transport stage) are in v3 §2 and v4 §5 **[C]**. No precedent found for eliciting causal maps from practitioners; Tennant et al. is not one **[C]**. Selection diagrams are Bareinboim and Pearl's formalism; my plain-language description is **[I]**. Approaches 2 and 3 are standard ideas whose use here is untested; synthetic control proper builds a counterfactual for one treated unit from a panel, so "synthetic-control-style" borrows the weighting idea only **[I]**. Gechter and Montiel Olea were read by Gemini only **[S]**; Meager's identifier was registry-matched. Sensor dates and resolutions are catalog facts from the trial-eligibility note and do not show usable cloud-free observations over any village. No approach has been shown to work in crisis settings.
+**Evidence status.** The grouping and the choice of four are mine **[P]**. Approaches 2 and 3 are standard ideas whose use here is untested: synthetic control proper builds a counterfactual for one treated unit from a panel of untreated units, so "synthetic-control-style" means borrowing the weighting idea, not the method as published **[I]**. Gechter and Montiel Olea were read by Gemini only **[S]**; Meager's identifier was registry-matched **[C]**; Pearl and Bareinboim are registry-matched for a 2012 report. Sensor dates and resolutions are catalog facts from the trial-eligibility note and do not show usable cloud-free observations over any village **[C of the note]**. No approach has been shown to work in crisis settings.
 
-**Speaker note.** The sentence to land: "The model does not decide what is close enough. The person who will act on it does, using a map they helped draw." If asked what a selection diagram is: a cause-and-effect diagram where you mark the arrows that work differently in the two places.
-
-**Do not say.** That any approach is validated here; that remote sensing identifies treatment effects; that cross-country comparison is a method; that the model replaces the decision-maker's judgment.
+**Do not say.** That any approach is validated here; that remote sensing identifies treatment effects; that cross-country comparison is a method.
 
 ## 12. Progress so far, next steps and how it will be judged
 **Assertion.** Early work is done on both the literature and the tools; the next step is a desk audit of one documented programme, with gates, a validation plan and early outreach.
@@ -272,4 +259,3 @@ The v4 list was written for a different pipeline. Proposed revisions **[P]**:
 6. Decide the J-PAL contact route and check with the IRB first (slide 12).
 7. Slide 4: choose the papers shown in each field, and confirm the characterizations by reading, ideally via a Gemini sweep per field before the April talk.
 8. Slide 11: confirm the four approaches to carry and how similarity-weighted borrowing is described.
-9. Slide 9 and 11: accept the working definition of "comparable" (differences on the links the planner's map says matter are small enough for the planner), or revise. This partly closes open question 3.

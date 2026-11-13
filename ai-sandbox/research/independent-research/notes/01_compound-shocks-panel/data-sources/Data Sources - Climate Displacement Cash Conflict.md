@@ -5,7 +5,7 @@
 **Focus Projects:** Project 01 (Evidence Map), Project 02 (Fused Panel Study & Somalia Case Study), Project 03 (Chatbot Survey Pilot), Project 04 (Data Fusion Toolkit), and Project 06 (Math Thesis Residual Validation)  
 **Associated Documents:**  
 - `ai-sandbox/research/independent-research/projects/research_projects_plan_fall26.md`  
-- `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan.md`  
+- `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/01_ground-truth-and-research-plan/Ground Truth - PhD Research Plan.md`  
 - `ai-sandbox/research/independent-research/notes/01_compound-shocks-panel/case-study/Somalia Three-Shock Case Study.md`
 
 ---

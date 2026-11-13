@@ -4,9 +4,9 @@
 
 - **Author:** Aaron Scherf (with Antigravity / Gemini Operator)
 - **Date:** November 8, 2026 (Updated with 15-Slide Text-First Architecture)
-- **Context & Location:** `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Research Presentation Narrative - Humanitarian Transportability Pipeline.md`
+- **Context & Location:** `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/02_agenda-strategy-and-reviews/Research Presentation Narrative - Humanitarian Transportability Pipeline.md`
 - **Companion Plans & Trackers:**
-  - `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan - 3R Revision.md`
+  - `ai-sandbox/research/independent-research/notes/00_overview-and-strategy/01_ground-truth-and-research-plan/Ground Truth - PhD Research Plan - 3R Revision.md`
   - `ai-sandbox/research/independent-research/notes/03_rct-transportability/Follow-up - Data Availability and Transportability Critique.md`
   - `ai-sandbox/research/independent-research/notes/03_rct-transportability/Brainstorming Transcript - Transferability of Crisis Interventions.md`
   - Central Tracker: `ai-sandbox/research/independent-research/PROJECTS.md`
@@ -43,7 +43,7 @@ When an emergency relief agency (UN OCHA, WFP, Red Cross, or World Bank FCV) is 
 
 ## 3. The 2×2 Mutually Reinforcing Architecture
 
-Every component is designed as an **open-source, reproducible, standalone tool** that is portable to any new geography or shock, anchored by the foundational framework [`reprokit`](../../projects/reprokit/README.md).
+Every component is designed as an **open-source, reproducible, standalone tool** that is portable to any new geography or shock, anchored by the foundational framework [`reprokit`](../../../projects/reprokit/README.md).
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -136,7 +136,7 @@ Every component is designed as an **open-source, reproducible, standalone tool**
 * **Title:** Foundational Architecture: Standardized, Reproducible Research (`reprokit`)
 * **Core Takeaway:** Projects require clear replication standards, licensing guidelines, taxonomy labels, and agent rules so that research is independently verifiable by humans and scalable by AI agents.
 * **Key Content:**
-  * **Standardizing Open Science & Data Science:** All project lines are orchestrated via [`reprokit`](../../projects/reprokit/README.md) (v0.4.0 released, open-source).
+  * **Standardizing Open Science & Data Science:** All project lines are orchestrated via [`reprokit`](../../../projects/reprokit/README.md) (v0.4.0 released, open-source).
   * **Core Project Archetypes:**
     * `study`: Computational empirical pipelines with automated hash verification (e.g., panel fusion, RCT replications).
     * `evidence`: Machine-readable evidence maps, search manifests, and literature extraction schemas.

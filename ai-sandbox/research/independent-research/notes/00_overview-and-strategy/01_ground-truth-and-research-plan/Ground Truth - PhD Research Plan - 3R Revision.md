@@ -6,7 +6,7 @@ A strategic revision of the PhD research plan at Columbia SIPA (Sustainable Deve
 
 - **Author:** Aaron Scherf (with Antigravity / Gemini Operator)
 - **Date:** October 2026 (Revised from 2026-08-31 baseline)
-- **Source Context:** `research/independent-research/notes/00_overview-and-strategy/Ground Truth - PhD Research Plan.md`
+- **Source Context:** `research/independent-research/notes/00_overview-and-strategy/01_ground-truth-and-research-plan/Ground Truth - PhD Research Plan.md`
 - **Companion Operational Plan:** `research/independent-research/projects/research_projects_plan_fall26 - 3R Revision.md`
 
 ---

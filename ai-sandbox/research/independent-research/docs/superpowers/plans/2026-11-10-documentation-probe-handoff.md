@@ -6,9 +6,9 @@ Why this probe exists
 Aaron is planning a PhD agenda on how external evidence is used in decisions during prolonged or recurrent crises. The first empirical step is a desk-based retrospective audit of one richly documented programme in the cash vs. safety-net family. That audit can only work if a programme's public record shows (1) what options the designers considered, (2) what evidence they cited and used, (3) monitoring data across the programme's life, and (4) a closeout evaluation. This probe tests cheaply whether any candidate has that record. A candidate scoring poorly is a useful result.
 
 Read first (under ai-sandbox/research/independent-research/; the files may exist only in the Codex worktree until landed, so ask Aaron for paths if you cannot find them)
-- notes/00_overview-and-strategy/Candidate Sources - Programme Documentation for the Desk Audit - v1.md (the sources, the rubric and the open caveats)
-- notes/00_overview-and-strategy/Review - Cohesive Nexus Evidence Agenda Recommendation - v5.md, section 7 and the gates table (context only)
-- notes/00_overview-and-strategy/Humanitarian Evidence Agenda - Source Verification.md (the standard for verified claims)
+- notes/00_overview-and-strategy/04_documentation-probe-and-sources/Candidate Sources - Programme Documentation for the Desk Audit - v1.md (the sources, the rubric and the open caveats)
+- notes/00_overview-and-strategy/02_agenda-strategy-and-reviews/Review - Cohesive Nexus Evidence Agenda Recommendation - v5.md, section 7 and the gates table (context only)
+- notes/00_overview-and-strategy/02_agenda-strategy-and-reviews/Humanitarian Evidence Agenda - Source Verification.md (the standard for verified claims)
 
 Candidates
 These were found by web-search summaries. Nobody has yet confirmed which documents exist or how rich they are.
@@ -59,7 +59,7 @@ Time-box and stop rules
 - If one of the three clearly dominates after two are scored, you may finish the third more lightly, but say you did.
 
 Output (new file only; versioned; do not overwrite)
-Write ai-sandbox/research/independent-research/notes/00_overview-and-strategy/Documentation Probe - Scored Candidates - v1.md, containing:
+Write ai-sandbox/research/independent-research/notes/00_overview-and-strategy/04_documentation-probe-and-sources/Documentation Probe - Scored Candidates - v1.md, containing:
 1. A summary table: candidate by rubric criterion (0, 1, 2 or not assessed) with a total, and one sentence on the most important weakness of each.
 2. For each candidate: the document inventory, the evidence-citation list from step 2, the support-seeking findings, the scores with evidence, and a short note on hindsight-bias risk (what could be known at design time).
 3. A recommendation: which candidate (if any) is the best base for a retrospective audit, and what is missing. Say plainly if none qualifies.
