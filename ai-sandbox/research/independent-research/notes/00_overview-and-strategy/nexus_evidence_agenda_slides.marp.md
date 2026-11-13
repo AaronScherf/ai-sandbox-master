@@ -51,6 +51,20 @@ style: |
   }
   .visual { border: 2px dashed #94a3b8; background: #f8fafc; border-radius: 6px; padding: 6px 14px; margin: 8px 0; }
   .visual p, .visual li { font-size: 15px; line-height: 1.35; }
+  .side { display: grid; grid-template-columns: 0.85fr 1.35fr; gap: 24px; align-items: start; }
+  .side2 { display: grid; grid-template-columns: 1.3fr 0.8fr; gap: 20px; align-items: start; }
+  .side li { font-size: 18px; }
+  .ov-banner { background: #f1f5f9; border-left: 5px solid #64748b; padding: 8px 16px; font-size: 18px; line-height: 1.4; color: #334155; margin: 6px 0 14px 0; }
+  .ov-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+  .ov-card { border: 2px solid #1e3a8a; border-radius: 8px; background: #ffffff; overflow: hidden; }
+  .ov-h { background: #1e3a8a; color: #ffffff; font-weight: 700; font-size: 19px; padding: 6px 12px; }
+  .ov-card p { font-size: 17px; line-height: 1.35; margin: 8px 12px 10px 12px; }
+  .ov-card p.sm { font-size: 15.5px; color: #475569; margin-top: 0; }
+  .ov-arrow { text-align: center; font-size: 26px; color: #1e3a8a; line-height: 1; margin: 6px 0 2px 0; }
+  .ov-goal { background: #166534; color: #ffffff; border-radius: 8px; text-align: center; font-size: 22px; font-weight: 700; padding: 8px 12px 6px 12px; }
+  .ov-goal span { display: block; font-size: 15.5px; font-weight: 400; color: #dcfce7; }
+  .ov-subs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-top: 10px; }
+  .ov-subs div { background: #dcfce7; border: 1.5px solid #166534; border-radius: 8px; text-align: center; font-size: 16.5px; padding: 6px 10px; color: #14532d; }
   .small { font-size: 15px; color: #64748b; }
   footer { font-size: 0.55em; color: #94a3b8; }
 ---
@@ -155,46 +169,21 @@ Numbers stay out of the main text; if the visual shows them, keep them as report
 
 ---
 
-# Evidence&ndash;decision mismatch for humanitarian&ndash;development planners: problem, questions, goal
+# Evidence&ndash;decision mismatch for humanitarian&ndash;development planners
 
-> Evidence and research attention are largely **non-market goods**, so what gets studied can be misallocated, while planners still lack evidence they can use. The mismatch is one of relevance.
-
-<div class="three">
-<div>
-
-**Discretion and value of evidence**
-
-How much discretion do nexus planners have over a decision, and how useful do they judge the evidence available to them?
-
+<div class="ov-banner"><b>The problem.</b> Evidence and research attention are non-market goods, so what gets studied can be misallocated while nexus planners still lack evidence they can use. The mismatch is one of relevance.</div>
+<div class="ov-row">
+<div class="ov-card"><div class="ov-h">Discretion and value of evidence</div><p>How much room do nexus planners have to choose, and how useful do they find the evidence available to them?</p></div>
+<div class="ov-card"><div class="ov-h">Decision mapping</div><p>What informs their decisions today, and what keeps relevant evidence from reaching them: hard to find, too much of it, or not relevant to their setting?</p></div>
+<div class="ov-card"><div class="ov-h">Evidence transport</div><p>Which barriers to using existing evidence can be reduced, and how well can we predict an intervention's effect in a new setting?</p><p class="sm">Predictions set realistic targets, then are checked against outcomes.</p></div>
 </div>
-<div>
-
-**Decision mapping**
-
-What informs planners' decisions today (context data, tacit knowledge, best practice, standard procedures), and what keeps relevant evidence from reaching them: difficulty finding it, too much of it, or evidence that does not fit their setting?
-
-</div>
-<div>
-
-**Evidence transport**
-
-Which barriers to using existing evidence (search cost, scattered studies, studies from settings too different) can be reduced? How well can we predict the effect of an intervention in a new setting, setting realistic targets that are checked against outcomes afterwards?
-
-</div>
-</div>
-
-<div class="box">
-
-**Primary goal: better-designed interventions.** Checking whether predictions were accurate serves that goal; it is not the goal itself.
-
-**Sub-goals:** more efficient allocation of research funding; more targeted evidence generation by development organizations; an open-source toolkit that generalizes to other uses.
-
-</div>
+<div class="ov-arrow">&#9660;</div>
+<div class="ov-goal">Primary goal: better-designed interventions<span>Checking predictions is a means to this, not the goal itself</span></div>
+<div class="ov-subs"><div>More efficient allocation of research funding</div><div>More targeted evidence generation by development organizations</div><div>An open-source toolkit that generalizes to other uses</div></div>
 
 <!-- Note:
 This is the spine; everything after is one of the three questions, which the rest of the talk calls by these names. The market-failure framing is the contribution to research allocation: evidence-generation funders (3ie, J-PAL, foundations) allocate attention, and a measure of how unique a context is separates a real gap from an adaptable one. If asked: the evaluation of predictions is instrumental; selecting and designing better interventions is the main mechanism of impact.
 -->
-
 ---
 
 # Discretion and value of evidence: what we measure first
@@ -251,20 +240,27 @@ Tennant et al. (2021) reviews how DAGs are reported in health research; it is no
 
 # Evidence transport: how far does a finding travel? What counts as comparable
 
-* We predict the effect of an intervention in a new setting from studies elsewhere, to set a realistic target, then check the prediction against the measured outcome afterwards
-* Source and target differ along **named dimensions:** spatial (including environment), temporal, institutional, market, treatment version, population, interference
-* **Comparable is a profile, not one score.** On each dimension that the planner's causal map says matters:
-  * **Objective:** a measured distance, for example the two areas' vegetation index has a similar distribution
-  * **Subjective:** the planner's similarity rating, for example forest health 4 on a 6-point scale
-* Comparable for a decision when both fall inside thresholds the planner accepts; a gap between the two is flagged
+<div class="side">
+<div>
+
+* We predict an intervention's effect in a new setting from studies elsewhere, to set a realistic target, then check it against the measured outcome
+* Source and target are compared along named dimensions: spatial, temporal, institutional, market, treatment version, population, interference
+* **Comparable is a profile, not one score.** Both measures must clear the planner's thresholds, and a disagreement between them is flagged
 * Idea for choosing cases: an insecure region may resemble an insecure region elsewhere more than the rest of its own country
 
-<span class="small">The scale is illustrative. More than one expert rating is ideal, subject to availability.</span>
+</div>
+<div>
+
+![w:640](figures/nexus_comparability_profile.svg)
+
+</div>
+</div>
+
+<span class="small">The scale and the values are illustrative. More than one expert rating is ideal, subject to availability.</span>
 
 <!-- Note:
 General argument: Pritchett and Sandefur (2015) find transport error larger than local bias in most of their cases. Transport theory, bounds (Gechter) and site selection (Montiel Olea et al.) exist. The definition of "comparable" is still under investigation; this is a working proposal. The source and target maps need shared variables, so the source study's own causal story is matched to the target map first (next slides).
 -->
-
 ---
 
 # The pipeline already under construction
@@ -294,20 +290,15 @@ Honest scale: the cells are separate assets today; the links are the plan, not a
 
 # The transport model: built with the decision-maker
 
-<div class="columns">
+<div class="side2">
 <div>
 
-1. **Decision mapping supplies the target map:** causal chain, blockers, log-frame thresholds
-2. **Match the maps:** the source study's causal story is matched to the planner's, so both use the same variables
-3. **Flag the links that differ** between the source and target causal graphs
-4. **Measure and judge:** context data give the objective distance; the planner gives the similarity rating
-5. **Compute a prediction** of one of four types
-6. **Translate** to the planner's area, population and scale, as a target metric they can check; they correct the map and the cycle repeats
+![w:610](figures/nexus_transport_cycle.svg)
 
 </div>
 <div>
 
-**Four prediction types**
+**Step 5 returns one of four prediction types**
 
 | Type | When |
 |---|---|
@@ -316,19 +307,12 @@ Honest scale: the cells are separate assets today; the links are the plan, not a
 | Ordinal category or sign | Only direction supported |
 | "Insufficient evidence" or "distance too great" | No defensible transport: a result |
 
-<div class="box">
-
-**Not a black-box predictor.** The person who will act on the answer judges what is close enough, using a map they helped draw.
-
-</div>
-
 </div>
 </div>
 
 <!-- Note:
 Bias question: "the process is fixed in a protocol before we start, and every change is logged" (appendix). Do not say that the model replaces the decision-maker's judgment, or that the feedback loop is bias-free. A cycle diagram is a candidate visual for this slide.
 -->
-
 ---
 
 # Which differences matter: selection diagrams
