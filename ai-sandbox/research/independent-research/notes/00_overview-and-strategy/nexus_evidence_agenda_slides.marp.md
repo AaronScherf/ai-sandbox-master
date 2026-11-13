@@ -49,6 +49,8 @@ style: |
     margin: 8px 0;
     border-radius: 4px;
   }
+  .visual { border: 2px dashed #94a3b8; background: #f8fafc; border-radius: 6px; padding: 6px 14px; margin: 8px 0; }
+  .visual p, .visual li { font-size: 15px; line-height: 1.35; }
   .small { font-size: 15px; color: #64748b; }
   footer { font-size: 0.55em; color: #94a3b8; }
 ---
@@ -60,151 +62,145 @@ style: |
 
 <div class="box">
 
-**The choice.** After repeated drought and displacement, should partners keep short-term transfers, link people to a continuing safety net, add livelihood support, or build a system that can scale before the next shock?
+**Example of the decision we study (hypothetical).** After repeated drought, should a programme extend short-term cash transfers or link households to a long-term safety net?
 
 </div>
 
-* Fragile and conflict-affected settings: a growing share of the world's extreme poor (World Bank, 2025 projection)
-* Forced displacement is long-lasting: about seven in ten refugees are in protracted situations (UNHCR, 2025)
-* Humanitarian need is large and persistent: about 239 million people needing aid (OCHA, 2026)
+## Why these decisions matter: crises are large and last for years
+
+* Fragile and conflict-affected settings hold a growing share of the world's extreme poor (World Bank, 2025 projection)
+* About seven in ten refugees are in protracted situations (UNHCR, 2025)
+* About 239 million people need humanitarian aid (OCHA, 2026)
 
 <!-- VERIFY BEFORE FRIDAY: the three scale figures came from a web-search summary, not the primary pages. World Bank June 2025 report on fragile and conflict-affected situations (roughly 435 million, nearly 60 percent of the extreme poor by 2030, sensitive to the poverty line used); UNHCR Global Trends 2025 (about 70 percent of refugees in protracted exile); OCHA Global Humanitarian Overview 2026 (about 239 million in need). Put the verified figure and the poverty line on the slide, or keep the wording qualitative. -->
 
 <!-- Note:
-"Every one of those people is reached through a design choice that someone made. This talk is about how that person chooses, and whether the research we have helps them. One sentence of scale, then the question: a hypothetical choice, not a documented programme." Do not say: most of the world's poor; the older two-thirds projection; that these figures show planners lack evidence. They show the stakes.
+"Every one of those people is reached through a design choice that someone made. The box is one example of that kind of choice, invented for illustration, not a documented programme. This talk is about how the person making it chooses, and whether the research we have helps them." Do not say: most of the world's poor; the older two-thirds projection; that these figures show planners lack evidence. They show the stakes.
 -->
 
 ---
 
-# The nexus, who decides, and how much room they have
+# Who decides, what they decide, and why discretion matters
 
-<div class="columns">
-<div>
+**Topic of study:** the **humanitarian&ndash;development nexus**, the established term for coordinating life-saving aid with longer-term development when shocks repeat or crises last for years.
 
-**The nexus** (my wording): coordinating short-term life-saving aid with longer-term development where shocks repeat or crises last for years.
+<div class="visual">
 
-* Immediate response (where most decision studies sit) versus **programme design in protracted or repeated crises** (this agenda)
-* **Planner discretion:** the choice left after rules, budget, mandate and norms. An overlooked fact on the ground, to be measured, not assumed. Advice that ignores it tends to fail (the limited uptake of cash transfers despite the evidence)
+**VISUAL: the decision landscape.** Two columns of decisions, with the actors who make them: *immediate response* (who gets emergency aid next month; mostly decided in the field, and where most existing decision studies sit) versus *nexus design* (how to sequence and link aid, safety nets and livelihood support over years; shaped by headquarters, donors and evidence funders as well as field planners; **this agenda**). Rules, budget and mandate close in from the sides, leaving a window labelled "planner discretion".
 
 </div>
-<div>
 
-| Stakeholder | Decides |
-|---|---|
-| Field planners | Design and adaptation |
-| Headquarters, central research offices | Policies that constrain field choices; research agendas |
-| Evidence funders | Which new studies to fund |
-| Researchers | What to study |
-| Donors, governments | Funding and rules |
-
-</div>
-</div>
+* **Planner discretion** is the choice left once rules, budget, mandate and norms have fixed what they fix
+* Evidence can only change choices that are open: in the example, extending cash or linking to a safety net is only a real choice if the rules and budget allow both
+* So we **measure discretion** decision by decision instead of assuming it
 
 <!-- Note:
-The audience is economists and environmental scientists, not humanitarian specialists, so fix the vocabulary first. The definition is mine, not sourced; a citable one is the OECD DAC recommendation on the humanitarian-development-peace nexus. Research made with an audience in mind (the reprokit principle): the right-hand table is who this work is for. Do not say that discretion is small or large in general; that is what RQ1 measures.
+The audience is economists and environmental scientists, not humanitarian specialists, so fix the vocabulary first. "Nexus" is the accepted term (humanitarian-development nexus, or humanitarian-development-peace nexus in OECD DAC usage); do not describe it as my wording. Actors for the visual: field planners (design and adaptation); headquarters and central research offices (policies that constrain field choices; research agendas); evidence funders (which new studies to fund); researchers (what to study); donors and governments (funding and rules). Research made with this audience in mind (the reprokit principle). Do not say that discretion is small or large in general; that is what the first research question measures.
 -->
 
 ---
 
 # Evidence is worth seeking only if it could change the choice
 
-* Three conditions: **room to choose**, **uncertainty** about the best option, and **evidence relevant enough** to move the planner's belief
+<div class="visual">
+
+**VISUAL: a decision flow.** A decision enters; three tests in sequence: *room to choose?* (no: set aside, outside scope) then *uncertainty about the best option?* (no: no evidence needed) then *relevant evidence exists?* Outcomes branch: **use it** (relevant and usable), **gap: transport it** (exists but too distant), **gap: generate or substitute** (none). The research target is the share of decisions ending in each outcome, by sector and decision type.
+
+</div>
+
+* **Value of information** comes from health economics: more evidence is worth getting only if it could change which option is chosen. We apply it to programme design
 * Relevance has two parts: **distance** (will it hold here?) and **actionability** (can this planner implement it?)
-
-| Where a decision sits | Planner has discretion |
-|---|---|
-| Relevant evidence exists and is usable | **Use it** |
-| Evidence exists but is too distant | **Gap: transport it** |
-| No relevant evidence | **Gap: generate or substitute** |
-
-* The research question is the **share of decisions in each row**, for each sector and decision type
-* Same logic as value of information (health economics), adaptive management and decisions under deep uncertainty
+* A real case: the Kenya HSNP Phase 2 business case weighed seven expansion options. The evidence supported all of them and did not separate them
 
 <!-- Note:
-Economists know this as the expected value of information (Claxton 1999; Fenwick et al. 2008); Brown, Salisbury and Ball (2025) apply it to grant allocation. Hjort et al. (2021): mayors valued research, and a research session raised adoption of a policy. The full table, with the "constrained discretion" column, is in the appendix. The table simplifies a continuum. Do not say that decisions fall neatly in cells.
+Economists know this as the expected value of information (Claxton 1999; Fenwick et al. 2008, health technology assessment); Brown, Salisbury and Ball (2025) apply it to grant allocation. Hjort et al. (2021): mayors valued research, and a research session raised adoption of a policy. The full table, with the "constrained discretion" column, is in the appendix. Kenya HSNP was checked against the Business Case and Completion Review; the options weighting tables were not read; HSNP options differ in scale, speed and financing, not intervention type. The flow simplifies a continuum. Do not say that decisions fall neatly in cells.
 -->
 
 ---
 
 # Where this sits in the literature
 
-| Field | What it gives us | What it leaves open here |
-|---|---|---|
-| **Generalizing from impact evaluations** | Effects vary by setting and implementer; transport error can exceed local bias; hierarchical models of cross-site variation | Mostly stable settings; few comparable sites in crises |
-| **Transportability and data fusion** (causal inference) | When an effect can be carried over; bounds when it cannot | Rarely tested on real programme decisions |
-| **Evidence use and uptake** (mostly qualitative) | Why evidence is or is not used | Seldom measures discretion and relevance decision by decision |
-| **Evidence synthesis and gap maps** (3ie) | Where studies exist | Not whether they are relevant to a given decision |
-| **Decisions under uncertainty**, incl. climate and disaster response | Value of information; robust decision-making; adaptive pathways | Not applied to auditing the causal evidence a design rests on |
+<div class="visual">
 
-* Nearest humanitarian work found: IDinsight (value of information for whether to commission an evaluation), ALNAP (immediate-response decisions), Elrha (barriers). None audits existing evidence against a nexus design decision.
-* **Why start here:** the hard case has the least evidence and most constraint. A method that works here should carry to fields with more and closer evidence.
+**VISUAL: five fields around one decision, each marked with what it gives and the gap it leaves.** Generalizing from impact evaluations (effects vary by setting; mostly stable settings); transportability and data fusion (when an effect can be carried over; rarely tested on real programme decisions); evidence use and uptake (why evidence is not used; seldom measures discretion); evidence synthesis and gap maps (where studies exist; not whether relevant); decisions under uncertainty (value of information, adaptive pathways; not applied to auditing causal evidence). The decision at the centre is the unfilled gap.
+
+**Inset: a 3ie evidence gap map.** A matrix of interventions (rows) by outcomes (columns) for one topic. Each cell shows how many studies exist, so empty cells are the unknowns.
+
+</div>
+
+* Nearest humanitarian work found: IDinsight (value of information for commissioning an evaluation), ALNAP (immediate-response decisions), Elrha (barriers). None audits existing evidence against a nexus design decision
+* **Why start in crises:** the hard case has the least evidence and the most constraint, so a method that works here should carry to fields with more and closer evidence
 
 <!-- Note:
-Say the pattern aloud: development economics asks how far results travel; causal inference asks when they can; policy studies ask why they are not used; gap maps show where they exist; decision science asks what they are worth. This work puts the five together on a decision that matters. Papers behind each row: Vivalt 2020, Pritchett and Sandefur 2015, Allcott, Meager, Banerjee et al., Bold et al. (generalizing); Bareinboim and Pearl, Gechter, Montiel Olea et al. (transportability); Oliver et al. 2014, Hjort et al. 2021 (evidence use); Snilstveit et al. 2016 (gap maps); Claxton, Brown et al. 2025, Kwakkel, Haasnoot and Walker 2016 (decisions). Identifiers were matched to registries, not all read. The row descriptions are my characterization, not a literature review. A footnote worth saying: the examples in this talk come from the best-documented sector, cash and livelihoods. Say "the nearest I found", never "no one has studied this". No figures from the evidence-use scans.
+Say the pattern aloud: development economics asks how far results travel; causal inference asks when they can; policy studies ask why they are not used; gap maps show where they exist; decision science asks what they are worth. This work puts the five together on a decision that matters. Papers behind each field: Vivalt 2020, Pritchett and Sandefur 2015, Allcott, Meager, Banerjee et al., Bold et al. (generalizing); Bareinboim and Pearl, Gechter, Montiel Olea et al. (transportability); Oliver et al. 2014, Hjort et al. 2021 (evidence use); Snilstveit et al. 2016 (gap maps); Claxton, Brown et al. 2025, Kwakkel, Haasnoot and Walker 2016 (decisions). Identifiers were matched to registries, not all read. The descriptions are my characterization, not a literature review. A footnote worth saying: the examples in this talk come from the best-documented sector, cash and livelihoods. Say "the nearest I found", never "no one has studied this". No figures from the evidence-use scans.
 -->
 
 ---
 
-# Three cases: evidence exists, does not decide, and travels unevenly
+# A puzzle and an aspiration: two Kenyan cash studies disagree, and one programme travelled to conflict
+
+<div class="visual">
+
+**VISUAL: two panels.**
+
+**Left, same country, two answers.** *Egger et al.*: a randomized trial of **one-time cash transfers** to poor rural households in Kenya, measuring spillovers to the local economy; reports a local multiplier of about 2.5 (income created per unit transferred). *HSNP Phase 2 evaluation*: **regular, unconditional cash every two months** to chronically poor households in four arid northern counties, with a local-economy model of income created. Between the two, a question mark: the quantities are defined differently, and why they differ is not established. Both are on our replication list.
+
+**Right, evidence that travelled.** *Bedoya et al., Afghanistan*: a **graduation programme**, a bundle of a livestock asset, a cash stipend, skills training and coaching for the ultra-poor, first shown to work in stable settings and then tested in conflict; pre-registered; consumption up about 30 percent. An arrow from a "stable settings" tile to a "conflict setting" tile. Caption: what made it possible? (No replication data found.)
+
+</div>
+
+<!-- Note:
+Numbers stay out of the main text; if the visual shows them, keep them as reported ranges. Egger multiplier about 2.5; HSNP regular-transfer local-economy evaluation 0.38 to 0.93 income per shilling; Bedoya consumption up 30 percent (all three checked against the full-text transcripts). Do not show 0.38 to 0.93 beside 2.5 without a conversion note: if the HSNP figure is the additional income beyond the transfer, the comparable total multiplier is about 1.38 to 1.93, which narrows the apparent gap; the LEWIE methods must be read to confirm the convention. Egger versus HSNP is a hypothesis-generating pair, not a documented transport failure: one is an import-adjusted expenditure multiplier, the other income per shilling in four northern counties, and the Completion Review does not attribute the gap to a contextual factor. Methods sections not yet read. Replication: Egger package public; HSNP microdata held locally; Bedoya registered (Social Science Registry 2665), no data. These are illustrations chosen for documentation, not a sample. Do not say: one result failed to transport; Bedoya is a transport success proven by method. About three minutes.
+-->
+
+---
+
+# Evidence&ndash;decision mismatch for humanitarian&ndash;development planners: problem, questions, goal
+
+> Evidence and research attention are largely **non-market goods**, so what gets studied can be misallocated, while planners still lack evidence they can use. The mismatch is one of relevance.
 
 <div class="three">
 <div>
 
-**Kenya HSNP Phase 2**
+**Discretion and value of evidence**
 
-Seven expansion options differing in scale, speed and financing. The evidence supported all of them and did not speak to the choice planners faced.
-
-<span class="small">A drought case; options differ in scale, not intervention type.</span>
+How much discretion do nexus planners have over a decision, and how useful do they judge the evidence available to them?
 
 </div>
 <div>
 
-**Two Kenyan cash studies**
+**Decision mapping**
 
-A randomized trial of one-time transfers (Egger et al.) and the HSNP Phase 2 local-economy evaluation both report spillovers, with different results.
-
-**Measures are defined differently; why they differ is not established.** Both are on our replication list.
+What informs planners' decisions today (context data, tacit knowledge, best practice, standard procedures), and what keeps relevant evidence from reaching them: difficulty finding it, too much of it, or evidence that does not fit their setting?
 
 </div>
 <div>
 
-**Bedoya et al., Afghanistan**
+**Evidence transport**
 
-A graduation programme tested in conflict after success in stable settings; pre-registered; large effects reported.
-
-The aspirational case: evidence can travel. What made it possible?
-
-<span class="small">No replication data found.</span>
+Which barriers to using existing evidence (search cost, scattered studies, studies from settings too different) can be reduced? How well can we predict the effect of an intervention in a new setting, setting realistic targets that are checked against outcomes afterwards?
 
 </div>
 </div>
 
+<div class="box">
+
+**Primary goal: better-designed interventions.** Checking whether predictions were accurate serves that goal; it is not the goal itself.
+
+**Sub-goals:** more efficient allocation of research funding; more targeted evidence generation by development organizations; an open-source toolkit that generalizes to other uses.
+
+</div>
+
 <!-- Note:
-Numbers stay off the slide. Egger multiplier about 2.5; HSNP regular-transfer local-economy evaluation 0.38 to 0.93 income per shilling; Bedoya consumption up 30 percent (all three checked against the full-text transcripts). Do not show 0.38 to 0.93 beside 2.5 without a conversion note: if the HSNP figure is the additional income beyond the transfer, the comparable total multiplier is about 1.38 to 1.93, which narrows the apparent gap; the LEWIE methods must be read to confirm the convention. Egger versus HSNP is a hypothesis-generating pair, not a documented transport failure: one is an import-adjusted expenditure multiplier, the other income per shilling in four northern counties, and the Completion Review does not attribute the gap to a contextual factor. Methods sections not yet read. Kenya was checked against the Business Case and Completion Review; the log-frame, options weighting tables and HSNP evaluations were not read. Replication: Egger package public; HSNP microdata held locally; Bedoya registered (Social Science Registry 2665), no data. These are illustrations chosen for documentation, not a sample. Do not say: one result failed to transport; Kenya is a conflict case. About three minutes; cut Kenya to two lines if short on time.
+This is the spine; everything after is one of the three questions, which the rest of the talk calls by these names. The market-failure framing is the contribution to research allocation: evidence-generation funders (3ie, J-PAL, foundations) allocate attention, and a measure of how unique a context is separates a real gap from an adaptable one. If asked: the evaluation of predictions is instrumental; selecting and designing better interventions is the main mechanism of impact.
 -->
 
 ---
 
-# The mismatch is one of relevance, not price: three questions
-
-> Evidence and research attention are largely **non-market goods**. What gets studied can be misallocated, while planners still lack evidence they can use.
-
-* **RQ1:** how much **discretion** do planners have on a decision, and how do they **value** the evidence available (perceived relevance and usefulness)?
-* **RQ2:** what do their plans **rest on** (context data, implicit knowledge, best practice, procedures), and is the barrier **searching** for evidence or **overload**?
-* **RQ3:** can the barriers be reduced (lower search cost, synthesis, **least-distance evidence**), and can predictions be stated without overstating transfer and **tested prospectively**?
-
-**Goal:** more successful interventions, judged by whether pre-registered predictions turn out accurate. Also separates genuine research gaps from gaps that existing evidence can fill.
-
-<!-- Note:
-This is the spine; everything after is one of the three questions. The market-failure framing is the contribution to research allocation: evidence-generation funders (3ie, J-PAL, foundations) allocate attention, and a measure of how unique a context is separates a real gap from an adaptable one.
--->
-
----
-
-# RQ1: measure discretion and the value placed on evidence
+# Discretion and value of evidence: what we measure first
 
 * Four questions per decision: is there **discretion left** after constraints? Can **existing information** already separate the options? Does the **timeline** allow more? Who bears the **cost of being wrong**, and is it reversible?
-* **First instrument: a desk audit** of a documented programme, from documents, no human subjects
+* **First instrument: a desk audit.** A review of the full documentation of one evaluated intervention, analysing the decisions made, the constraints, the evidence used and the outcomes. No human subjects
   * includes whether decision-makers sought **outside support** for evidence, and under what conditions (revealed demand)
 * **Later:** a documented partner funnel (approached, responded, accepted, fit), where refusals are data
 * In scope: headquarters versus field constraints; where evidence generation should be allocated
@@ -221,27 +217,28 @@ The valid result "no additional evidence would help" is a stop outcome, not a fa
 
 ---
 
-# RQ2: what plans rest on
+# Decision mapping: what informs decisions today
 
 <div class="columns">
 <div>
 
-* Plans rest on **context data, tacit knowledge, best practice and standard procedures**
-* The unit of study: the **assumptions** in causal maps, scenarios and log-frames, stated or not
-* Two kinds of barrier:
-  * **search:** the relevant evidence is hard to find
-  * **overload:** lots of evidence, few strong signals
+* Plans are informed by **context data, tacit knowledge, best practice and standard procedures**
+* The unit of study is the **assumptions** behind a decision, in causal maps, scenarios and log-frames (the logic tables programmes write), stated or not
+* Three barriers to evidence reaching the planner:
+  * **search:** relevant evidence is hard to find
+  * **overload:** a lot of evidence, few strong signals
+  * **relevance:** the evidence available does not fit the planner's setting
 
 </div>
 <div>
 
 <div class="box">
 
-**Feeds RQ3.** The causal chain, blockers and log-frame assumptions are the input to the transport model: they say which links a source study must be checked on, and the planner reviews them at each staged deliverable.
+**Feeds evidence transport.** The causal chain, blockers and log-frame assumptions become the input to the transport model: they say which links a source study must be checked on, and the planner reviews them at each staged deliverable.
 
 </div>
 
-Eliciting causal maps from practitioners is the established field of **systems mapping**, usually qualitative. Linking it to DAGs for quantitative transport is the untested part.
+Eliciting causal maps from practitioners is the established field of **systems mapping**, usually qualitative. Linking it to causal graphs for quantitative transport is the untested part.
 
 </div>
 </div>
@@ -252,12 +249,13 @@ Tennant et al. (2021) reviews how DAGs are reported in health research; it is no
 
 ---
 
-# RQ3: how far does a finding travel? What counts as comparable
+# Evidence transport: how far does a finding travel? What counts as comparable
 
+* We predict the effect of an intervention in a new setting from studies elsewhere, to set a realistic target, then check the prediction against the measured outcome afterwards
 * Source and target differ along **named dimensions:** spatial (including environment), temporal, institutional, market, treatment version, population, interference
 * **Comparable is a profile, not one score.** On each dimension that the planner's causal map says matters:
-  * **Objective:** a measured distance (e.g. the two areas' vegetation index has a similar distribution)
-  * **Subjective:** the planner's similarity rating (e.g. "forest health: 4 on a 6-point scale")
+  * **Objective:** a measured distance, for example the two areas' vegetation index has a similar distribution
+  * **Subjective:** the planner's similarity rating, for example forest health 4 on a 6-point scale
 * Comparable for a decision when both fall inside thresholds the planner accepts; a gap between the two is flagged
 * Idea for choosing cases: an insecure region may resemble an insecure region elsewhere more than the rest of its own country
 
@@ -269,20 +267,27 @@ General argument: Pritchett and Sandefur (2015) find transport error larger than
 
 ---
 
-# The pipeline already under construction: the 2&times;2
+# The pipeline already under construction
 
-| | **1. Find and describe what is known** | **2. Test what can be used here** |
-|---|---|---|
-| **Evidence** | **1.1 Discovery, synthesis, extraction.** Automated literature search; structured extraction of study facts and causal claims. *Built and piloted* | **2.1 Evidence gap map.** Follows the **3ie evidence gap map**, extended with context: shock, crisis phase, delivery institution, displacement, horizon. *In design* |
-| **Local, replicable** | **1.2 Context data panel.** Fuses conflict, rainfall, prices, displacement, boundaries via open-source APIs and scripted or agent-assisted fetching; new country by configuration. *Built: Somalia and Sudan* | **2.2 Reproducible evaluations.** Extract and replicate eligible studies. *`reprokit` released; candidates: Egger, HSNP 2, Bangladesh insurance* |
+<div class="visual">
 
-* **The loop:** the gap map shows where evidence is missing, which directs the search; extraction makes comparable records; the context panel measures closeness; replication checks which estimates reproduce; results update the map. Each pass narrows the next.
-* **`reprokit`:** recorded hashes, rebuilds in continuous integration, so anyone can re-run a result
-* Replication is fast when geodata are public (or when we replicate without them); slow only if locations must be requested privately
-* A **proof of concept for a re-runnable, open-source pipeline**, not a one-off study; the dissertation validates it on one applied case
+**VISUAL: a 2&times;2 with a loop, coloured by maturity.** Columns: *find and describe what is known* and *test what can be used here*. Rows: *evidence from studies* and *local, replicable data and results*.
+
+* **Literature discovery and extraction** (find; studies): automated search, structured extraction of study facts and causal claims. *Built and piloted*
+* **Evidence gap map** (test; studies): the **3ie gap map** model, extended with context (shock, crisis phase, delivery institution, displacement, horizon). *In design*
+* **Context data panel** (find; local): conflict, rainfall, prices, displacement and boundaries fused through open-source APIs and scripted or agent-assisted fetching; new country by configuration. *Built: Somalia and Sudan*
+* **Reproducible replications, `reprokit`** (test; local): extract and replicate eligible studies. *Released; Bangladesh insurance replication nearly complete in full; next: Egger and HSNP Phase 2*
+
+Arrows: the gap map directs the search; extraction makes comparable records; the context panel measures closeness; replication checks which estimates reproduce; results update the map.
+
+</div>
+
+* **`reprokit`** records hashes and rebuilds in continuous integration, so anyone can re-run a result
+* Replication is fast when geodata are public, or when we replicate without them; slow only if locations must be requested privately
+* A **proof of concept for a re-runnable, open-source pipeline**, validated in the dissertation on one applied case
 
 <!-- Note:
-Honest scale: the cells are separate assets today; the links are the plan, not a finished system (projects tracker: panel built and reproducing, reprokit v0.4.0 released, evidence map in brainstorming, transferability planned, data-fusion toolkit deferred). "Largely automated" holds for discovery, extraction and context data; screening and judgment remain. Replication speed is a design claim, not yet timed. Egger's public package exists, but the authors' workflow restricts sensitive village locations; Bangladesh has no village coordinates, so only the satellite-linked step there is gated. Stage-2 extraction pilot: verify figures in its status doc before quoting; confirm whether it extracts causal claims specifically. Do not say integrated, deployed, validated, or fully automated.
+Honest scale: the cells are separate assets today; the links are the plan, not a finished system (projects tracker: panel built and reproducing, reprokit v0.4.0 released, evidence map in brainstorming, transferability planned, data-fusion toolkit deferred). "Largely automated" holds for discovery, extraction and context data; screening and judgment remain. Replication speed is a design claim, not yet timed. Bangladesh: owner reports the replication is nearly complete in full (2026-11-13); no village coordinates, so only the satellite-linked step there is gated. Egger's public package exists, but the authors' workflow restricts sensitive village locations. Stage-2 extraction pilot: verify figures in its status doc before quoting; confirm whether it extracts causal claims specifically. Do not say integrated, deployed, validated, or fully automated.
 -->
 
 ---
@@ -292,9 +297,9 @@ Honest scale: the cells are separate assets today; the links are the plan, not a
 <div class="columns">
 <div>
 
-1. **RQ2 supplies the target map:** causal chain, blockers, log-frame thresholds
+1. **Decision mapping supplies the target map:** causal chain, blockers, log-frame thresholds
 2. **Match the maps:** the source study's causal story is matched to the planner's, so both use the same variables
-3. **Flag the links that differ** (a selection diagram: the causal graph with a mark on each link that works differently in the two settings)
+3. **Flag the links that differ** between the source and target causal graphs
 4. **Measure and judge:** context data give the objective distance; the planner gives the similarity rating
 5. **Compute a prediction** of one of four types
 6. **Translate** to the planner's area, population and scale, as a target metric they can check; they correct the map and the cycle repeats
@@ -321,80 +326,107 @@ Honest scale: the cells are separate assets today; the links are the plan, not a
 </div>
 
 <!-- Note:
-Selection diagram = a cause-and-effect diagram where you mark the arrows that work differently in the two places (Bareinboim and Pearl's formalism). Bias question: "the process is fixed in a protocol before we start, and every change is logged" (appendix). Do not say that the model replaces the decision-maker's judgment, or that the feedback loop is bias-free.
+Bias question: "the process is fixed in a protocol before we start, and every change is logged" (appendix). Do not say that the model replaces the decision-maker's judgment, or that the feedback loop is bias-free. A cycle diagram is a candidate visual for this slide.
+-->
+
+---
+
+# Which differences matter: selection diagrams
+
+A **selection diagram** is a causal graph, with boxes for variables and arrows for cause and effect, plus a mark on each arrow that works differently in the source and the target setting.
+
+<div class="visual">
+
+**VISUAL: one small causal graph drawn twice, source and target.** For cash transfers: *transfer* &rarr; *household spending* &rarr; *local sales* &rarr; *local income*, with side inputs *market access* and *security*. Marked arrows in the target (for example spending &rarr; local sales, because markets are thinner; security &rarr; local sales). Unmarked arrows are labelled "carries over"; marked ones "measure before transporting".
+
+</div>
+
+* Marked arrows say which differences **must be measured**, and whether a way to carry the result over exists at all
+* Here the graph comes from the planner's decision map, matched to the source study's causal story
+
+<!-- Note:
+Selection diagram = Bareinboim and Pearl's formalism: an ordinary cause-and-effect diagram where the arrows that work differently in the two places are marked. Limits (cannot create missing data, repair a missing outcome or make an impossible delivery possible) are in the appendix. Likely first technical question from peers.
 -->
 
 ---
 
 # Approaches to explore, and the context data behind them
 
-| Group | Approach | Where the expert enters |
+| Group | Approach, in plain words | Where the expert enters |
 |---|---|---|
-| What can be carried over? | **Selection diagrams** | The graph comes from the planner's map |
-| How to combine evidence | **Hierarchical Bayesian models** (partial pooling across sites) | Priors; which sites count as exchangeable |
-| How to combine evidence | **Similarity-weighted borrowing** (reweighting; synthetic-control-style weights) | Which variables, and how close is close enough |
-| What if it cannot? | **Partial-identification bounds** | The assumptions the bounds rest on |
+| What can be carried over? | **Selection diagrams:** which causal links differ | The graph comes from the planner's map |
+| How to combine evidence | **Hierarchical Bayesian models:** borrow strength across sites by estimating how much effects vary between them | Priors; which sites count as comparable |
+| How to combine evidence | **Similarity-weighted borrowing:** weight studies by how close their setting is to the target | Which variables, and how close is close enough |
+| What if it cannot? | **Partial-identification bounds:** report the range of effects consistent with what is known | The assumptions the bounds rest on |
 
 * **Context data:** remote sensing (rainfall, vegetation indices from Landsat, MODIS and Sentinel-2, night lights) plus conflict events, prices, displacement, boundaries
 * **Limits:** satellites describe environment and activity, not treatment or welfare; resolution must suit the unit; site coordinates decide what can be linked
 * **Test:** the Egger versus HSNP pair. Do the approaches agree on whether a result carried from one setting to the other?
 
 <!-- Note:
-Design choices around the approaches, not methods: which settings count as comparable (e.g. insecure regions in different countries); which studies to replicate next (k-median site selection, Montiel Olea et al.); a trigger to re-audit when a shock changes the setting. "Synthetic-control-style" borrows the weighting idea only; synthetic control proper builds a counterfactual for one treated unit from a panel. A satellite treatment-effect comparison for the Kenya cash trial already exists (Huang et al.). No approach has been shown to work in crisis settings. Do not say that remote sensing identifies treatment effects, or that any approach is validated.
+Design choices around the approaches, not methods: which settings count as comparable (e.g. insecure regions in different countries); which studies to replicate next (k-median site selection, Montiel Olea et al.); a trigger to re-audit when a shock changes the setting. "Synthetic-control-style" weighting borrows the weighting idea only; synthetic control proper builds a counterfactual for one treated unit from a panel. A satellite treatment-effect comparison for the Kenya cash trial already exists (Huang et al.). No approach has been shown to work in crisis settings. Do not say that remote sensing identifies treatment effects, or that any approach is validated.
 -->
 
 ---
 
-# Progress, next steps, and how it will be judged
+# Progress so far and what comes next
 
 <div class="columns">
 <div>
 
 **Done so far**
 * Initial novelty check of the three questions against the nearest prior art (a spot check)
-* Components 1.1, 1.2 and `reprokit` built
-* Replication candidates identified; papers being transcribed
-
-**Next**
-* Desk audit of one documented programme (no human subjects)
-* Replicate and compare the Kenyan cash studies
-* Extend to the gap map (2.1) and the replication quadrant (2.2)
-* **Outreach to J-PAL** on decisions and evidence gaps in crisis settings, and replication data access
+* Literature discovery and extraction built and piloted; context data panel built for Somalia and Sudan; `reprokit` released
+* Replication of the Bangladesh insurance study nearly complete in full
+* Next replication candidates identified (Egger, HSNP Phase 2); papers transcribed for direct reading
 
 </div>
 <div>
 
-**Gates:** case and partner fit &rarr; is new evidence worth it? &rarr; what can be inferred? &rarr; can it be evaluated?
-
-**Judged by:** RQ1, a faculty-approved audit paper; RQ2, a map accepted as useful; RQ3, a method with empirical validation, then a partner using it
-
-**Timeline:** peer talk now; faculty talk April 2027; desk audit and ethics review in year 2; thesis at end of year 3
-
-<span class="small">Dates are inferred. Practitioner interviews follow ethics approval.</span>
+**Next**
+* **Desk audit** of one evaluated intervention: its full documentation, analysed for the decisions made, the constraints, the evidence used and the outcomes. No human subjects
+* Replicate and compare the two Kenyan cash studies
+* Extend to the evidence gap map and to more replications
+* **Outreach to J-PAL and 3ie** on decisions and evidence gaps in crisis settings, and on replication data access
 
 </div>
 </div>
 
 <!-- Note:
-Ethics caution: asking staff about their decision-making could count as human-subjects research, so check with the IRB before outreach beyond routine requests for public data and replication materials. Do not say that a partner has agreed or that the audit has begun.
+Ethics caution: asking J-PAL or 3ie staff about their decision-making could count as human-subjects research, so check with the IRB before outreach beyond routine requests for public data and replication materials. Do not say that a partner has agreed or that the audit has begun.
 -->
 
 ---
 
-# Why it matters beyond this case
+# Timeline: three gates on the thesis schedule
 
-* **Development economics:** a way to say beforehand how far an estimate travels
-* **Decision science:** value of information applied to programme-design decisions, with measured discretion
-* **Causal inference:** transport methods tested prospectively, with pre-registered predictions, in a hard setting
-* **Climate and environmental decision-making:** a decision-relevance test for scenario and adaptation methods used under deep uncertainty
-* **Research funding and synthesis:** separating real research gaps from gaps existing evidence can fill
-* **Research infrastructure:** an open-source, reproducible pipeline others can re-run on a different decision
-* **Humanitarian practice:** a map of what plans rest on, and where central rules block use of evidence
+<div class="visual">
 
-<span class="small">Intended contributions, not results. Each depends on the corresponding question working.</span>
+**VISUAL: a horizontal timeline, Nov 2026 to spring 2029, with the three gates as markers.**
+
+* **Nov 2026:** peer talk (now)
+* **Apr 2027:** faculty talk
+* **May 2027, gate 1:** faculty approval and pre-registration of the discretion audit and the plan
+* **Jun 2027:** IRB submission
+* **Fall 2027 to spring 2028:** recruit potential nexus expert decision-makers (human subjects)
+* **Summer 2028, gate 2:** field work; real causal mapping with practitioners
+* **Fall 2028 (year 3):** build and validate the causal transport model through iterative work with a partner
+* **Spring 2029, gate 3:** thesis paper complete
+
+Running along the top, bars: desk audit and replications (now to spring 2027); outreach to J-PAL and 3ie (now onward).
+
+</div>
+
+**What the gates are for.** Each is a point where the work must show it can deliver before the next, costlier step, so we stop or redirect early rather than late:
+
+* **Gate 1, is the question answerable?** An approved audit shows decisions, constraints and evidence use can be measured from documents
+* **Gate 2, can decisions be mapped?** Practitioners' causal maps are usable and the planner finds them useful
+* **Gate 3, does transport work?** A method with empirical validation, then a partner uses it; predictions are checked against outcomes
+
+<span class="small">Dates are the owner's current plan (2026-11-13), not commitments. Practitioner work follows IRB approval.</span>
 
 <!-- Note:
-If time is short, merge this with the previous slide. Complements the scale on slide 1: the scale says why the decisions matter; this says why the method matters to the people in the room.
+Four case-level checks also apply before investing in any single case: is there a documented decision and a fit partner; would new evidence be worth it (value of information); can anything be inferred from existing studies; can the outcome be evaluated. Gates here are the thesis-level checkpoints; the case checks are in the appendix. Do not say that dates are fixed, or that IRB approval is assured.
 -->
 
 ---
@@ -403,18 +435,15 @@ If time is short, merge this with the previous slide. Complements the scale on s
 
 ---
 
-# A1. Selection diagrams in plain language
+# A1. What a selection diagram can and cannot do
 
-* An ordinary **causal graph (DAG)**: boxes for variables, arrows for cause and effect
-* Add a **marker on each arrow that works differently** in the source and target settings (e.g. how payments are delivered, market access, security)
 * It tells you which differences you **must measure** and whether a **formula to carry the result over exists at all**
-* It cannot create data that do not exist, repair a missing outcome, or make an impossible delivery possible
-* Here the graph comes from the **planner's map (RQ2)**, matched to the source study's causal story
+* It **cannot** create data that do not exist, repair a missing outcome, or make an impossible delivery possible
+* The formalism is Bareinboim and Pearl's; the graph here comes from the planner's decision map, matched to the source study's causal story
 
 <!-- Note:
-Bareinboim and Pearl's formalism. Likely the first technical question from peers.
+The plain-language definition and the example graph are on the main selection-diagram slide.
 -->
-
 ---
 
 # A2. The full decision table
@@ -454,8 +483,8 @@ Bareinboim and Pearl's formalism. Likely the first technical question from peers
 | **RQ2** | Desk phase: documents suffice to model constraints, scenarios and log-frames. Partner phase: the partner finds the process and products useful (needs ethics approval) |
 | **RQ3** | Partial: a methodology paper with empirical validation. Full: a partner uses the results. Follow-on: predictions turn out reasonably correct |
 
-* **Gates:** case and partner fit; is new evidence worth it; what can be inferred; can it be evaluated
-* **Dates (inferred):** faculty talk April 2027; ethics approval about six months; thesis end of year 3; dissertation year 5 or 6
+* **Dates (owner's plan, 2026-11-13):** faculty talk April 2027; faculty approval and pre-registration May 2027; IRB submission June 2027; recruitment fall 2027 to spring 2028; field work summer 2028; transport model validated with a partner fall 2028; thesis paper spring 2029
+* **Case-level checks before investing in a case:** case and partner fit; is new evidence worth it; what can be inferred; can it be evaluated
 
 ---
 
@@ -480,7 +509,7 @@ Someone will ask how planner feedback, with variables not fixed in advance, avoi
 | `reprokit` | Released (v0.4.0, evidence kind added) |
 | Literature discovery and extraction | Built and piloted |
 | Evidence map (3ie-style gap map) | In design; study catalogue first |
-| Bangladesh insurance replication | Charter and protocol filled; village coordinates are the gate for the satellite-linked step |
+| Bangladesh insurance replication | Nearly complete in full (owner, 2026-11-13); village coordinates are the gate for the satellite-linked step |
 | Transferability | Planned; no repository yet |
 | Data-fusion toolkit | Deferred |
 
@@ -520,7 +549,7 @@ Anticipatory-action evaluations (Bangladesh, Nepal) remain useful examples of ev
 | **Egger versus HSNP definitions** | Egger's multiplier is GDP per unit transferred; HSNP's 0.38 to 0.93 may be *additional* income beyond the transfer (total about 1.38 to 1.93) | Read the HSNP local-economy methods; harmonize before any comparison |
 | **Replication feasibility** | Egger's package is public but village locations are restricted; HSNP data held locally; Bedoya data not found | Confirm what each supports; ask authors only for what is needed |
 | **Bedoya et al.** | Aspirational case; claims checked on the abstract and registration only | Full read; check what enabled success |
-| **Stage-2 extraction** | Slide 10 says it extracts causal claims; pilot figures not re-verified | Confirm against its status doc |
+| **Stage-2 extraction** | The pipeline slide says it extracts causal claims; pilot figures not re-verified | Confirm against its status doc |
 | **Literature map** (slide 4) | Row descriptions are my characterization | Read one paper per field |
 | **Evidence-use scans** | The "mixed, sector-dependent" picture rests on about 31 sources I have not read | Read a sample before relying on it |
 | **Nexus definition** | Mine, not sourced | Read the OECD DAC recommendation |
@@ -554,3 +583,17 @@ Anticipatory-action evaluations (Bangladesh, Nepal) remain useful examples of ev
 * **Not read:** OECD DAC nexus recommendation; Claxton (1999); Fenwick et al. (2008)
 
 <span class="small">Reference hygiene: identifiers come from registries (Crossref), not model recall.</span>
+
+---
+
+# A12. Why it matters beyond this case
+
+* **Development economics:** context-dependent external validity of causal treatment effects for interventions
+* **Decision science:** value of information applied to programme-design decisions, with measured discretion
+* **Causal inference:** transport methods tested prospectively, with pre-registered predictions, in a hard setting
+* **Climate and environmental decision-making:** a decision-relevance test for adaptation methods under uncertainty
+* **Research funding and synthesis:** separating real research gaps from gaps existing evidence can fill
+* **Research infrastructure:** an open-source, reproducible pipeline others can re-run on a different decision
+* **Humanitarian practice:** a map of what plans rest on, and where central rules block use of evidence
+
+<span class="small">Intended contributions, not results. Each depends on the corresponding question working.</span>
