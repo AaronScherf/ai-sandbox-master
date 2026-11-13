@@ -141,6 +141,8 @@ ai-sandbox/academic-hub/.index/chunks/
 ai-sandbox/research/journal-articles/**/*.pdf
 ai-sandbox/research/journal-articles/**/*.md
 ai-sandbox/research/journal-articles/**/images/
+# crisis_transfer_review/ also holds third-party replication data (.dta/.dat), zips and ODT copies (about 1.8 GB)
+ai-sandbox/research/journal-articles/crisis_transfer_review/
 ai-sandbox/research/independent-research/projects/02_compound_shocks/data/raw/
 ai-sandbox/research/**/*_pages_cache.json
 ai-sandbox/research/.index/chunks/
