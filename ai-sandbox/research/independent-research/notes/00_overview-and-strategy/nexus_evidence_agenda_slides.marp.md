@@ -180,7 +180,7 @@ The aspirational case: evidence can travel. What made it possible?
 </div>
 
 <!-- Note:
-Numbers stay off the slide. Egger multiplier about 2.5; HSNP regular-transfer local-economy evaluation 0.38 to 0.93 income per shilling; Bedoya consumption up 30 percent. Egger versus HSNP is a hypothesis-generating pair, not a documented transport failure: one is an import-adjusted expenditure multiplier, the other income per shilling in four northern counties, and the Completion Review does not attribute the gap to a contextual factor. Methods sections not yet read. Kenya was checked against the Business Case and Completion Review; the log-frame, options weighting tables and HSNP evaluations were not read. Replication: Egger package public; HSNP microdata held locally; Bedoya registered (Social Science Registry 2665), no data. These are illustrations chosen for documentation, not a sample. Do not say: one result failed to transport; Kenya is a conflict case. About three minutes; cut Kenya to two lines if short on time.
+Numbers stay off the slide. Egger multiplier about 2.5; HSNP regular-transfer local-economy evaluation 0.38 to 0.93 income per shilling; Bedoya consumption up 30 percent (all three checked against the full-text transcripts). Do not show 0.38 to 0.93 beside 2.5 without a conversion note: if the HSNP figure is the additional income beyond the transfer, the comparable total multiplier is about 1.38 to 1.93, which narrows the apparent gap; the LEWIE methods must be read to confirm the convention. Egger versus HSNP is a hypothesis-generating pair, not a documented transport failure: one is an import-adjusted expenditure multiplier, the other income per shilling in four northern counties, and the Completion Review does not attribute the gap to a contextual factor. Methods sections not yet read. Kenya was checked against the Business Case and Completion Review; the log-frame, options weighting tables and HSNP evaluations were not read. Replication: Egger package public; HSNP microdata held locally; Bedoya registered (Social Science Registry 2665), no data. These are illustrations chosen for documentation, not a sample. Do not say: one result failed to transport; Kenya is a conflict case. About three minutes; cut Kenya to two lines if short on time.
 -->
 
 ---
@@ -509,3 +509,48 @@ Someone will ask how planner feedback, with variables not fixed in advance, avoi
 <!-- Note:
 Anticipatory-action evaluations (Bangladesh, Nepal) remain useful examples of evaluable timing if asked.
 -->
+
+---
+
+# A9. Open items to validate in the next few weeks
+
+| Item | Why | Next step |
+|---|---|---|
+| **Scale figures** (World Bank, UNHCR, OCHA) | Opening slide; found via a web-search summary | Gemini check against the primary reports; name the poverty line |
+| **Egger versus HSNP definitions** | Egger's multiplier is GDP per unit transferred; HSNP's 0.38 to 0.93 may be *additional* income beyond the transfer (total about 1.38 to 1.93) | Read the HSNP local-economy methods; harmonize before any comparison |
+| **Replication feasibility** | Egger's package is public but village locations are restricted; HSNP data held locally; Bedoya data not found | Confirm what each supports; ask authors only for what is needed |
+| **Bedoya et al.** | Aspirational case; claims checked on the abstract and registration only | Full read; check what enabled success |
+| **Stage-2 extraction** | Slide 10 says it extracts causal claims; pilot figures not re-verified | Confirm against its status doc |
+| **Literature map** (slide 4) | Row descriptions are my characterization | Read one paper per field |
+| **Evidence-use scans** | The "mixed, sector-dependent" picture rests on about 31 sources I have not read | Read a sample before relying on it |
+| **Nexus definition** | Mine, not sourced | Read the OECD DAC recommendation |
+| **Ethics and outreach** | J-PAL contact could count as human-subjects research | Ask the IRB before anything beyond public-data requests |
+
+<span class="small">Design questions (decision taxonomy, headquarters/field relationship, the definition of "comparable") are tracked separately.</span>
+
+---
+
+# A10. Sources consulted (1 of 2): read in full or checked against the text
+
+* **Programme documents:** FCDO, Kenya Hunger Safety Net Programme Phase 2 &mdash; Business Case and Completion Review
+* **Egger, Haushofer, Miguel, Niehaus, Walker (2022).** General equilibrium effects of cash transfers: experimental evidence from Kenya. *Econometrica*
+* **Bedoya, Coville, Haushofer, Isaqzadeh, Shapiro (2019).** No household left behind: Afghanistan Targeting the Ultra Poor impact evaluation. NBER WP 25981
+* **Pritchett and Sandefur (2015).** Context matters for the size of impact: experiments in other settings (microcredit)
+* **Hjort et al. (2021).** How research affects policy: Brazilian municipalities
+* **Crost, Felter and Johnston (2014; 2016).** Aid, insurgent response and conflict, Philippines (community-driven development; conditional cash transfers)
+* **Brown, Salisbury and Ball (2025).** Value of information applied to grant allocation
+* **Groh et al. (2016); Tennant et al. (2021); Altmejd et al. (2019).** Checked against the transcripts for specific claims
+
+<span class="small">Full-text transcripts are held locally (git-ignored); identifiers and DOIs are in the novelty-check notes.</span>
+
+---
+
+# A11. Sources consulted (2 of 2): identifier-matched, secondhand or not yet read
+
+* **Matched to a registry, not read:** Vivalt (2020); Allcott (site selection bias); Meager (Bayesian hierarchical analysis of microcredit); Banerjee et al. (2016, proof of concept to scalable policies); Oliver et al. (2014, barriers to evidence use); Snilstveit et al. (2016, evidence gap maps); Kwakkel, Haasnoot and Walker (2016, robust decision-making and adaptive pathways); Bareinboim and Pearl (2012, transportability)
+* **Read by Gemini only:** Gechter (bounds); Montiel Olea et al. (site selection); Bongers et al. (cyclic causal models); DellaVigna, Pope and Vivalt (2019); Kastner et al. (2009) and White et al. (2020) on capture-recapture; Bold et al. (2018); IDinsight (2022); ALNAP, Campbell and Knox Clarke (2019); Elrha, Smith, Swithern and Harrison (2022)
+* **Two non-systematic scans of evidence use** (about 31 sources) by Gemini: not read by me; no figures used
+* **Scale figures** (World Bank 2025; UNHCR Global Trends 2025; OCHA GHO 2026): web summaries, **being verified**
+* **Not read:** OECD DAC nexus recommendation; Claxton (1999); Fenwick et al. (2008)
+
+<span class="small">Reference hygiene: identifiers come from registries (Crossref), not model recall.</span>
