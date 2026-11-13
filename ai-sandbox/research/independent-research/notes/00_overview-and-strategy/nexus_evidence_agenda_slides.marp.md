@@ -98,14 +98,9 @@ style: |
 
 **Topic of study:** the **humanitarian&ndash;development nexus**, the established term for coordinating life-saving aid with longer-term development when shocks repeat or crises last for years.
 
-<div class="visual">
+![w:1100](figures/nexus_decision_landscape.svg)
 
-**VISUAL: the decision landscape.** Two columns of decisions, with the actors who make them: *immediate response* (who gets emergency aid next month; mostly decided in the field, and where most existing decision studies sit) versus *nexus design* (how to sequence and link aid, safety nets and livelihood support over years; shaped by headquarters, donors and evidence funders as well as field planners; **this agenda**). Rules, budget and mandate close in from the sides, leaving a window labelled "planner discretion".
-
-</div>
-
-* **Planner discretion** is the choice left once rules, budget, mandate and norms have fixed what they fix
-* Evidence can only change choices that are open: in the example, extending cash or linking to a safety net is only a real choice if the rules and budget allow both
+* Evidence can only change choices that are open: in the example, extending cash or linking to a safety net is a real choice only if the rules and budget allow both
 * So we **measure discretion** decision by decision instead of assuming it
 
 <!-- Note:
@@ -116,11 +111,7 @@ The audience is economists and environmental scientists, not humanitarian specia
 
 # Evidence is worth seeking only if it could change the choice
 
-<div class="visual">
-
-**VISUAL: a decision flow.** A decision enters; three tests in sequence: *room to choose?* (no: set aside, outside scope) then *uncertainty about the best option?* (no: no evidence needed) then *relevant evidence exists?* Outcomes branch: **use it** (relevant and usable), **gap: transport it** (exists but too distant), **gap: generate or substitute** (none). The research target is the share of decisions ending in each outcome, by sector and decision type.
-
-</div>
+![w:1100](figures/nexus_decision_flow.svg)
 
 * **Value of information** comes from health economics: more evidence is worth getting only if it could change which option is chosen. We apply it to programme design
 * Relevance has two parts: **distance** (will it hold here?) and **actionability** (can this planner implement it?)
@@ -134,13 +125,7 @@ Economists know this as the expected value of information (Claxton 1999; Fenwick
 
 # Where this sits in the literature
 
-<div class="visual">
-
-**VISUAL: five fields around one decision, each marked with what it gives and the gap it leaves.** Generalizing from impact evaluations (effects vary by setting; mostly stable settings); transportability and data fusion (when an effect can be carried over; rarely tested on real programme decisions); evidence use and uptake (why evidence is not used; seldom measures discretion); evidence synthesis and gap maps (where studies exist; not whether relevant); decisions under uncertainty (value of information, adaptive pathways; not applied to auditing causal evidence). The decision at the centre is the unfilled gap.
-
-**Inset: a 3ie evidence gap map.** A matrix of interventions (rows) by outcomes (columns) for one topic. Each cell shows how many studies exist, so empty cells are the unknowns.
-
-</div>
+![w:1100](figures/nexus_literature_map.svg)
 
 * Nearest humanitarian work found: IDinsight (value of information for commissioning an evaluation), ALNAP (immediate-response decisions), Elrha (barriers). None audits existing evidence against a nexus design decision
 * **Why start in crises:** the hard case has the least evidence and the most constraint, so a method that works here should carry to fields with more and closer evidence
@@ -151,17 +136,11 @@ Say the pattern aloud: development economics asks how far results travel; causal
 
 ---
 
-# A puzzle and an aspiration: two Kenyan cash studies disagree, and one programme travelled to conflict
+# Two Kenyan cash studies disagree; one programme travelled to conflict
 
-<div class="visual">
+![w:1100](figures/nexus_three_studies.svg)
 
-**VISUAL: two panels.**
-
-**Left, same country, two answers.** *Egger et al.*: a randomized trial of **one-time cash transfers** to poor rural households in Kenya, measuring spillovers to the local economy; reports a local multiplier of about 2.5 (income created per unit transferred). *HSNP Phase 2 evaluation*: **regular, unconditional cash every two months** to chronically poor households in four arid northern counties, with a local-economy model of income created. Between the two, a question mark: the quantities are defined differently, and why they differ is not established. Both are on our replication list.
-
-**Right, evidence that travelled.** *Bedoya et al., Afghanistan*: a **graduation programme**, a bundle of a livestock asset, a cash stipend, skills training and coaching for the ultra-poor, first shown to work in stable settings and then tested in conflict; pre-registered; consumption up about 30 percent. An arrow from a "stable settings" tile to a "conflict setting" tile. Caption: what made it possible? (No replication data found.)
-
-</div>
+The Kenyan studies report different quantities, and why their results differ is not established. Both are on our replication list.
 
 <!-- Note:
 Numbers stay out of the main text; if the visual shows them, keep them as reported ranges. Egger multiplier about 2.5; HSNP regular-transfer local-economy evaluation 0.38 to 0.93 income per shilling; Bedoya consumption up 30 percent (all three checked against the full-text transcripts). Do not show 0.38 to 0.93 beside 2.5 without a conversion note: if the HSNP figure is the additional income beyond the transfer, the comparable total multiplier is about 1.38 to 1.93, which narrows the apparent gap; the LEWIE methods must be read to confirm the convention. Egger versus HSNP is a hypothesis-generating pair, not a documented transport failure: one is an import-adjusted expenditure multiplier, the other income per shilling in four northern counties, and the Completion Review does not attribute the gap to a contextual factor. Methods sections not yet read. Replication: Egger package public; HSNP microdata held locally; Bedoya registered (Social Science Registry 2665), no data. These are illustrations chosen for documentation, not a sample. Do not say: one result failed to transport; Bedoya is a transport success proven by method. About three minutes.
@@ -188,10 +167,8 @@ This is the spine; everything after is one of the three questions, which the res
 
 # Discretion and value of evidence: what we measure first
 
-* Four questions per decision: is there **discretion left** after constraints? Can **existing information** already separate the options? Does the **timeline** allow more? Who bears the **cost of being wrong**, and is it reversible?
-* **First instrument: a desk audit.** A review of the full documentation of one evaluated intervention, analysing the decisions made, the constraints, the evidence used and the outcomes. No human subjects
-  * includes whether decision-makers sought **outside support** for evidence, and under what conditions (revealed demand)
-* **Later:** a documented partner funnel (approached, responded, accepted, fit), where refusals are data
+![w:1100](figures/nexus_discretion_instruments.svg)
+
 * In scope: headquarters versus field constraints; where evidence generation should be allocated
 
 <div class="box">
@@ -208,29 +185,11 @@ The valid result "no additional evidence would help" is a stop outcome, not a fa
 
 # Decision mapping: what informs decisions today
 
-<div class="columns">
-<div>
+![w:1100](figures/nexus_evidence_barriers.svg)
 
-* Plans are informed by **context data, tacit knowledge, best practice and standard procedures**
 * The unit of study is the **assumptions** behind a decision, in causal maps, scenarios and log-frames (the logic tables programmes write), stated or not
-* Three barriers to evidence reaching the planner:
-  * **search:** relevant evidence is hard to find
-  * **overload:** a lot of evidence, few strong signals
-  * **relevance:** the evidence available does not fit the planner's setting
-
-</div>
-<div>
-
-<div class="box">
-
-**Feeds evidence transport.** The causal chain, blockers and log-frame assumptions become the input to the transport model: they say which links a source study must be checked on, and the planner reviews them at each staged deliverable.
-
-</div>
-
-Eliciting causal maps from practitioners is the established field of **systems mapping**, usually qualitative. Linking it to causal graphs for quantitative transport is the untested part.
-
-</div>
-</div>
+* **Feeds evidence transport:** the causal chain, blockers and log-frame assumptions say which links a source study must be checked on; the planner reviews them at each staged deliverable
+* Eliciting causal maps from practitioners is the established field of **systems mapping**, usually qualitative. Linking it to causal graphs for quantitative transport is the untested part
 
 <!-- Note:
 Tennant et al. (2021) reviews how DAGs are reported in health research; it is not a participatory method. Pointers from memory, unverified: causal loop diagrams, fuzzy cognitive maps, group model building.
@@ -265,18 +224,7 @@ General argument: Pritchett and Sandefur (2015) find transport error larger than
 
 # The pipeline already under construction
 
-<div class="visual">
-
-**VISUAL: a 2&times;2 with a loop, coloured by maturity.** Columns: *find and describe what is known* and *test what can be used here*. Rows: *evidence from studies* and *local, replicable data and results*.
-
-* **Literature discovery and extraction** (find; studies): automated search, structured extraction of study facts and causal claims. *Built and piloted*
-* **Evidence gap map** (test; studies): the **3ie gap map** model, extended with context (shock, crisis phase, delivery institution, displacement, horizon). *In design*
-* **Context data panel** (find; local): conflict, rainfall, prices, displacement and boundaries fused through open-source APIs and scripted or agent-assisted fetching; new country by configuration. *Built: Somalia and Sudan*
-* **Reproducible replications, `reprokit`** (test; local): extract and replicate eligible studies. *Released; Bangladesh insurance replication nearly complete in full; next: Egger and HSNP Phase 2*
-
-Arrows: the gap map directs the search; extraction makes comparable records; the context panel measures closeness; replication checks which estimates reproduce; results update the map.
-
-</div>
+![w:1100](figures/nexus_pipeline_2x2.svg)
 
 * **`reprokit`** records hashes and rebuilds in continuous integration, so anyone can re-run a result
 * Replication is fast when geodata are public, or when we replicate without them; slow only if locations must be requested privately
@@ -319,11 +267,7 @@ Bias question: "the process is fixed in a protocol before we start, and every ch
 
 A **selection diagram** is a causal graph, with boxes for variables and arrows for cause and effect, plus a mark on each arrow that works differently in the source and the target setting.
 
-<div class="visual">
-
-**VISUAL: one small causal graph drawn twice, source and target.** For cash transfers: *transfer* &rarr; *household spending* &rarr; *local sales* &rarr; *local income*, with side inputs *market access* and *security*. Marked arrows in the target (for example spending &rarr; local sales, because markets are thinner; security &rarr; local sales). Unmarked arrows are labelled "carries over"; marked ones "measure before transporting".
-
-</div>
+![w:1100](figures/nexus_selection_diagram.svg)
 
 * Marked arrows say which differences **must be measured**, and whether a way to carry the result over exists at all
 * Here the graph comes from the planner's decision map, matched to the source study's causal story
@@ -353,64 +297,18 @@ Design choices around the approaches, not methods: which settings count as compa
 
 ---
 
-# Progress so far and what comes next
-
-<div class="columns">
-<div>
-
-**Done so far**
-* Initial novelty check of the three questions against the nearest prior art (a spot check)
-* Literature discovery and extraction built and piloted; context data panel built for Somalia and Sudan; `reprokit` released
-* Replication of the Bangladesh insurance study nearly complete in full
-* Next replication candidates identified (Egger, HSNP Phase 2); papers transcribed for direct reading
-
-</div>
-<div>
-
-**Next**
-* **Desk audit** of one evaluated intervention: its full documentation, analysed for the decisions made, the constraints, the evidence used and the outcomes. No human subjects
-* Replicate and compare the two Kenyan cash studies
-* Extend to the evidence gap map and to more replications
-* **Outreach to J-PAL and 3ie** on decisions and evidence gaps in crisis settings, and on replication data access
-
-</div>
-</div>
-
-<!-- Note:
-Ethics caution: asking J-PAL or 3ie staff about their decision-making could count as human-subjects research, so check with the IRB before outreach beyond routine requests for public data and replication materials. Do not say that a partner has agreed or that the audit has begun.
--->
-
----
-
 # Timeline: three gates on the thesis schedule
 
-<div class="visual">
+![w:1000](figures/nexus_timeline.svg)
 
-**VISUAL: a horizontal timeline, Nov 2026 to spring 2029, with the three gates as markers.**
+**What the gates are for:** each shows the work can deliver before the next, costlier step.
 
-* **Nov 2026:** peer talk (now)
-* **Apr 2027:** faculty talk
-* **May 2027, gate 1:** faculty approval and pre-registration of the discretion audit and the plan
-* **Jun 2027:** IRB submission
-* **Fall 2027 to spring 2028:** recruit potential nexus expert decision-makers (human subjects)
-* **Summer 2028, gate 2:** field work; real causal mapping with practitioners
-* **Fall 2028 (year 3):** build and validate the causal transport model through iterative work with a partner
-* **Spring 2029, gate 3:** thesis paper complete
-
-Running along the top, bars: desk audit and replications (now to spring 2027); outreach to J-PAL and 3ie (now onward).
-
-</div>
-
-**What the gates are for.** Each is a point where the work must show it can deliver before the next, costlier step, so we stop or redirect early rather than late:
-
-* **Gate 1, is the question answerable?** An approved audit shows decisions, constraints and evidence use can be measured from documents
-* **Gate 2, can decisions be mapped?** Practitioners' causal maps are usable and the planner finds them useful
-* **Gate 3, does transport work?** A method with empirical validation, then a partner uses it; predictions are checked against outcomes
-
-<span class="small">Dates are the owner's current plan (2026-11-13), not commitments. Practitioner work follows IRB approval.</span>
+* **Gate 1, answerable?** An approved audit shows the question can be measured from documents
+* **Gate 2, mappable?** Practitioners' causal maps are usable and useful to the planner
+* **Gate 3, transportable?** A validated method, then a partner uses it
 
 <!-- Note:
-Four case-level checks also apply before investing in any single case: is there a documented decision and a fit partner; would new evidence be worth it (value of information); can anything be inferred from existing studies; can the outcome be evaluated. Gates here are the thesis-level checkpoints; the case checks are in the appendix. Do not say that dates are fixed, or that IRB approval is assured.
+Progress beyond the pipeline slide: an initial novelty check of the three questions against the nearest prior art (a spot check), and full-text transcripts of the Kenyan papers for direct reading. Next replications: Egger and HSNP Phase 2, compared directly. Outreach to J-PAL and 3ie covers decisions and evidence gaps in crisis settings, and replication data access. Ethics caution: asking J-PAL or 3ie staff about their decision-making could count as human-subjects research, so check with the IRB before outreach beyond routine requests for public data and replication materials. Do not say that a partner has agreed, that the audit has begun, that dates are fixed, or that IRB approval is assured. Four case-level checks also apply before investing in any single case: is there a documented decision and a fit partner; would new evidence be worth it (value of information); can anything be inferred from existing studies; can the outcome be evaluated. Gates here are the thesis-level checkpoints; the case checks are in the appendix.
 -->
 
 ---
@@ -435,8 +333,8 @@ The plain-language definition and the example graph are on the main selection-di
 | Relevant evidence exists? | Discretion: **yes** | Discretion: **no** (fixed by rules, budget, mandate) |
 |---|---|---|
 | Yes: relevant and actionable | **Use it** | On the shelf |
-| Yes, but too distant | **Gap: transport the evidence (RQ3)** | Not a priority |
-| Yes, but not actionable here | **Gap: redesign or adapt (RQ2)** | Not a priority |
+| Yes, but too distant | **Gap: transport the evidence (evidence transport)** | Not a priority |
+| Yes, but not actionable here | **Gap: redesign or adapt (decision mapping)** | Not a priority |
 | None | **Gap: generate or substitute** | Ignore |
 
 * Scope: decisions where the planner already has discretion and lacks relevant evidence; evidence loosening constraints is plausible but out of scope
@@ -461,11 +359,11 @@ The plain-language definition and the example graph are on the main selection-di
 
 # A4. Validation, gates and timeline
 
-| Question | Validated when |
+| Research question | Validated when |
 |---|---|
-| **RQ1** | A working paper on the knowledge audit is approved by faculty, and at least one fit partner agrees with the funnel documented |
-| **RQ2** | Desk phase: documents suffice to model constraints, scenarios and log-frames. Partner phase: the partner finds the process and products useful (needs ethics approval) |
-| **RQ3** | Partial: a methodology paper with empirical validation. Full: a partner uses the results. Follow-on: predictions turn out reasonably correct |
+| **Discretion and value of evidence** | A working paper on the knowledge audit is approved by faculty, and at least one fit partner agrees with the funnel documented |
+| **Decision mapping** | Desk phase: documents suffice to model constraints, scenarios and log-frames. Partner phase: the partner finds the process and products useful (needs ethics approval) |
+| **Evidence transport** | Partial: a methodology paper with empirical validation. Full: a partner uses the results. Follow-on: predictions turn out reasonably correct |
 
 * **Dates (owner's plan, 2026-11-13):** faculty talk April 2027; faculty approval and pre-registration May 2027; IRB submission June 2027; recruitment fall 2027 to spring 2028; field work summer 2028; transport model validated with a partner fall 2028; thesis paper spring 2029
 * **Case-level checks before investing in a case:** case and partner fit; is new evidence worth it; what can be inferred; can it be evaluated
@@ -578,6 +476,6 @@ Anticipatory-action evaluations (Bangladesh, Nepal) remain useful examples of ev
 * **Climate and environmental decision-making:** a decision-relevance test for adaptation methods under uncertainty
 * **Research funding and synthesis:** separating real research gaps from gaps existing evidence can fill
 * **Research infrastructure:** an open-source, reproducible pipeline others can re-run on a different decision
-* **Humanitarian practice:** a map of what plans rest on, and where central rules block use of evidence
+* **Humanitarian practice:** a map of what informs plans, and where central rules block use of evidence
 
 <span class="small">Intended contributions, not results. Each depends on the corresponding question working.</span>
