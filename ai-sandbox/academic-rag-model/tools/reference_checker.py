@@ -321,6 +321,50 @@ def parse_reference_list(text: str) -> list[dict]:
     return entries
 
 
+def parse_inline_citations(text: str) -> list[dict]:
+    """Find inline author-year mentions, excluding bibliography sections."""
+    lines = text.splitlines(keepends=True)
+    kept = []
+    active = False
+    level = 0
+    for line in lines:
+        heading = re.match(r"^(#+)\s+", line)
+        if heading:
+            is_refs = bool(re.match(r"^#+\s+.*\b(?:references|bibliography)\b", line, re.I))
+            if is_refs:
+                active, level = True, len(heading.group(1))
+            elif active and len(heading.group(1)) <= level:
+                active = False
+        kept.append("\n" if active else line)
+    searchable = "".join(kept)
+    name = r"[A-Z][\w'’.-]*(?:\s+[A-Z][\w'’.-]*){0,2}"
+    authors = rf"{name}(?:\s*(?:&|\band\b)\s*{name})?(?:\s+et\s+al\.?)?"
+    date = r"((?:19|20)\d{2})([ab])?"
+    pattern = re.compile(
+        rf"(?P<paren>\(\s*(?P<pauthors>{authors})\s*,\s*(?P<pyear>{date})\s*\))"
+        rf"|(?P<narrative>(?P<nauthors>{authors})\s+\(\s*(?P<nyear>{date})\s*\))"
+        rf"|(?P<bare>(?P<bauthors>{authors})\s+(?P<byear>{date}))"
+    )
+    found = []
+    for match in pattern.finditer(searchable):
+        if match.group("paren"):
+            author_text, year_text = match.group("pauthors"), match.group("pyear")
+        elif match.group("narrative"):
+            author_text, year_text = match.group("nauthors"), match.group("nyear")
+        else:
+            author_text, year_text = match.group("bauthors"), match.group("byear")
+        date_match = re.fullmatch(date, year_text)
+        found.append({
+            "authors": _reference_authors(author_text),
+            "year": int(date_match.group(1)),
+            "suffix": (date_match.group(2) or "").lower(),
+            "citation": text[match.start():match.end()],
+            "start": match.start(),
+            "end": match.end(),
+        })
+    return found
+
+
 class RegistryClient:
     def __init__(self, cache: Path, pace: float = 0.2, online: bool = True, refresh: bool = False):
         self.cache, self.pace, self.online, self.refresh = cache, pace, online, refresh

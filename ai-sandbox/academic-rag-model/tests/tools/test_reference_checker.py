@@ -519,6 +519,29 @@ def test_reference_list_parser_does_not_promote_journal_to_title():
     assert entries[0]["title"] == ""
 
 
+def test_inline_author_year_parser_supports_narrative_and_parenthetical_forms():
+    from tools.reference_checker import parse_inline_citations
+    text = (
+        "Smith (2020) and Smith & Jones (2021) report results. "
+        "Smith et al. (2022) replicate them; Smith 2023 summarizes the evidence. "
+        "Other estimates appear in (Smith, 2024)."
+    )
+    citations = parse_inline_citations(text)
+    assert [(row["authors"], row["year"], row["suffix"]) for row in citations] == [
+        (["Smith"], 2020, ""), (["Smith", "Jones"], 2021, ""),
+        (["Smith"], 2022, ""), (["Smith"], 2023, ""), (["Smith"], 2024, ""),
+    ]
+
+
+def test_inline_author_year_parser_supports_year_suffixes_and_skips_reference_list():
+    from tools.reference_checker import parse_inline_citations
+    text = "Smith (2020a) and (Jones, 2020b) are separate works.\n\n## References\nSmith, A. (2020a). A listed work title. Journal Name.\n"
+    citations = parse_inline_citations(text)
+    assert [(row["authors"], row["year"], row["suffix"]) for row in citations] == [
+        (["Smith"], 2020, "a"), (["Jones"], 2020, "b"),
+    ]
+
+
 def test_clean_v2_citations_have_no_parser_artifact_flags():
     for doi in ("10.1093/jeea/jvaa019", "10.1016/j.jeconom.2004.04.009",
                 "10.1016/j.jclinepi.2007.03.013"):
