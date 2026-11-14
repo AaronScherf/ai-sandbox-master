@@ -454,7 +454,7 @@ test("anchored section is named after its slide and ordered right after it", () 
   assert.equal(report.plans[1].name,report.plans[0].name+" · notes 1");
   assert.equal(report.plans[1].action,"create");
   assert.ok(af.contains(report.plans[1].bounds,af.box(els[1])));
-  assert.deepEqual(report.plans[1].memberIds,["k1","k2"]);
+  assert.equal(JSON.stringify(report.plans[1].memberIds),JSON.stringify(["k1","k2"]));
 });
 
 test("two sections for one slide are sequenced by order", () => {
@@ -542,4 +542,16 @@ test("explicit sections replace automatic clustering in ink-only mode", () => {
     secFile(sec("only","standalone",null,1,["a","b"])));
   assert.equal(report.plans.length,1);
   assert.equal(report.plans[0].memberIds.length,2);
+});
+
+test("section card is a member of its section frame and inside its bounds", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const k=stroke("k1",6000,100);
+  const c=card("sc",4800,100,"section:sec1",950,500);
+  const report=af.planFrames([s,k,c],registry,{slides:[entry(s,1)]},
+    secFile(sec("sec1","anchored","s",1,["k1"])));
+  const p=report.plans[1];
+  assert.notEqual(p.action,"skip");
+  assert.ok(p.memberIds.includes("sc") && p.memberIds.includes("k1"));
+  assert.ok(af.contains(p.bounds,af.box(c)) && af.contains(p.bounds,af.box(k)));
 });
