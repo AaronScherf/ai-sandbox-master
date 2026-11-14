@@ -17,10 +17,10 @@ plan `docs/superpowers/plans/transcribe_notes/2026-11-13-framed-explainer.md`, r
 `pipelines/transcribe_notes/framed_explainer/runbook.md`, probes
 `docs/status/transcribe_notes/2026-11-13-framed-explainer-probes.md`.
 
-## Where the code lives (two repos, nothing pushed)
+## Where the code lives (two repos)
 | Repo | Branch / worktree | State |
 | --- | --- | --- |
-| Outer monorepo | `claude/framed-explainer-impl`, `.worktrees/claude-framed-explainer-impl` | Python package `pipelines/transcribe_notes/framed_explainer/`, tests, docs. **Unmerged, unpushed.** |
+| Outer monorepo | **Landed on `main` 2026-11-14 (a9e722d0, pushed; spec docs first as 89b7778d).** Start new work on a fresh `claude/<task>` worktree from `main`. | Python package `pipelines/transcribe_notes/framed_explainer/`, tests, docs. |
 | Vault (`academic_notes`, separate repo) | `claude/framed-explainer-notes`, `.worktrees/claude-framed-explainer-vault`; fast-forwarded into the vault `main` after every change | Obsidian scripts in `Excalidraw/Scripts/`. Vault `main` is live for the owner. **Unpushed.** |
 
 Vault scripts now on vault `main`: `Auto-Frame Slides.md`, `Apply Explanations.md`,
@@ -72,9 +72,7 @@ both (`tests/.../test_framed_explainer_bands_parity.py`, runner `framer_band_run
   ids and bounds only for grouping. Test inputs: `docs/status/transcribe_notes/2026-11-14-stroke-text-test/`.
 
 ## Open items, in suggested order
-1. **Merge the outer branch** `claude/framed-explainer-impl` to main (owner is the integrator;
-   do not merge without asking). Run the full suite first: `python tools/run_tests_chunked.py`
-   and the Node tests (below).
+1. ~~Merge the outer branch~~ Done: landed on `main` 2026-11-14.
 2. **Image path for the agent** (decision for the owner): today rasters come from a
    hand-exported Printable Layout PDF (110 dpi, one page per frame, page count must equal
    frame count). Proposed: send each slide's original PNG plus a frame raster at 150-200 dpi,

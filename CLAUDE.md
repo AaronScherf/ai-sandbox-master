@@ -17,6 +17,9 @@ Use a dedicated `claude/<task>` branch and worktree; launch the session there
 and keep shell and IDE edits inside it. Main is for the designated integrator.
 - Stage explicit task paths only, never `git add -A` / `git add .`. Preserve unrelated changes encountered during handoff; one writer per worktree still applies.
 - This repo is public on GitHub. Never commit secrets (`ai-sandbox/.env`) or copyrighted source material; the root `.gitignore` comments explain the IP-driven exclusions.
+- Landing is blocked when another open branch changes the same tracked file (the check reports "Overlaps"; the overlap is symmetric). Keep one set of shared docs (specs, plans, handoffs) on exactly one branch; never copy another branch's docs into yours. Run `tools.active_work` before starting and before asking to land, and resolve any overlap first.
+- Start each task branch from the latest `main`, and install `requirements.txt` into the shared `.venv` (`.venv\Scripts\python.exe -m pip install -r requirements.txt`) before the first landing check; a missing package fails the whole check.
+- A landing check that fails on a test unrelated to the branch: run that test alone on `main` and on the branch, and report both results; do not land on a failed check or work around `land`. Re-run the check (a clean re-run is the only way to a passing change ID). Approval covers one change ID, so name the ID, paths, overlaps and the `git push origin main` in a single ask.
 
 ## Pending to-dos
 
