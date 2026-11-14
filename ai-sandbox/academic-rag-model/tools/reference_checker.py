@@ -6,6 +6,10 @@ JSON input may be a list of citation strings or objects with citation and identi
 The default response cache is gitignored. DOI/arXiv ids go to registries;
 references without an identifier send an extracted title or at most 200
 characters of citation text to Crossref for candidate search. Source files stay local.
+
+Known limitation: when one table reference contains multiple DOIs, each DOI may
+inherit the same citation. This can misclassify a dataset DOI using paper authors;
+review such rows manually and prefer separate DOI rows in the input.
 """
 from __future__ import annotations
 
