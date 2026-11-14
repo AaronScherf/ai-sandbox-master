@@ -124,3 +124,8 @@ def test_resolve_coverage_equation_holds(result, facts):
     c = resolved["coverage"]
     assert (c["assigned"], c["fallback_nearest"], c["section"]) == (2, 1, 1)
     assert c["assigned"] + c["fallback_nearest"] + c["section"] == len(facts["strokes"])
+
+
+def test_resolved_fixture_is_in_sync_with_python_resolver(result, facts):
+    expected = load("result_resolved_ok.json")
+    assert resolve_result(result, facts) == expected
