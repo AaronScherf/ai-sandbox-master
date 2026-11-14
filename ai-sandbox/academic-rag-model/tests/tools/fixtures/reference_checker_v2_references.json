@@ -1,0 +1,254 @@
+[
+  {
+    "citation": "Alonso-Coello, P., Schünemann, H. J., Moberg, J., et al. (2016). GRADE Evidence to Decision (EtD) frameworks: a systematic and transparent approach to making well informed healthcare choices. 1: Introduction. BMJ, 353, i2016.",
+    "identifier": "10.1136/bmj.i2016",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Brown, D., Salisbury, M., & Ball, E. (2025). Evidence-based funding and the value of information: A case study from GiveWell. AEA Papers and Proceedings, 115, 308–312.",
+    "identifier": "10.1257/pandp.20251021",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Butler, D. M., & Broockman, D. E. (2011). Do politicians racially discriminate against constituents? A field experiment on state legislators. American Journal of Political Science, 55(3), 463–477.",
+    "identifier": "10.1111/j.1540-5907.2011.00518.x",
+    "kind": "doi",
+    "expected_identity": "WRONG_WORK"
+  },
+  {
+    "citation": "Claxton, K. (1999). The irrelevance of inference: a decision-making approach to the value of information. Journal of Health Economics, 18(3), 341–364.",
+    "identifier": "10.1016/s0167-6296(98)00039-3",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Claxton, K., & Sculpher, M. (2006). Using value of information analysis to prioritise health research: some lessons from recent UK experience. PharmacoEconomics, 24(11), 1055–1068.",
+    "identifier": "10.2165/00019053-200624110-00003",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Coburn, C. E., & Penuel, W. R. (2016). Research–practice partnerships in education: Outcomes, dynamics, and open questions. Educational Researcher, 45(1), 48–54.",
+    "identifier": "10.3102/0013189X16631750",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Coughlan de Perez, E., van den Hurk, B., van Aalst, M. K., et al. (2015). Forecast-based financing: an approach for catalyzing humanitarian action based on extreme weather forecasts. Natural Hazards and Earth System Sciences, 15(4), 895–904.",
+    "identifier": "10.5194/nhess-15-895-2015",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Fenwick, E., Claxton, K., & Sculpher, M. (2008). The value of implementation and the value of information: combined and uneven development. Medical Decision Making, 28(1), 21–32.",
+    "identifier": "10.1177/0272989x07308751",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Hjort, J., Moreira, D., Rao, G., & Santini, J. F. (2021). How research affects policy: Experimental evidence from 2,150 Brazilian municipalities. American Economic Review, 111(11), 3623–3660.",
+    "identifier": "10.1257/aer.20191834",
+    "kind": "doi",
+    "expected_identity": "NOT_FOUND"
+  },
+  {
+    "citation": "Lopez, A., Coughlan de Perez, E., Bazo, J., Suarez, P., et al. (2020). Bridging the gap between climate science and humanitarian action: An analysis of forecast-based financing in Peru. Weather and Climate Extremes, 27, 100167.",
+    "identifier": "10.1016/j.wace.2018.03.006",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Vivalt, E., & Coville, A. (2023). How do policymakers update their beliefs? Journal of Development Economics, 162, 103074.",
+    "identifier": "10.1016/j.jdeveco.2023.103074",
+    "kind": "doi",
+    "expected_identity": "WRONG_WORK"
+  },
+  {
+    "citation": "Andrews, M., Pritchett, L., & Woolcock, M. (2013). Escaping capability traps through problem driven iterative adaptation (PDIA). World Development, 51, 234–244.",
+    "identifier": "10.1016/j.worlddev.2013.05.011",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Barbrook-Johnson, P., & Penn, A. S. (2022). Systems Mapping: How to Build and Use Causal Models of Systems. Palgrave Macmillan, Cham.",
+    "identifier": "10.1007/978-3-031-01919-7",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Bongers, S., Forré, P., Peters, J., & Mooij, J. M. (2021). Foundations of structural causal models with cycles and latent variables. The Annals of Statistics, 49(2), 908–936.",
+    "identifier": "10.1214/20-AOS1970",
+    "kind": "doi",
+    "expected_identity": "WRONG_WORK"
+  },
+  {
+    "citation": "Bowen, T., del Ninno, C., Andrews, C., et al. (2020). Adaptive Social Protection: Building Resilience to Shocks. World Bank, Washington, DC.",
+    "identifier": "10.1596/978-1-4648-1575-1",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Haasnoot, M., Kwakkel, J. H., Walker, W. E., & ter Maat, J. (2013). Dynamic adaptive policy pathways: A new approach to planning under deep uncertainty. Global Environmental Change, 23(2), 485–498.",
+    "identifier": "10.1016/j.gloenvcha.2012.12.006",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Hausmann, R., Rodrik, D., & Velasco, A. (2008). Growth diagnostics. In N. Serra & J. E. Stiglitz (Eds.), The Washington Consensus Reconsidered: Towards a New Approach to Development (pp. 324–355). Oxford University Press, Oxford.",
+    "identifier": "10.1093/acprof:oso/9780199534081.003.0015",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Kok, K. (2009). The potential of Fuzzy Cognitive Maps for semi-quantitative scenario development, with an example from Brazil. Global Environmental Change, 19(1), 122–133.",
+    "identifier": "10.1016/j.gloenvcha.2008.08.003",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Tennant, P. W. G., Murray, E. J., Arnold, K. F., et al. (2021). Use of directed acyclic graphs (DAGs) to identify confounders in applied health research: review and recommendations. International Journal of Epidemiology, 50(2), 620–632.",
+    "identifier": "10.1093/ije/dyaa213",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Allcott, H. (2015). Site selection bias in program evaluation. *Quarterly Journal of Economics*, 130(2), 517–558. Documents severe site-selection bias across 111 energy deployments. **[VERIFIED]**",
+    "identifier": "10.1093/qje/qjv001",
+    "kind": "doi",
+    "expected_identity": "WRONG_WORK"
+  },
+  {
+    "citation": "Altmejd, A., et al. (2019). Predicting the replicability of social science lab experiments. *PLOS ONE*, 14(12), e0225826. Pre-registered statistical models predicting binary lab replications. **[VERIFIED]**",
+    "identifier": "10.1371/journal.pone.0225826",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Bareinboim, E., & Pearl, J. (2016). Causal inference and the data-fusion problem. *PNAS*, 113(27), 7345–7352. Synthesizes graph-based transportability theory. **[VERIFIED]**",
+    "identifier": "10.1073/pnas.1510507113",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Brok, J., et al. (2008). Apparently conclusive meta-analyses may be inconclusive—Trial sequential analysis applied to systematic reviews. *J Clin Epidemiol*, 61(8), 763–771. TSA for detecting spurious conclusions in meta-analyses. **[ABSTRACT-ONLY]**",
+    "identifier": "10.1016/j.jclinepi.2007.10.012",
+    "kind": "doi",
+    "expected_identity": "WRONG_WORK"
+  },
+  {
+    "citation": "Crost, B., Felter, J. H., & Johnston, P. B. (2016). Conditional cash transfers, civil conflict and insurgent influence. *JDE*, 118, 171–182. Proves cash transfers caused a statistically significant decrease in insurgent incidents. **[VERIFIED]**",
+    "identifier": "10.1016/j.jdeveco.2015.08.005",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Dahabreh, I. J., et al. (2020). Generalizing causal inferences from individuals in randomized trials to all trial-eligible individuals. *Biometrics*, 75(2), 685–694. Weighting and g-computation for trial-to-target generalizability. **[VERIFIED]**",
+    "identifier": "10.1111/biom.13009",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "DellaVigna, S., & Pope, D. (2018). Predicting experimental results: who knows what? *JPE*, 126(6), 2410–2456. Empirical benchmark testing forecasts of experimental treatments. **[VERIFIED]**",
+    "identifier": "10.1086/699976",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "DellaVigna, S., Pope, D., & Vivalt, E. (2020). Predict science to improve science. *Science*, 368(6496), 1200–1202. Argues for pre-registering expert forecasts via SSPP. **[VERIFIED]**",
+    "identifier": "10.1126/science.abb7442",
+    "kind": "doi",
+    "expected_identity": "NOT_FOUND"
+  },
+  {
+    "citation": "Doocy, S., & Tappis, H. (2017). The Effectiveness and Efficiency of Cash-Based Approaches in Emergencies. *Campbell Systematic Reviews*, 13(1), 1–138. Synthesizes evidence on cash versus in-kind assistance in crises. **[VERIFIED]**",
+    "identifier": "10.4073/csr.2017.17",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Egger, D., et al. (2022). General equilibrium effects of cash transfers. *JDE*, 157, 102867. Documents market spillover effects from unconditional cash transfers. **[ABSTRACT-ONLY]**",
+    "identifier": "10.1016/j.jdeveco.2022.102867",
+    "kind": "doi",
+    "expected_identity": "WRONG_WORK"
+  },
+  {
+    "citation": "Gechter, M. (2024). Generalizing the results from social experiments: Theory and evidence from the PROGRESA program. *JBES*, 42(2), 801–811. Non-parametric sensitivity intervals and partial identification bounds. **[VERIFIED]**",
+    "identifier": "10.1080/07350015.2023.2241529",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Groh, M., et al. (2016). Do wage subsidies provide a stepping-stone to employment for young women? *WBER*, 30(suppl_1), S107–S115. Documents poor predictive accuracy of researcher and practitioner priors. **[ABSTRACT-ONLY]**",
+    "identifier": "10.1093/wber/lhw023",
+    "kind": "doi",
+    "expected_identity": "WRONG_WORK"
+  },
+  {
+    "citation": "Hotz, V. J., Imbens, G. W., & Mortimer, J. H. (2005). Predicting the efficacy of future training programs using past experiences at other locations. *J Econometrics*, 125(1–2), 241–270. Reweighting estimators for cross-site treatment predictions. **[VERIFIED]**",
+    "identifier": "10.1016/j.jeconom.2004.04.009",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Kastner, M., et al. (2009). The capture–mark–recapture technique can be used as a stopping rule when searching in systematic reviews. *J Clin Epidemiol*, 62(2), 149–157. Adapts capture-recapture to database overlap as a search stopping rule. **[VERIFIED]**",
+    "identifier": "10.1016/j.jclinepi.2008.06.001",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Meager, R. (2019). Understanding the Average Impact of Microcredit Expansions: A Bayesian Hierarchical Analysis of Seven Randomized Experiments. *AEJ: Applied*, 11(1), 57–91. Bayesian hierarchical model proving wide posterior predictive dispersion for new sites. **[VERIFIED]**",
+    "identifier": "10.1257/app.20170299",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Montiel Olea, J. L., et al. (2024). Externally valid policy choice. *arXiv preprint arXiv:2408.09187 [econ.EM]*. Site selection under external validity concerns formulated as a minimax-regret problem. **[VERIFIED]**",
+    "identifier": "10.48550/arXiv.2408.09187",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Pearl, J., & Bareinboim, E. (2014). External validity: From do-calculus to transportability across populations. *J Causal Inference*, 2(2), 257–282. Complete mathematical characterization of transportability formulas under DAG selection diagrams. **[ABSTRACT-ONLY]**",
+    "identifier": "10.1515/jci-2012-0022",
+    "kind": "doi",
+    "expected_identity": "NOT_FOUND"
+  },
+  {
+    "citation": "Pritchett, L., & Sandefur, J. (2015). Learning from experiments when context matters. *AER*, 105(5), 471–475. Proves local observational estimates often achieve lower MSE than transported trials. **[VERIFIED]**",
+    "identifier": "10.1257/aer.p20151016",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Rosenzweig, M. R., & Udry, C. (2020). External validity, information and prices: Methods and results from investments in Indian agriculture. *REStud*, 87(1), 343–381. Proves invalidity of agricultural RCTs without modeling weather shocks. **[VERIFIED]**",
+    "identifier": "10.1093/restud/rdz021",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Saunders, B., et al. (2018). Saturation in qualitative research: exploring its conceptualization and operationalization. *Qual Quant*, 52(4), 1893–1907. Reviews conceptual and operational models of thematic saturation. **[ABSTRACT-ONLY]**",
+    "identifier": "10.1007/s11135-017-0574-8",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Vivalt, E. (2020). How much can we generalize from impact evaluations? *JEEA*, 18(6), 3045–3089. Meta-analysis of 635 development effect sizes demonstrating high cross-site heterogeneity. **[VERIFIED]**",
+    "identifier": "10.1093/jeea/jvaa019",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "Wetterslev, J., et al. (2008). Trial sequential analysis may establish when firm evidence is reached in cumulative meta-analysis. *J Clin Epidemiol*, 61(1), 64–75. Establishes TSA boundaries for evidence saturation. **[ABSTRACT-ONLY]**",
+    "identifier": "10.1016/j.jclinepi.2007.03.013",
+    "kind": "doi",
+    "expected_identity": "SAME_WORK"
+  },
+  {
+    "citation": "White, H., Saran, A., & Welch, V. (2020). Evidence and gap maps: A tool for promoting evidence informed policy and strategic research agendas. *Campbell Systematic Reviews*, 16(1), e1075. Core methodological guide for Evidence and Gap Maps. **[VERIFIED]**",
+    "identifier": "10.1002/cl2.1075",
+    "kind": "doi",
+    "expected_identity": "AMBIGUOUS"
+  }
+]

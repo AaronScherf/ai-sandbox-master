@@ -1,5 +1,7 @@
 .venv/
 __pycache__/
+.reference_checker_cache/
+.reference_checker_reports/
 *.pyc
 pipelines/generate_video_notes/.state/
 pipelines/generate_video_notes/.cache/
