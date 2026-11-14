@@ -10,6 +10,20 @@ characters of citation text to Crossref for candidate search. Source files stay 
 Known limitation: when one table reference contains multiple DOIs, each DOI may
 inherit the same citation. This can misclassify a dataset DOI using paper authors;
 review such rows manually and prefer separate DOI rows in the input.
+
+Identity-to-tier mapping:
+- SAME_WORK is CONFIRMED when an explicit title scores >= 0.92, or when its
+  title scores >= 0.5 and the cited year matches any registered year.
+- SAME_WORK with no explicit title is PLAUSIBLE; all other SAME_WORK is REVIEW.
+- AMBIGUOUS maps to REVIEW.
+- WRONG_WORK, NOT_FOUND, UNCHECKED, and UNRESOLVED retain their identity as
+  their tier.
+
+The legacy classification field remains for one release. Its mapping is
+unchanged: MATCH means SAME_WORK with text_fidelity ["OK"], MISMATCH means
+WRONG_WORK, PARTIAL means another resolved DOI identity, NO_IDENTIFIER means
+an identifier-free or URL-only row, and NOT_FOUND means the registry reports
+that the DOI does not exist. Registry lookup failures remain UNRESOLVED.
 """
 from __future__ import annotations
 
@@ -444,6 +458,27 @@ def compare(citation: str, record: dict) -> tuple[str, list[str], str]:
     return identity, notes or ["OK"], reason
 
 
+def _identity_tier(identity: str, citation: str, record: dict | None = None) -> str:
+    """Map identity to owner-approved tier; classification remains legacy output."""
+    if identity == "AMBIGUOUS":
+        return "REVIEW"
+    if identity != "SAME_WORK":
+        return identity
+    title = citation_fields(citation)["title"]
+    if not title:
+        return "PLAUSIBLE"
+    fields = citation_fields(citation)
+    years = [int(y) for y in ((record or {}).get("years") or [(record or {}).get("year")]) if y]
+    registered_title = (record or {}).get("title") or ""
+    titles = [registered_title]
+    if (record or {}).get("subtitle"):
+        titles.append(registered_title + ": " + record["subtitle"])
+    score = max((similarity(title, candidate) for candidate in titles if candidate), default=0.0)
+    if score >= 0.92 or (score >= 0.5 and fields["year"] in years):
+        return "CONFIRMED"
+    return "REVIEW"
+
+
 def check(row: dict, client: RegistryClient) -> dict:
     citation, ident, kind = clean_citation(row["citation"]), row["identifier"], row["kind"]
     result = {"citation": citation, "identifier": ident, "registry_answer": None,
@@ -462,7 +497,7 @@ def check(row: dict, client: RegistryClient) -> dict:
         result["registry_answer"] = {"candidates": [{"title": (m.get("title") or [""])[0],
             "doi": m.get("DOI"), "score": round(similarity(query, (m.get("title") or [""])[0]), 3)} for m in items]}
         prefix = "ordinary URL; " if kind == "url" else ""
-        result.update(classification="NO_IDENTIFIER", identity="UNCHECKED",
+        result.update(classification="NO_IDENTIFIER", identity="UNCHECKED", tier="UNCHECKED",
                       reason=result["reason"] or prefix + "Crossref title candidates are suggestions only")
         return result
     try:
@@ -474,9 +509,11 @@ def check(row: dict, client: RegistryClient) -> dict:
     if record is None:
         if status.startswith("DOI does not exist"):
             result["classification"] = result["identity"] = "NOT_FOUND"
+        result["tier"] = result["identity"]
         result["reason"] = status
         return result
     result["identity"], result["text_fidelity"], result["reason"] = compare(citation, record)
+    result["tier"] = _identity_tier(result["identity"], citation, record)
     result["classification"] = ("MISMATCH" if result["identity"] == "WRONG_WORK" else
                                 "MATCH" if result["identity"] == "SAME_WORK" and result["text_fidelity"] == ["OK"] else
                                 "PARTIAL")
@@ -486,18 +523,28 @@ def check(row: dict, client: RegistryClient) -> dict:
 def identity_counts(rows: list[dict]) -> dict:
     rank = {"WRONG_WORK": 5, "NOT_FOUND": 4, "AMBIGUOUS": 3, "SAME_WORK": 2, "UNCHECKED": 1, "UNRESOLVED": 0}
     doi_rows = {}
+    # Larger ranks are riskier; keep this explicit so duplicate DOI rows retain
+    # the most concerning tier, with WRONG_WORK as the highest-risk outcome.
+    tier_rank = {"CONFIRMED": 0, "PLAUSIBLE": 1, "UNCHECKED": 2, "UNRESOLVED": 3,
+                 "REVIEW": 4, "AMBIGUOUS": 4, "NOT_FOUND": 5, "WRONG_WORK": 6}
+    doi_tiers = {}
     for row in rows:
         if row.get("kind") == "doi" or str(row.get("identifier", "")).lower().startswith("10."):
             key = str(row.get("identifier", "")).lower()
             current = doi_rows.get(key)
             if current is None or rank.get(row.get("identity"), 0) > rank.get(current, 0):
                 doi_rows[key] = row.get("identity", "UNRESOLVED")
+            tier = row.get("tier", row.get("identity", "UNRESOLVED"))
+            if key not in doi_tiers or tier_rank.get(tier, 5) > tier_rank.get(doi_tiers[key], 5):
+                doi_tiers[key] = tier
     def tally(values):
         counts = {}
         for value in values:
             counts[value] = counts.get(value, 0) + 1
         return counts
     return {"mentions": tally(row.get("identity", "UNRESOLVED") for row in rows),
+            "tier_mentions": tally(row.get("tier", row.get("identity", "UNRESOLVED")) for row in rows),
+            "tier_distinct_dois": tally(doi_tiers.values()),
             "distinct_dois": tally(doi_rows.values()), "doi_count": len(doi_rows),
             "non_doi_entries": sum(1 for row in rows if not (row.get("kind") == "doi" or str(row.get("identifier", "")).lower().startswith("10.")))}
 
@@ -505,8 +552,8 @@ def identity_counts(rows: list[dict]) -> dict:
 def markdown(rows: list[dict]) -> str:
     def cell(value):
         return str(value or "").replace("|", "\\|").replace("\n", " ")
-    out = ["| Citation | Identifier | Registry answer | Identity | Text fidelity | Classification | Reason |",
-           "|---|---|---|---|---|---|---|"]
+    out = ["| Citation | Identifier | Registry answer | Identity | Tier | Text fidelity | Classification | Reason |",
+           "|---|---|---|---|---|---|---|---|"]
     for row in rows:
         answer = row["registry_answer"] or {}
         record = answer.get("record") or {}
@@ -514,10 +561,12 @@ def markdown(rows: list[dict]) -> str:
         if "candidates" in answer:
             summary = "; ".join(f"{c['title']} ({c['score']})" for c in answer["candidates"])
         out.append("| " + " | ".join(cell(v) for v in (row["citation"], row["identifier"], summary,
-                        row["identity"], ", ".join(row["text_fidelity"]), row["classification"], row["reason"])) + " |")
+                        row["identity"], row.get("tier", row["identity"]), ", ".join(row["text_fidelity"]), row["classification"], row["reason"])) + " |")
     counts = identity_counts(rows)
     out.extend(["", f"Mention counts: {json.dumps(counts['mentions'], sort_keys=True)}",
-                f"Distinct DOI counts: {json.dumps(counts['distinct_dois'], sort_keys=True)} ({counts['doi_count']} DOIs)"])
+                f"Tier mention counts: {json.dumps(counts['tier_mentions'], sort_keys=True)}",
+                f"Distinct DOI counts: {json.dumps(counts['distinct_dois'], sort_keys=True)} ({counts['doi_count']} DOIs)",
+                f"Tier distinct DOI counts: {json.dumps(counts['tier_distinct_dois'], sort_keys=True)}"])
     return "\n".join(out) + "\n"
 
 

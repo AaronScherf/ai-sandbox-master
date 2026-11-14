@@ -144,6 +144,19 @@ def test_memo_ground_truth_counts_from_recorded_registry_results():
     assert identity_counts(repeated)["distinct_dois"] == {"WRONG_WORK": 1}
 
 
+def test_identity_counts_aggregate_worst_tier_per_distinct_doi():
+    from tools.reference_checker import identity_counts
+    rows = [
+        {"identity": "SAME_WORK", "tier": "CONFIRMED", "identifier": "10.5555/shared", "kind": "doi"},
+        {"identity": "SAME_WORK", "tier": "REVIEW", "identifier": "10.5555/shared", "kind": "doi"},
+        {"identity": "WRONG_WORK", "tier": "WRONG_WORK", "identifier": "10.5555/bad", "kind": "doi"},
+        {"identity": "SAME_WORK", "tier": "PLAUSIBLE", "identifier": "10.5555/plausible", "kind": "doi"},
+    ]
+    counts = identity_counts(rows)
+    assert counts["tier_mentions"] == {"CONFIRMED": 1, "REVIEW": 1, "WRONG_WORK": 1, "PLAUSIBLE": 1}
+    assert counts["tier_distinct_dois"] == {"REVIEW": 1, "WRONG_WORK": 1, "PLAUSIBLE": 1}
+
+
 def test_memo_doi_ground_truth_against_recorded_raw_registry_answers():
     raw = json.loads((Path(__file__).parent / "fixtures/reference_checker_memo_registry_raw.json").read_text(encoding="utf-8"))
     class MemoRecordedClient:
