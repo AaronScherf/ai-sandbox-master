@@ -1,0 +1,86 @@
+[
+  {
+    "id": "s1",
+    "type": "image",
+    "x": 0,
+    "y": 0,
+    "width": 907,
+    "height": 510,
+    "fileId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "version": 1,
+    "isDeleted": false
+  },
+  {
+    "id": "s2",
+    "type": "image",
+    "x": 0,
+    "y": 1200,
+    "width": 907,
+    "height": 510,
+    "fileId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "version": 1,
+    "isDeleted": false
+  },
+  {
+    "id": "f1",
+    "type": "frame",
+    "x": -10,
+    "y": -10,
+    "width": 2200,
+    "height": 600,
+    "name": "001 Slide 1",
+    "version": 1,
+    "isDeleted": false
+  },
+  {
+    "id": "f2",
+    "type": "frame",
+    "x": -10,
+    "y": 1190,
+    "width": 2200,
+    "height": 600,
+    "name": "002 Slide 2",
+    "version": 1,
+    "isDeleted": false
+  },
+  {
+    "id": "k1",
+    "type": "freedraw",
+    "x": 100,
+    "y": 50,
+    "width": 20,
+    "height": 20,
+    "version": 1,
+    "isDeleted": false
+  },
+  {
+    "id": "k2",
+    "type": "freedraw",
+    "x": 130,
+    "y": 60,
+    "width": 20,
+    "height": 20,
+    "version": 1,
+    "isDeleted": false
+  },
+  {
+    "id": "k3",
+    "type": "freedraw",
+    "x": 1000,
+    "y": 100,
+    "width": 20,
+    "height": 20,
+    "version": 1,
+    "isDeleted": false
+  },
+  {
+    "id": "k4",
+    "type": "freedraw",
+    "x": 6000,
+    "y": 100,
+    "width": 20,
+    "height": 20,
+    "version": 1,
+    "isDeleted": false
+  }
+]

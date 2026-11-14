@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "scene": "t.excalidraw.md",
+  "scene_sha1": "1111111111111111111111111111111111111111",
+  "prompt_version": "explainer-v1",
+  "provider": "antigravity-interactive",
+  "slides": [
+    {
+      "slide_id": "s1",
+      "frame_id": "f1",
+      "existing_explanation_id": null,
+      "ink": [
+        {
+          "region_id": "r1",
+          "stroke_ids": [
+            "k1",
+            "k2"
+          ],
+          "disposition": "assigned",
+          "confidence": 0.9,
+          "rationale": "written beside the first equation",
+          "transcription": "$\\hat\\beta_{IV}$ is consistent",
+          "legibility": "legible",
+          "context_assisted": false
+        }
+      ],
+      "card": {
+        "paragraphs": [
+          "Instrumental variables recover the causal effect when the instrument is relevant and exogenous.",
+          "The handwritten note $\\hat\\beta_{IV}$ labels the estimator on the slide and states its consistency."
+        ],
+        "status": "ok",
+        "reason": null
+      }
+    },
+    {
+      "slide_id": "s2",
+      "frame_id": "f2",
+      "existing_explanation_id": null,
+      "ink": [],
+      "card": {
+        "paragraphs": [],
+        "status": "needs_review",
+        "reason": "proof too dense for two paragraphs"
+      }
+    }
+  ],
+  "sections": [
+    {
+      "section_id": "sec1",
+      "region_id": "r2",
+      "stroke_ids": [
+        "k1"
+      ],
+      "transcription": "see slide 1",
+      "legibility": "partial",
+      "context_assisted": false
+    },
+    {
+      "section_id": "sec2",
+      "region_id": "r3",
+      "stroke_ids": [
+        "k4"
+      ],
+      "transcription": "scratch work: x = 3",
+      "legibility": "legible",
+      "context_assisted": false,
+      "card": {
+        "paragraphs": [
+          "This section sets up a small numeric check.",
+          "It evaluates $x = 3$ and uses it to test the earlier claim."
+        ],
+        "status": "ok",
+        "reason": null
+      }
+    }
+  ]
+}

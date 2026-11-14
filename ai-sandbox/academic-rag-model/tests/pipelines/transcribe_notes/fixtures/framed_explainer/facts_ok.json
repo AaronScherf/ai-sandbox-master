@@ -1,0 +1,151 @@
+{
+  "schema": 1,
+  "scene": "t.excalidraw.md",
+  "namespace": "t--x",
+  "scene_sha1": "1111111111111111111111111111111111111111",
+  "mode": "slides",
+  "prompt_version": "explainer-v1",
+  "context_version": "c1",
+  "slides": [
+    {
+      "id": "s1",
+      "file_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "link": "s1.png",
+      "frame_id": "f1",
+      "box": {
+        "x": 0,
+        "y": 0,
+        "w": 907,
+        "h": 510
+      },
+      "existing_explanation_ids": []
+    },
+    {
+      "id": "s2",
+      "file_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "link": "s2.png",
+      "frame_id": "f2",
+      "box": {
+        "x": 0,
+        "y": 1200,
+        "w": 907,
+        "h": 510
+      },
+      "existing_explanation_ids": []
+    }
+  ],
+  "regions": [
+    {
+      "region_id": "r1",
+      "bounds": {
+        "x": 100,
+        "y": 50,
+        "w": 50,
+        "h": 30
+      },
+      "stroke_ids": [
+        "k1",
+        "k2"
+      ],
+      "candidate_slides": []
+    },
+    {
+      "region_id": "r2",
+      "bounds": {
+        "x": 1000,
+        "y": 100,
+        "w": 20,
+        "h": 20
+      },
+      "stroke_ids": [
+        "k3"
+      ],
+      "candidate_slides": []
+    },
+    {
+      "region_id": "r3",
+      "bounds": {
+        "x": 6000,
+        "y": 100,
+        "w": 20,
+        "h": 20
+      },
+      "stroke_ids": [
+        "k4"
+      ],
+      "candidate_slides": []
+    }
+  ],
+  "frames": [
+    {
+      "id": "f1",
+      "name": "001 Slide 1",
+      "box": {
+        "x": -10,
+        "y": -10,
+        "w": 2200,
+        "h": 600
+      }
+    },
+    {
+      "id": "f2",
+      "name": "002 Slide 2",
+      "box": {
+        "x": -10,
+        "y": 1190,
+        "w": 2200,
+        "h": 600
+      }
+    }
+  ],
+  "strokes": [
+    {
+      "id": "k1",
+      "version": 1,
+      "x": 100,
+      "y": 50,
+      "width": 20,
+      "height": 20
+    },
+    {
+      "id": "k2",
+      "version": 1,
+      "x": 130,
+      "y": 60,
+      "width": 20,
+      "height": 20
+    },
+    {
+      "id": "k3",
+      "version": 1,
+      "x": 1000,
+      "y": 100,
+      "width": 20,
+      "height": 20
+    },
+    {
+      "id": "k4",
+      "version": 1,
+      "x": 6000,
+      "y": 100,
+      "width": 20,
+      "height": 20
+    }
+  ],
+  "targets": [
+    {
+      "frame_id": "f1",
+      "slide_id": "s1",
+      "region_id": null,
+      "eligibility": "eligible",
+      "fingerprint": "fp1"
+    },
+    {
+      "frame_id": "f2",
+      "slide_id": "s2",
+      "region_id": null,
+      "eligibility": "eligible",
+      "fingerprint": "fp2"
+    }
+  ]
+}
