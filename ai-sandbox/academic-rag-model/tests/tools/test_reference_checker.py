@@ -17,6 +17,7 @@ FIXTURES = json.loads((Path(__file__).parent / "fixtures" / "reference_checker.j
 V2_FIXTURES = json.loads((Path(__file__).parent / "fixtures" / "reference_checker_v2.json").read_text(encoding="utf-8"))
 V2_REFERENCES = json.loads((Path(__file__).parent / "fixtures" / "reference_checker_v2_references.json").read_text(encoding="utf-8"))
 MEMO_V2_REGISTRY = json.loads((Path(__file__).parent / "fixtures" / "reference_checker_memo_v2_registry.json").read_text(encoding="utf-8"))
+MEMO_V2_MISSING_RAW = json.loads((Path(__file__).parent / "fixtures" / "reference_checker_memo_v2_registry_missing_raw.json").read_text(encoding="utf-8"))
 
 
 class RecordedClient:
@@ -40,6 +41,10 @@ class MemoV2RecordedClient:
     def get(self, url):
         if "query.title" in url:
             return {"status": 200, "data": {"message": {"items": []}}}
+        for doi, response in MEMO_V2_MISSING_RAW.items():
+            encoded = urllib.parse.quote(doi, safe="")
+            if url.endswith("/works/" + encoded):
+                return response
         for doi, endpoints in MEMO_V2_REGISTRY.items():
             encoded = urllib.parse.quote(doi, safe="")
             if url.endswith("doiRA/" + encoded):
@@ -439,6 +444,10 @@ def test_three_v2_notes_same_work_tier_split():
     same_work = [row for row in same_work if row["identity"] == "SAME_WORK"]
     assert len(same_work) == 31
     assert Counter(row["tier"] for row in same_work) == {"CONFIRMED": 27, "REVIEW": 4}
+    assert {row["identifier"] for row in same_work if row["tier"] == "REVIEW"} == {
+        "10.1257/pandp.20251021", "10.1016/j.wace.2018.03.006",
+        "10.48550/arXiv.2408.09187", "10.1093/restud/rdz021",
+    }
 
 
 def test_memo_v2_seven_dois_are_plausible_using_recorded_registry_answers():
@@ -456,6 +465,28 @@ def test_memo_v2_seven_dois_are_plausible_using_recorded_registry_answers():
     assert [row["identity"] for row in results] == ["SAME_WORK"] * 7
     assert [row["tier"] for row in results] == ["PLAUSIBLE"] * 7
     assert not any(row["tier"] == "CONFIRMED" for row in results)
+    expected_registry_facts = {
+        "10.1214/24-AOAS1959": (
+            ["Zens", "Thalheimer"],
+            "The short-term dynamics of conflict-driven displacement: Bayesian modeling of disaggregated data from Somalia",
+            "The Annals of Applied Statistics",
+        ),
+        "10.1086/709993": (
+            ["McGuirk", "Burke"], "The Economic Origins of Conflict in Africa", "Journal of Political Economy",
+        ),
+        "10.1016/j.jeem.2012.02.001": (
+            ["Marchiori", "Maystadt", "Schumacher"],
+            "The impact of weather anomalies on migration in sub-Saharan Africa",
+            "Journal of Environmental Economics and Management",
+        ),
+    }
+    for result in results:
+        expected = expected_registry_facts.get(result["identifier"])
+        if expected:
+            record = result["registry_answer"]["record"]
+            assert record["authors"] == expected[0]
+            assert record["title"] == expected[1]
+            assert record["venue"] == expected[2]
     assert [check({"citation": "Institutional source (2022)", "identifier": url, "kind": "url"}, MemoV2RecordedClient())["tier"]
             for url in ("https://example.org/a", "https://example.org/b")] == ["UNCHECKED", "UNCHECKED"]
 
