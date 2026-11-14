@@ -439,3 +439,71 @@ test("frame containing a card is a no-op on rerun and adopts by exact members", 
   assert.equal(adopted.frameId,"frame");
   assert.notEqual(adopted.reason,"unmanaged_existing_frame");
 });
+
+const sec = (sectionId,kind,anchorSlideId,order,strokeIds) =>
+  ({sectionId,kind,anchorSlideId,order,strokeIds});
+const secFile = (...sections) => ({schema:1,sections});
+
+test("anchored section is named after its slide and ordered right after it", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const els=[s,stroke("k1",6000,100),stroke("k2",6030,110)];
+  const report=af.planFrames(els,registry,{slides:[entry(s,18)]},
+    secFile(sec("sec1","anchored","s",1,["k1","k2"])));
+  assert.equal(report.plans.length,2);
+  assert.equal(report.plans[0].slideId,"s");
+  assert.equal(report.plans[1].name,report.plans[0].name+" · notes 1");
+  assert.equal(report.plans[1].action,"create");
+  assert.ok(af.contains(report.plans[1].bounds,af.box(els[1])));
+  assert.deepEqual(report.plans[1].memberIds,["k1","k2"]);
+});
+
+test("two sections for one slide are sequenced by order", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const els=[s,stroke("k1",6000,100),stroke("k2",8000,100)];
+  const report=af.planFrames(els,registry,{slides:[entry(s,1)]},
+    secFile(sec("b","anchored","s",2,["k2"]),sec("a","anchored","s",1,["k1"])));
+  assert.equal(JSON.stringify(report.plans.slice(1).map(p=>p.name.slice(-7))),
+    JSON.stringify(["notes 1","notes 2"]));
+});
+
+test("section overlapping a slide frame is skipped and writes nothing", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const els=[s,stroke("k1",300,100)];  // inside the slide
+  const report=af.planFrames(els,registry,{slides:[entry(s,1)]},
+    secFile(sec("sec1","anchored","s",1,["k1"])));
+  assert.equal(report.plans[1].action,"skip");
+  assert.equal(report.plans[1].reason,"section_overlaps_frame");
+});
+
+test("standalone section is named Notes 001 and follows all slide pages", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const els=[s,stroke("k1",6000,100)];
+  const report=af.planFrames(els,registry,{slides:[entry(s,1)]},
+    secFile(sec("n","standalone",null,1,["k1"])));
+  assert.equal(report.plans[1].name,"Notes 001");
+  assert.equal(report.plans[1].page,null);
+});
+
+test("section strokes are excluded from slide ink matching", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const els=[s,stroke("k1",1000,100)];   // near the slide
+  const without=af.planFrames(els,registry,{slides:[entry(s,1)]});
+  const withSec=af.planFrames(els,registry,{slides:[entry(s,1)]},
+    secFile(sec("sec1","anchored","s",1,["k1"])));
+  assert.equal(JSON.stringify(without.plans[0].inkIds),JSON.stringify(["k1"]));
+  assert.equal(withSec.plans[0].inkIds.length,0);
+});
+
+test("missing sections file leaves slide planning unchanged", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const report=af.planFrames([s],registry,{slides:[entry(s,1)]});
+  assert.equal(report.plans.length,1);
+});
+
+test("section with an unknown stroke id is skipped", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const report=af.planFrames([s],registry,{slides:[entry(s,1)]},
+    secFile(sec("x","anchored","s",1,["ghost"])));
+  assert.equal(report.plans[1].action,"skip");
+  assert.equal(report.plans[1].reason,"missing_strokes");
+});
