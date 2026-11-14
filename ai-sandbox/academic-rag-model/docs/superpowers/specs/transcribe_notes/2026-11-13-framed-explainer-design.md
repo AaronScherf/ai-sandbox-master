@@ -161,7 +161,7 @@ Applies to every card the apply script creates.
 
 1. Ignore elements bearing `autoExplainKey` when counting `multiple_explanations` and when computing `foreignContent`; treat them as frame members instead.
 2. Include card IDs in the frame's member set so the exact-members adoption rule still matches after cards exist.
-3. Accept section entries in the slide-order sidecar (`{"kind": "section", "anchor": "<slideElementId>", "seq": 1}`) and give them frames named e.g. `018 Slide 18 · notes 1`, ordered after their anchor.
+3. Read sections from a separate `<scene>.sections.json` written by the apply script (`{"schema":1,"sections":[{"sectionId","kind","anchorSlideId","order","strokeIds"}]}`) instead of editing the owner-verified `slide-order.json` (amended 2026-11-13 during implementation planning). Give anchored sections frames named e.g. `018 Slide 18 · notes 1`, ordered after their anchor slide; standalone sections are `Notes 001`.
 4. Existing tests stay green; add fixtures for cards-present, sections, and a section overlapping a slide frame (expected: conflict, no write).
 
 These are changes to `Auto-Frame Slides.md` and its Node test, which must be verified live on a scratch copy before the main script changes.

@@ -391,3 +391,51 @@ test("optional read-only live scene inventory", {skip:!process.env.AUTO_FRAME_LI
     firstSlide:kinds.slides.slice(0,3).map(x=>x.id)}));
   assert.ok(kinds.slides.length>0);
 });
+
+const card = (id,x,y,slideId,w=950,h=500) => ({id,type:"image",x,y,width:w,height:h,
+  fileId:"c".repeat(40),
+  customData:{markdownImage:{schemaVersion:1},autoExplainKey:"ns|frame|"+slideId}});
+
+test("card with autoExplainKey is its own bucket, not an explanation", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const result=af.classify([s,card("card",1000,0,"s")],registry);
+  assert.equal(result.cards.length,1);
+  assert.equal(result.explanations.length,0);
+});
+
+test("card does not trigger multiple_explanations or change the frame key", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const e=md("e",1000,0,"c".repeat(40));
+  const manifest={slides:[entry(s,1)]};
+  const before=af.planFrames([s,e],registry,manifest).plans[0];
+  const withCard=af.planFrames([s,e,card("card",1000,520,"s",950,100)],registry,manifest).plans[0];
+  assert.notEqual(withCard.reason,"multiple_explanations");
+  assert.equal(withCard.key,before.key);
+});
+
+test("card is a frame member, inside bounds, and not foreign content", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const e=md("e",1000,0,"c".repeat(40));
+  const c=card("card",0,520,"s",907,100);
+  const plan=af.planFrames([s,e,c],registry,{slides:[entry(s,1)]}).plans[0];
+  assert.notEqual(plan.action,"skip");
+  assert.ok(plan.memberIds.includes("card"));
+  assert.ok(af.contains(plan.bounds,af.box(c)));
+});
+
+test("frame containing a card is a no-op on rerun and adopts by exact members", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const e=md("e",1000,0,"c".repeat(40));
+  const c=card("card",0,520,"s",907,100);
+  const manifest={slides:[entry(s,1)]};
+  const first=af.planFrames([s,e,c],registry,manifest).plans[0];
+  const base={id:"frame",type:"frame",x:first.bounds.x,y:first.bounds.y,
+    width:first.bounds.w,height:first.bounds.h,name:first.name};
+  const marked=af.planFrames([s,e,c,{...base,customData:{autoFrameSlidesKey:first.key}}],
+    registry,manifest).plans[0];
+  assert.equal(marked.action,"noop");
+  const linked=[{...s,frameId:"frame"},{...e,frameId:"frame"},{...c,frameId:"frame"},base];
+  const adopted=af.planFrames(linked,registry,manifest).plans[0];
+  assert.equal(adopted.frameId,"frame");
+  assert.notEqual(adopted.reason,"unmanaged_existing_frame");
+});
