@@ -54,3 +54,4 @@ pyyaml
 pydantic
 networkx
 ruamel.yaml
+lzstring
