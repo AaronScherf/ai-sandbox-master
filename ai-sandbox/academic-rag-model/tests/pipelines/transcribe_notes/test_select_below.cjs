@@ -39,9 +39,8 @@ test("contents of a selected frame are not added separately", () => {
   assert.equal(ids(sb.elementsBelow([frame, inside, free], 100)), JSON.stringify(["f", "free"]));
 });
 
-test("the line is the top of the highest selected element, else the pointer", () => {
-  assert.equal(sb.chooseLine([el("a", 300), el("b", 120)], {y: 999}), 120);
-  assert.equal(sb.chooseLine([], {y: 450}), 450);
-  assert.equal(sb.chooseLine([], null), null);
-  assert.equal(sb.chooseLine([], {y: NaN}), null);
+test("a click's client y maps to scene y for any scroll and zoom", () => {
+  const state = {offsetTop: 40, scrollY: -300, zoom: {value: 0.5}};
+  assert.equal(sb.clientToSceneY(140, state), 500);       // (140-40)/0.5 - (-300)
+  assert.equal(sb.clientToSceneY(40, {offsetTop: 40, scrollY: 0, zoom: {value: 1}}), 0);
 });
