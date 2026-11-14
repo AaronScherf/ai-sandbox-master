@@ -169,5 +169,8 @@ def resolve_result(result: dict, facts: dict) -> dict:
     if sum(counts.values()) != len(strokes):
         raise ResultError("coverage", f"strokes {len(strokes)} != dispositions {counts}")
     out["coverage"] = counts
+    out["namespace"] = facts["namespace"]
+    out["fingerprints"] = {(t["slide_id"] or t["region_id"]): t["fingerprint"]
+                           for t in facts["targets"]}
     out["resolved"] = True
     return out

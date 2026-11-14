@@ -4,6 +4,11 @@
     "fallback_nearest": 1,
     "section": 1
   },
+  "fingerprints": {
+    "s1": "fp1",
+    "s2": "fp2"
+  },
+  "namespace": "t--x",
   "prompt_version": "explainer-v1",
   "provider": "antigravity-interactive",
   "resolved": true,

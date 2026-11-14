@@ -129,3 +129,9 @@ def test_resolve_coverage_equation_holds(result, facts):
 def test_resolved_fixture_is_in_sync_with_python_resolver(result, facts):
     expected = load("result_resolved_ok.json")
     assert resolve_result(result, facts) == expected
+
+
+def test_resolved_carries_namespace_and_fingerprints(result, facts):
+    resolved = resolve_result(result, facts)
+    assert resolved["namespace"] == "t--x"
+    assert resolved["fingerprints"] == {"s1": "fp1", "s2": "fp2"}
