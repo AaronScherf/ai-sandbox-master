@@ -131,51 +131,49 @@ test("same-row explanation outranks the next slide below it", () => {
   assert.equal(matched.assigned.get("a")[0].id,"e");
 });
 
-test("fully enclosed uncertain ink is reported but does not block framing", () => {
+test("ink between row slides belongs to the slide on its left and is framed", () => {
   const a=png("a",0,0,"a".repeat(40));
   const b=png("b",3000,0,"b".repeat(40));
   const e=md("e",1000,0,"c".repeat(40));
-  const uncertain=stroke("uncertain",1950,100,10,10);
-  const report=af.planFrames([a,b,e,uncertain],registry,
+  const ink=stroke("ink",1950,100,10,10);
+  const report=af.planFrames([a,b,e,ink],registry,
     {slides:[entry(a,1),entry(b,2)]});
   const first=report.plans.find(p=>p.slideId==="a");
   assert.equal(first.action,"create");
-  assert.deepEqual([...first.unverifiedInkIds],["uncertain"]);
-  assert.ok(af.contains(first.bounds,af.box(uncertain)));
+  assert.deepEqual([...first.inkIds],["ink"]);
+  assert.ok(af.contains(first.bounds,af.box(ink)));
 });
 
-test("best-effort frame flags a touching stroke that crosses its edge", () => {
+test("best-effort frame flags a stroke that crosses the next slide's band edge", () => {
   const a=png("a",0,0,"a".repeat(40));
   const b=png("b",3000,0,"b".repeat(40));
-  const e=md("e",1000,0,"c".repeat(40));
-  const edge=stroke("edge",1980,100,30,10);
-  const report=af.planFrames([a,b,e,edge],registry,
+  const edge=stroke("edge",2940,100,100,10);
+  const report=af.planFrames([a,b,edge],registry,
     {slides:[entry(a,1),entry(b,2)]});
   const first=report.plans.find(p=>p.slideId==="a");
   assert.equal(first.action,"create");
   assert.equal(first.inkWarning,"partial_ink");
   assert.deepEqual([...first.atRiskInkIds],["edge"]);
+  assert.ok(first.bounds.x+first.bounds.w<=3000);
 });
 
-test("oversize touching ink is disclosed without blocking slide framing", () => {
+test("tall ink grows the frame instead of being left at the edge", () => {
   const a=png("a",0,0,"a".repeat(40));
   const b=png("b",3000,0,"b".repeat(40));
-  const e=md("e",1000,0,"c".repeat(40));
-  const edge=stroke("edge",1980,100,30,900);
-  const report=af.planFrames([a,b,e,edge],registry,
+  const tall=stroke("tall",1980,100,30,900);
+  const report=af.planFrames([a,b,tall],registry,
     {slides:[entry(a,1),entry(b,2)]});
   const first=report.plans.find(p=>p.slideId==="a");
   assert.equal(first.action,"create");
-  assert.equal(first.inkWarning,"partial_ink");
-  assert.ok(first.atRiskInkIds.includes("edge"));
+  assert.equal(first.inkWarning,null);
+  assert.ok(af.contains(first.bounds,af.box(tall)));
 });
 
-test("strict ink mode blocks a stroke crossing the frame edge", () => {
+test("strict ink mode blocks a stroke crossing the next slide's band edge", () => {
   const a=png("a",0,0,"a".repeat(40));
   const b=png("b",3000,0,"b".repeat(40));
-  const e=md("e",1000,0,"c".repeat(40));
-  const edge=stroke("edge",1980,100,30,10);
-  const report=af.planFrames([a,b,e,edge],registry,
+  const edge=stroke("edge",2940,100,100,10);
+  const report=af.planFrames([a,b,edge],registry,
     {slides:[entry(a,1),entry(b,2)],inkPolicy:"strict"});
   const first=report.plans.find(p=>p.slideId==="a");
   assert.equal(first.action,"skip");
@@ -593,4 +591,111 @@ test("ink-only sections absorb tiny fragments into the nearest large cluster", (
   els.push(stroke("f1",1100,0),stroke("f2",1130,0));
   const report=af.planFrames(els,registry,{slides:[]});
   assert.equal(report.plans.length,1);
+});
+
+// ---- band assignment (column/row bands, time tiebreak, classifier fallback) ----
+const tstroke = (id,x,y,created,w=20,h=20) => ({id,type:"freedraw",x,y,width:w,height:h,points:[[0,0]],created});
+const column = () => [
+  png("s1",0,0,"a".repeat(40)),png("s2",30,1000,"b".repeat(40)),png("s3",-20,2000,"c".repeat(40))];
+const idsOf = (res,slideId) => [...(res.assigned.get(slideId)||[]).flatMap(r=>r.strokes.map(s=>s.id))].sort();
+
+test("jittered column: far-right ink goes to the slide whose band it sits in", () => {
+  const ink=[stroke("a",2500,100),stroke("b",2500,1100),stroke("c",2500,2100)];
+  const res=af.matchInk(column(),ink);
+  assert.deepEqual(idsOf(res,"s1"),["a"]);
+  assert.deepEqual(idsOf(res,"s2"),["b"]);
+  assert.deepEqual(idsOf(res,"s3"),["c"]);
+  assert.equal(res.warnings.length,0);
+});
+
+function boundaryScene(extra) {
+  const ink=[];
+  for (let i=0;i<20;i++) ink.push(tstroke("u"+i,2500,100+i*25,1000+i*5000));    // band 1 core, t 1000..96000
+  for (let i=0;i<20;i++) ink.push(tstroke("l"+i,2500,1400+i*25,300000+i*5000)); // band 2 core, t 300000+
+  return [...ink,...extra];
+}
+
+test("stroke just below a boundary follows time when it was drawn with the slide above", () => {
+  const res=af.matchInk(column(),boundaryScene([tstroke("x",2500,1010,98000)]));
+  assert.ok(idsOf(res,"s1").includes("x"));
+});
+
+test("stroke just below a boundary follows time when drawn with the slide below", () => {
+  const res=af.matchInk(column(),boundaryScene([tstroke("x",2500,1010,299000)]));
+  assert.ok(idsOf(res,"s2").includes("x"));
+});
+
+test("a stroke drawn long after both bands ignores time and uses geometry", () => {
+  const res=af.matchInk(column(),boundaryScene([tstroke("x",2500,1010,9000000)]));
+  assert.ok(idsOf(res,"s2").includes("x"));
+});
+
+test("strokes sharing an identical created value are treated as edited in post", () => {
+  const res=af.matchInk(column(),boundaryScene([
+    tstroke("x",2500,1010,98000),tstroke("y",2900,1010,98000)]));
+  assert.ok(idsOf(res,"s2").includes("x"));      // time ignored -> geometry
+});
+
+test("without timestamps, ink connected to the slide above defers to it", () => {
+  const ink=[];
+  for (let i=0;i<14;i++) ink.push(stroke("c"+i,2500,300+i*50,20,40));   // chain 300..1000, crosses band edge
+  ink.push(stroke("t",2500,1020,20,40));                                // just below the edge, same cluster
+  for (let i=0;i<5;i++) ink.push(stroke("n"+i,2500,1500+i*50,20,40));   // s2 core
+  const res=af.matchInk(column(),ink);
+  assert.ok(idsOf(res,"s1").includes("t"));
+  assert.deepEqual(idsOf(res,"s2"),["n0","n1","n2","n3","n4"]);
+});
+
+test("slides side by side use row bands", () => {
+  const row=[png("a",0,0,"a".repeat(40)),png("b",1500,10,"b".repeat(40))];
+  const res=af.matchInk(row,[stroke("p",100,900),stroke("q",1600,900)]);
+  assert.deepEqual(idsOf(res,"a"),["p"]);
+  assert.deepEqual(idsOf(res,"b"),["q"]);
+});
+
+const grid = () => [png("a",0,0,"a".repeat(40)),png("b",1000,0,"b".repeat(40)),
+  png("c",0,700,"c".repeat(40)),png("d",1000,700,"d".repeat(40))];
+
+test("grid layout falls back to the classifier: clearly nearest slide wins", () => {
+  const res=af.matchInk(grid(),[stroke("near",-60,300)]);
+  assert.deepEqual(idsOf(res,"a"),["near"]);
+});
+
+test("grid layout: equidistant ink is reported as ambiguous, not forced", () => {
+  const res=af.matchInk(grid(),[stroke("mid",950,100,10,10)]);
+  assert.equal(res.warnings[0].reason,"ambiguous_ink");
+  assert.equal(["a","b","c","d"].flatMap(id=>idsOf(res,id)).length,0);
+});
+
+test("a lone slide still rejects ink miles away", () => {
+  const res=af.matchInk([png("a",0,0,"a".repeat(40))],[stroke("far",9000,9000)]);
+  assert.equal(idsOf(res,"a").length,0);
+});
+
+test("frame is left-anchored to the slide and grows right and down over its ink", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const ink={bounds:{x:2500,y:0,w:100,h:1500},strokes:[]};
+  const b=af.frameBounds([s],[ink]);
+  assert.ok(b.x<=-500 && b.x>=-560);
+  assert.ok(b.x+b.w>=2640);
+  assert.ok(b.h>=1500+60);
+});
+
+test("band-assigned ink gives a frame that holds it and stops above the next slide", () => {
+  const els=[...column(),stroke("a",2500,100),stroke("edge",2500,940,20,100),stroke("c",2500,2100)];
+  const report=af.planFrames(els,new Map([["a".repeat(40),"s1.png"],["b".repeat(40),"s2.png"],["c".repeat(40),"s3.png"]]),null);
+  const p1=report.plans.find(p=>p.slideId==="s1");
+  assert.equal(p1.action,"create");
+  assert.ok(p1.bounds.x+p1.bounds.w>=2540);
+  assert.ok(p1.bounds.y+p1.bounds.h<=1000);
+  assert.ok(p1.atRiskInkIds.includes("edge"));
+});
+
+test("tightly stacked slides still get frames that do not cover their neighbours", () => {
+  const a=png("a",0,0,"a".repeat(40)), b=png("b",0,534,"b".repeat(40)), c=png("c",0,1068,"c".repeat(40));
+  const report=af.planFrames([a,b,c],new Map([["a".repeat(40),"s1.png"],["b".repeat(40),"s2.png"],["c".repeat(40),"s3.png"]]),null);
+  assert.ok(report.plans.every(p=>p.action==="create"));
+  const mid=report.plans.find(p=>p.slideId==="b");
+  assert.ok(mid.bounds.y>=a.y+a.height && mid.bounds.y+mid.bounds.h<=c.y);
+  assert.ok(af.contains(mid.bounds,af.box(b)));
 });
