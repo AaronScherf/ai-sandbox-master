@@ -2,7 +2,7 @@
 
 | Probe | Status | Evidence / next step |
 |---|---|---|
-| P1 plugin card route | static only | Plugin 2.29.1: local Markdown cards come from internal code (`renderMarkdownToSVG` -> `ea.addImage(dataURL)` -> fileId swap -> `customData.markdownImage` {schemaVersion, version, source:"local", render, renderedSize} -> `excalidrawData.setMarkdownImage`), not exposed on `ea`. Public alternative: external md embed via `ea.addImage(TFile)`. **Owner:** run `Probe Markdown Card` on a scratch copy, paste console output here, then install `window.ExplainerCardAdapter {measureCard(ea,view,md), createCard(ea,view,spec)}`. |
+| P1 plugin card route | resolved 2026-11-13 | Owner probe (plugin 2.29.1): `ea.addImage(0,0,TFile)` on a .md file creates an image element (500x106 for two short paragraphs, `customData` null, no `markdownImage`). Chosen route: external md embed, one file per card under `Excalidraw/Explanations/`, default adapter built into `Apply Explanations` (`defaultCardAdapter`). Cards are identified by `customData.autoExplainKey`, not `markdownImage`. Open: confirm PDF export renders md embeds in the scratch run. |
 | P2 in-vault frame PNG export | untested | Owner-live. |
 | P3 agent triggering the script | untested | Owner-live. |
 | P4 `agy` CLI | blocked | Not available. |
