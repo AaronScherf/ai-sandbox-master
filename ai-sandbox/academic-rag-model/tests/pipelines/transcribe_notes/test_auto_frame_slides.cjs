@@ -730,3 +730,18 @@ test("ink above the next slide's top stays with its slide even when drawn after 
   const res=af.matchInk(column(),boundaryScene([tstroke("x",2500,950,299000)])); // centre 960 < 1000
   assert.ok(idsOf(res,"s1").includes("x"));
 });
+
+test("a burst of writing that starts above the edge stays together across it", () => {
+  const scene=boundaryScene([tstroke("x1",2500,950,299000),tstroke("x2",2500,1010,300500)]);
+  const res=af.matchInk(column(),scene);
+  assert.ok(idsOf(res,"s1").includes("x1"));
+  assert.ok(idsOf(res,"s1").includes("x2"));
+});
+
+test("neighbouring frames never overlap each other", () => {
+  const els=[...column(),stroke("a",2500,100),stroke("edge",2500,940,20,50),stroke("b",2500,1100)];
+  const report=af.planFrames(els,new Map([["a".repeat(40),"s1.png"],["b".repeat(40),"s2.png"],["c".repeat(40),"s3.png"]]),null);
+  const [p1,p2]=report.plans;
+  assert.ok(p2.bounds.y>=p1.bounds.y+p1.bounds.h);
+  assert.ok(af.contains(p2.bounds,af.box(els[1])));
+});
