@@ -99,6 +99,8 @@ def fallback_slide(region: Region, slides: list[dict], all_regions: list[Region]
         return None
     ranked = _ranked(region, slides)
     d1, nearest = ranked[0]
+    if d1 > 1.5 * nearest["width"]:
+        return None
     if len(ranked) > 1 and not d1 < margin * ranked[1][0]:
         return None
     gap_box = _between(region.bounds, _box(nearest))

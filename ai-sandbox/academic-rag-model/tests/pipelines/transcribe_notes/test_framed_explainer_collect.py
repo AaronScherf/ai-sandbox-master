@@ -77,3 +77,28 @@ def test_scene_never_modified(tmp_path):
     before = open(scene, "rb").read()
     collect(scene, str(tmp_path), "run1")
     assert open(scene, "rb").read() == before
+
+
+def _card(fp):
+    return el("c1", "image", -1000, 0, 950, 500, fileId=MD_C, frameId="f1",
+              customData={"markdownImage": {"schemaVersion": 1},
+                          "autoExplainKey": "ns|f1|s1", "autoExplainFingerprint": fp})
+
+
+def test_auto_card_with_stale_fingerprint_is_eligible_for_replacement(tmp_path):
+    res = collect(_scene(tmp_path, _framed_slide() + [_card("old")]), str(tmp_path), "run1")
+    assert [t.eligibility for t in res.targets] == ["eligible"]
+
+
+def test_auto_card_with_current_fingerprint_is_existing(tmp_path):
+    first = collect(_scene(tmp_path, _framed_slide()), str(tmp_path), "run1")
+    fp = first.targets[0].fingerprint
+    res = collect(_scene(tmp_path, _framed_slide() + [_card(fp)]), str(tmp_path), "run2")
+    assert [t.eligibility for t in res.targets] == ["existing_card"]
+
+
+def test_namespace_is_vault_relative_not_absolute(tmp_path):
+    a = collect(_scene(tmp_path / "a", _framed_slide()), str(tmp_path / "a"), "r")
+    b = collect(_scene(tmp_path / "b", _framed_slide()), str(tmp_path / "b"), "r")
+    ns = lambda r: json.load(open(r.facts_path, encoding="utf-8"))["namespace"]
+    assert ns(a) == ns(b)

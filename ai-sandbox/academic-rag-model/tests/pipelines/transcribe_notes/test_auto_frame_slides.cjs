@@ -555,3 +555,14 @@ test("section card is a member of its section frame and inside its bounds", () =
   assert.ok(p.memberIds.includes("sc") && p.memberIds.includes("k1"));
   assert.ok(af.contains(p.bounds,af.box(c)) && af.contains(p.bounds,af.box(k)));
 });
+
+test("neighbouring section frames shrink their padding instead of overlapping", () => {
+  const els=[stroke("k1",6000,100),stroke("k2",6000,180)];   // 60px gap between strokes
+  const report=af.planFrames(els,registry,{slides:[]},
+    secFile(sec("n1","standalone",null,1,["k1"]),sec("n2","standalone",null,2,["k2"])));
+  assert.ok(report.plans.every(p=>p.action==="create"));
+  const [a,b]=report.plans.map(p=>p.bounds);
+  assert.ok(a.y+a.h<=b.y || b.y+b.h<=a.y);
+  for (const [p,k] of [[a,els[0]],[b,els[1]]])
+    assert.ok(p.x<=k.x && p.y<=k.y && p.x+p.w>=k.x+k.width && p.y+p.h>=k.y+k.height);
+});

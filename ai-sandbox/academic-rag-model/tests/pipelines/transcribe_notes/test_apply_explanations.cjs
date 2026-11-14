@@ -182,6 +182,7 @@ const ctxFor = (els, adapter, resolved=load("result_resolved_ok.json"), sha="1".
 
 test("apply aborts with no write when the scene hash differs from collect", async () => {
   const els=elements(), ad=makeAdapter(els);
+  els.find(e=>e.id==="k1").x+=500;   // handwriting really moved
   await assert.rejects(ax.applyResolved(ctxFor(els,ad,undefined,"2".repeat(40))),
     /changed since collect/);
   assert.equal(ad.calls.length,0);
@@ -194,10 +195,36 @@ test("apply refuses when the coverage audit fails", async () => {
   assert.equal(ad.calls.length,0);
 });
 
-test("apply writes sections first, creates one card for s1, reports the rest", async () => {
+test("a follow-up apply survives the framer rewriting the file when the strokes are unchanged", async () => {
+  const els=elements(), ad=makeAdapter(els);
+  const out=await ax.applyResolved(ctxFor(els,ad,undefined,"2".repeat(40)));
+  assert.equal(out.find(r=>r.key==="t--x|f1|s1").action,"create");
+});
+
+test("a failed card creation leaves the old card in place", async () => {
+  const els=elements(), ad=makeAdapter(els);
+  await ax.applyResolved(ctxFor(els,ad));
+  const res=load("result_resolved_ok.json"); res.fingerprints.s1="fpNEW";
+  ad.createCard=async()=>{ throw new Error("adapter down"); };
+  await assert.rejects(ax.applyResolved(ctxFor(els,ad,res)),/adapter down/);
+  assert.equal(els.filter(e=>!e.isDeleted && e.customData?.autoExplainKey==="t--x|f1|s1").length,1);
+});
+
+test("sections.json is written last, after the cards exist", async () => {
+  const els=elements(), ad=makeAdapter(els);
+  await ax.applyResolved(ctxFor(els,ad));
+  assert.equal(ad.calls[ad.calls.length-1][0],"sections");
+});
+
+test("apply refuses a result with no namespace instead of crashing", async () => {
+  const els=elements(), ad=makeAdapter(els), res=load("result_resolved_ok.json");
+  delete res.namespace;
+  await assert.rejects(ax.applyResolved(ctxFor(els,ad,res)),/namespace/);
+});
+
+test("apply writes cards, creates one card for s1, reports the rest", async () => {
   const els=elements(), ad=makeAdapter(els);
   const results=await ax.applyResolved(ctxFor(els,ad));
-  assert.equal(ad.calls[0][0],"sections");
   assert.ok(ad.calls.some(c=>c[0]==="expand" && c[1]==="f1"));
   const byKey=Object.fromEntries(results.map(r=>[r.key,r.action]));
   assert.equal(byKey["t--x|f1|s1"],"create");

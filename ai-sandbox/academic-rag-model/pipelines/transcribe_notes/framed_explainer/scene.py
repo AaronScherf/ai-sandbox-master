@@ -6,7 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from lzstring import LZString
 
@@ -30,6 +30,7 @@ class Classified:
     ink: list[dict]
     frames: list[dict]
     other: list[dict]
+    cards: list[dict] = field(default_factory=list)
 
 
 _EMBEDDED = re.compile(
@@ -90,7 +91,9 @@ def classify(scene: Scene) -> Classified:
             out.other.append(e)
         else:
             link = scene.registry.get(e.get("fileId"), "")
-            if link == "markdown-image" or (e.get("customData") or {}).get("markdownImage"):
+            if (e.get("customData") or {}).get("autoExplainKey"):
+                out.cards.append(e)
+            elif link == "markdown-image" or (e.get("customData") or {}).get("markdownImage"):
                 out.explanations.append(e)
             elif _is_slide(e, link):
                 out.slides.append(e)

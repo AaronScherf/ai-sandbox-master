@@ -70,8 +70,9 @@ def collect(scene_path: str, hub_root: str, run_id: str, frame_pdf: str | None =
     if not c.slides and not c.ink:
         return CollectResult("", "", "", "nothing_to_do", [])
 
+    rel = os.path.relpath(os.path.abspath(scene_path), os.path.abspath(hub_root))
     slug = doc_slug_for(scene_path, hashlib.sha1(
-        os.path.abspath(scene_path).encode("utf-8")).hexdigest())
+        rel.replace(os.sep, "/").encode("utf-8")).hexdigest())
     run_dir = doc_work_dir(hub_root, run_id, slug)
     context = build_course_context(scene_path, hub_root)
     declined = load_declined(hub_root, slug)
@@ -92,17 +93,20 @@ def collect(scene_path: str, hub_root: str, run_id: str, frame_pdf: str | None =
                         box_gap(r.bounds, _b(o)) for o in c.slides)]
         if frame:
             near_ink = [e for e in c.ink if _inside(_b(e), _b(frame))]
+        if wanted is not None and fid not in wanted:
+            continue
+        fp = input_fingerprint(s.get("fileId"), near_ink, fid, PROMPT_VERSION, context.version)
+        current_card = any(x.get("customData", {}).get("autoExplainKey", "").endswith("|" + s["id"])
+                           and x["customData"].get("autoExplainFingerprint") == fp
+                           for x in c.cards if fid and x.get("frameId") == fid)
         if not link:
             elig: Eligibility = "missing_asset"
         elif fid is None:
             elig = "needs_review"
-        elif existing:
+        elif existing or current_card:
             elig = "existing_card"
         else:
             elig = "eligible"
-        if wanted is not None and fid not in wanted:
-            continue
-        fp = input_fingerprint(s.get("fileId"), near_ink, fid, PROMPT_VERSION, context.version)
         if declined.get(s["id"]) == fp:
             elig = "declined"
         slide_rows.append({"id": s["id"], "file_id": s.get("fileId"), "link": link,

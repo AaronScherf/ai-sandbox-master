@@ -61,3 +61,9 @@ def test_anchor_records_also_near_for_between_two():
 def test_reading_order_rows_then_columns():
     a, b, c = _region("a", 900, 10), _region("b", 0, 120), _region("c", 0, 900)
     assert [r.region_id for r in reading_order([c, a, b])] == ["b", "a", "c"]
+
+
+def test_fallback_has_distance_cap_with_single_slide():
+    slides = [{"id": "A", "x": 0, "y": 0, "width": 907, "height": 510}]
+    far = Region("r", Bounds(20000, 20000, 20, 20), ["k"])
+    assert fallback_slide(far, slides, [far]) is None

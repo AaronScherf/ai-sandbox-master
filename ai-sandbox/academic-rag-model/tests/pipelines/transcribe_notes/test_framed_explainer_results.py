@@ -92,7 +92,7 @@ def test_resolve_assigns_fallback_only_with_clear_margin(result, facts):
     s1 = next(s for s in resolved["slides"] if s["slide_id"] == "s1")
     fb = [i for i in s1["ink"] if i["disposition"] == "fallback_nearest"]
     assert [i["stroke_ids"] for i in fb] == [["k3"]]
-    assert all(sec["section_id"] != "sec1" for sec in resolved["sections"])
+    assert all(sec["section_id"] != "notes-k3" for sec in resolved["sections"])
 
 
 def test_resolve_ambiguous_ink_becomes_anchored_section_with_also_near(result, facts):
@@ -100,14 +100,14 @@ def test_resolve_ambiguous_ink_becomes_anchored_section_with_also_near(result, f
     k3["y"] = 850  # between the two slides: no clear nearest
     facts["regions"][1]["bounds"] = {"x": 1000, "y": 850, "w": 20, "h": 20}
     resolved = resolve_result(result, facts)
-    sec = next(s for s in resolved["sections"] if s["section_id"] == "sec1")
+    sec = next(s for s in resolved["sections"] if s["section_id"] == "notes-k3")
     assert sec["kind"] == "anchored" and sec["anchor_slide_id"] == "s2"
     assert sec["also_near"] == "s1"
 
 
 def test_resolve_marks_far_ink_standalone(result, facts):
     resolved = resolve_result(result, facts)
-    sec = next(s for s in resolved["sections"] if s["section_id"] == "sec2")
+    sec = next(s for s in resolved["sections"] if s["section_id"] == "notes-k4")
     assert sec["kind"] == "standalone" and sec["anchor_slide_id"] is None
     assert sec["seq"] == 1
 
@@ -134,4 +134,31 @@ def test_resolved_fixture_is_in_sync_with_python_resolver(result, facts):
 def test_resolved_carries_namespace_and_fingerprints(result, facts):
     resolved = resolve_result(result, facts)
     assert resolved["namespace"] == "t--x"
-    assert resolved["fingerprints"] == {"s1": "fp1", "s2": "fp2"}
+    assert resolved["fingerprints"] == {"s1": "fp1", "s2": "fp2", "notes-k4": resolved["fingerprints"]["notes-k4"]}
+
+
+def test_section_ids_are_deterministic_from_strokes(result, facts):
+    ids = {s["section_id"] for s in resolve_result(result, facts)["sections"]}
+    assert ids == {"notes-k4"}
+
+
+def test_resolved_carries_stroke_snapshot_for_followup_apply(result, facts):
+    snap = resolve_result(result, facts)["strokes"]
+    assert [s["id"] for s in snap] == ["k1", "k2", "k3", "k4"]
+    assert snap[0] == {"id": "k1", "x": 100, "y": 50, "width": 20, "height": 20}
+
+
+def test_sections_get_their_own_fingerprint(result, facts):
+    fps = resolve_result(result, facts)["fingerprints"]
+    assert len(fps["notes-k4"]) == 40 and fps["notes-k4"] != fps["s1"]
+
+
+def test_assigned_ink_outside_its_slide_frame_becomes_a_section(result, facts):
+    k1 = next(s for s in facts["strokes"] if s["id"] == "k1")
+    k1["x"] = 5000   # frame f1 spans x -10..2190
+    resolved = resolve_result(result, facts)
+    assert any(s["stroke_ids"] == ["k1"] for s in resolved["sections"])
+    s1 = next(s for s in resolved["slides"] if s["slide_id"] == "s1")
+    assert all("k1" not in i["stroke_ids"] for i in s1["ink"])
+    c = resolved["coverage"]
+    assert c["assigned"] + c["fallback_nearest"] + c["section"] == len(facts["strokes"])

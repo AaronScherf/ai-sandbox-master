@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import copy
 
+from pipelines.transcribe_notes.framed_explainer.identity import input_fingerprint
 from pipelines.transcribe_notes.framed_explainer.ink import (
     Bounds, Region, anchor_for, fallback_slide, reading_order)
 
@@ -112,8 +113,29 @@ def resolve_result(result: dict, facts: dict) -> dict:
     slide_elems = [{"id": s["id"], "x": s["box"]["x"], "y": s["box"]["y"],
                     "width": s["box"]["w"], "height": s["box"]["h"]} for s in facts["slides"]]
     frame_of = {s["id"]: s["frame_id"] for s in facts["slides"]}
-    covered = {i for s in out["slides"] for ink in s["ink"] for i in ink["stroke_ids"]}
+    frames = {f["id"]: f["box"] for f in facts.get("frames", [])}
+
+    def in_frame(sid: str, fid: str) -> bool:
+        b, e = frames.get(fid), strokes[sid]
+        return b is None or (e["x"] >= b["x"] and e["y"] >= b["y"]
+                             and e["x"] + e["width"] <= b["x"] + b["w"]
+                             and e["y"] + e["height"] <= b["y"] + b["h"])
+
     sections = list(out.get("sections", []))
+    for s in out["slides"]:           # assigned ink the frame cannot hold becomes a section
+        kept_ink = []
+        for ink in s["ink"]:
+            outside = [i for i in ink["stroke_ids"] if not in_frame(i, s["frame_id"])]
+            if outside:
+                sections.append({"section_id": ink["region_id"], "region_id": ink["region_id"],
+                                 "stroke_ids": outside, "transcription": ink.get("transcription", ""),
+                                 "legibility": ink["legibility"],
+                                 "context_assisted": ink.get("context_assisted", False)})
+                ink["stroke_ids"] = [i for i in ink["stroke_ids"] if i not in outside]
+            if ink["stroke_ids"]:
+                kept_ink.append(ink)
+        s["ink"] = kept_ink
+    covered = {i for s in out["slides"] for ink in s["ink"] for i in ink["stroke_ids"]}
     covered |= {i for sec in sections for i in sec["stroke_ids"]}
     for r in facts["regions"]:
         left = [i for i in r["stroke_ids"] if i not in covered]
@@ -122,6 +144,10 @@ def resolve_result(result: dict, facts: dict) -> dict:
                              "stroke_ids": left, "transcription": "", "legibility": "unreadable",
                              "context_assisted": False, "omitted_by_agent": True})
             covered |= set(left)
+    sections = [sec for sec in sections if sec["stroke_ids"]]
+    for sec in sections:              # deterministic ids: match the framer's notes-<first stroke>
+        sec.setdefault("region_id", sec["section_id"])
+        sec["section_id"] = "notes-" + min(sec["stroke_ids"])
 
     all_regions = [Region(ink["region_id"], _bounds_of(ink["stroke_ids"], strokes), ink["stroke_ids"])
                    for s in out["slides"] for ink in s["ink"] if ink["stroke_ids"]]
@@ -172,5 +198,11 @@ def resolve_result(result: dict, facts: dict) -> dict:
     out["namespace"] = facts["namespace"]
     out["fingerprints"] = {(t["slide_id"] or t["region_id"]): t["fingerprint"]
                            for t in facts["targets"]}
+    for sec in out["sections"]:
+        out["fingerprints"][sec["section_id"]] = input_fingerprint(
+            None, [strokes[i] for i in sec["stroke_ids"]], None,
+            facts.get("prompt_version", ""), facts.get("context_version", ""))
+    out["strokes"] = [{"id": s["id"], "x": s["x"], "y": s["y"], "width": s["width"],
+                       "height": s["height"]} for s in sorted(facts["strokes"], key=lambda s: s["id"])]
     out["resolved"] = True
     return out
