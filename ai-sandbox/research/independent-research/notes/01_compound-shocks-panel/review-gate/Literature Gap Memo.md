@@ -1,5 +1,7 @@
 # Literature Gap Memo: Compound Conflict-Climate Shocks, Market Dynamics, and Forced Displacement
 
+> **DO NOT USE FOR FURTHER WORK (2026-11-14).** This v1 memo contains five wrong or unverifiable DOIs (Zens & Thalheimer, McGuirk & Burke, Abushama et al., Marchiori et al., Flores), three of them tagged `[source-verified]`, and mislabels the Abushama et al. paper as CGE modeling. Use [Literature Gap Memo - v2.md](<Literature Gap Memo - v2.md>) and the [Verification Review](<Literature Gap Memo - Verification Review.md>). The text below is kept unchanged as the historical record.
+
 **Document Status:** Review Gate Deliverable (Part B)  
 **Date:** 2026-11-03  
 **Author:** Gemini (Antigravity) — Literature Pipeline Execution & Synthesis  
