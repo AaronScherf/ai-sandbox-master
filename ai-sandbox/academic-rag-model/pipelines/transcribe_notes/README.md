@@ -94,6 +94,24 @@ downstream correction pass over this pipeline's own output — see the root
   instead of assuming a source and its `processed_outputs/` are always
   siblings.
 
+## Framed explainer (Excalidraw slides + handwriting -> explanation cards)
+
+Three stages, chainable; the agent reads and writes, deterministic code places.
+
+1. `python -m pipelines.transcribe_notes.framed_explainer collect <scene>` stages
+   `facts.json`, rasters, course context and a task card (`runbook.md`) under
+   `.agent_work/<run>/<scene>/`. Read-only on the scene.
+2. A subscription agent (Antigravity Gemini) follows `task.md` and writes
+   `result.json`. Then `... submit <run_dir>` validates it, resolves every stroke
+   to assigned / fallback_nearest / section and writes `result.resolved.json`.
+3. In Obsidian, run `Apply Explanations` on the open scene (preview, then apply;
+   needs `window.ExplainerCardAdapter`, see the probes status doc), then
+   `Auto-Frame Slides` to reframe. Section cards need the framer first; rerun apply.
+
+`... status <run_dir>` reports state. Owner decisions go through the review
+Artifact (`review.py`), never hand-edited JSON. Design:
+`docs/superpowers/specs/transcribe_notes/2026-11-13-framed-explainer-design.md`.
+
 ## Full usage guide
 
 Real runs of `route_notes_transcribe` and the direct PDF and Excalidraw CLIs
