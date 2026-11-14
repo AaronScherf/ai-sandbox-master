@@ -15,13 +15,14 @@ from pipelines.transcribe_notes.framed_explainer.course_context import build_cou
 from pipelines.transcribe_notes.framed_explainer.identity import input_fingerprint
 from pipelines.transcribe_notes.framed_explainer.ink import Bounds, box_gap, cluster_ink
 from pipelines.transcribe_notes.framed_explainer.rasters import rasterize_frame_pdf
+from pipelines.transcribe_notes.framed_explainer.review import load_declined
 from pipelines.transcribe_notes.framed_explainer.scene import classify, load_scene
 
 PROMPT_VERSION = "explainer-v1"
 _RUNBOOK = os.path.join(os.path.dirname(__file__), "runbook.md")
 
 Eligibility = Literal["eligible", "ambiguous_match", "missing_asset", "clipped_ink",
-                      "existing_card", "needs_review"]
+                      "existing_card", "needs_review", "declined"]
 
 
 @dataclass
@@ -73,6 +74,7 @@ def collect(scene_path: str, hub_root: str, run_id: str, frame_pdf: str | None =
         os.path.abspath(scene_path).encode("utf-8")).hexdigest())
     run_dir = doc_work_dir(hub_root, run_id, slug)
     context = build_course_context(scene_path, hub_root)
+    declined = load_declined(hub_root, slug)
     regions = cluster_ink(c.ink)
     mode = "slides" if c.slides else "ink_only"
     wanted = set(frames) if frames else None
@@ -101,6 +103,8 @@ def collect(scene_path: str, hub_root: str, run_id: str, frame_pdf: str | None =
         if wanted is not None and fid not in wanted:
             continue
         fp = input_fingerprint(s.get("fileId"), near_ink, fid, PROMPT_VERSION, context.version)
+        if declined.get(s["id"]) == fp:
+            elig = "declined"
         slide_rows.append({"id": s["id"], "file_id": s.get("fileId"), "link": link,
                            "frame_id": fid, "box": _box_json(_b(s)),
                            "existing_explanation_ids": sorted(existing)})
@@ -115,8 +119,9 @@ def collect(scene_path: str, hub_root: str, run_id: str, frame_pdf: str | None =
                                                  for d, i in near]})
         if mode == "ink_only":
             members = [ink_by_id[i] for i in r.stroke_ids]
-            targets.append(Target(None, None, "eligible", input_fingerprint(
-                None, members, None, PROMPT_VERSION, context.version), r.region_id))
+            rfp = input_fingerprint(None, members, None, PROMPT_VERSION, context.version)
+            targets.append(Target(None, None, "declined" if declined.get(r.region_id) == rfp
+                                  else "eligible", rfp, r.region_id))
 
     facts = {
         "schema": 1, "scene": os.path.basename(scene_path), "namespace": slug,
