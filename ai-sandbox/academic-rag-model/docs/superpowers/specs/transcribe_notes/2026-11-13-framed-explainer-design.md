@@ -60,8 +60,9 @@ The decode used a throwaway script (not committed). These counts are the basis f
 ```
  0 frame      (existing)  Auto-Frame Slides: slides + ink + slide-order sidecar -> frames
  1 collect    (Python)    stage frame rasters + scene facts into .agent_work/<run>/
- 2 group      (agent)     assign ink + explanations to slides; write result file
- 3 explain    (agent)     one 2-paragraph card per slide; transcribe ink regions
+ 2 group      (agent)     assign ink + explanations to slides; transcribe each ink region
+ 3 explain    (agent)     one 2-paragraph card per slide, using slide + its ink transcription;
+                          one card per standalone section when there is no slide
  4 apply      (in-vault)  validate result, place cards, audit ink coverage
  5 reframe    (existing + change)  Auto-Frame Slides again, aware of cards and sections
 ```
@@ -98,8 +99,11 @@ Repositories: collector, tests and docs live in the outer monorepo; the apply sc
     "card": {"paragraphs": ["<para 1>", "<para 2>"], "status": "ok|needs_review", "reason": "<if needs_review>"}
   }],
   "sections": [{
-    "section_id": "s1", "anchor_slide_id": "<slide id>", "stroke_ids": ["..."],
-    "transcription": "<text>", "legibility": "...", "note": "<short transcription note>",
+    "section_id": "s1", "kind": "anchored|standalone", "anchor_slide_id": "<slide id or null>",
+    "order": 1, "stroke_ids": ["..."],
+    "transcription": "<text or LaTeX>", "legibility": "legible|partial|unreadable",
+    "note": "<short transcription note; anchored sections>",
+    "card": {"paragraphs": ["<para 1>", "<para 2>"], "status": "ok|needs_review", "reason": "<if needs_review>"},
     "also_near": "<slide id or null>"
   }]
 }
@@ -122,7 +126,11 @@ Two coverage guarantees are kept separate:
 
 **Physical limit:** a stroke appears in a frame's PDF page only if it lies inside that frame's bounds. Assigning a stroke to slide A therefore changes the PDF only if A's frame can expand to cover it without swallowing other content (the framer's existing `foreign_content` rule). When it cannot, the stroke becomes part of a section, and the card for A may still mention it in text. No element is moved.
 
-**Sections:** a handwriting section is a frame of its own, wrapping a cluster of strokes where they already are. A large block of ink near one slide is split along its natural gaps (the framer's existing ink clustering, `clusterInk`). Each section is **anchored to the slide it is closest to**, and PDF order is: slide page, then that slide's sections in reading order (top to bottom, then left to right), then the next slide. Anchoring is for page order only; content is not assigned. A section between two slides is anchored to the closer one and records the other in `also_near`, which the transcription note may mention. Sections get a short transcription note (what the handwriting says and which slide it relates to), **not** a two-paragraph card, because a full explanation would invent context.
+**Sections:** a handwriting section is a frame of its own, wrapping a cluster of strokes where they already are. A large block of ink near one slide is split along its natural gaps (the framer's existing ink clustering, `clusterInk`). Each section is **anchored to the slide it is closest to**, and PDF order is: slide page, then that slide's sections in reading order (top to bottom, then left to right), then the next slide. Anchoring is for page order only; content is not assigned. A section between two slides is anchored to the closer one and records the other in `also_near`, which the transcription note may mention. **Anchored sections** (a slide is close) get a short transcription note and no card of their own: their transcription is an input to that slide's card, whose second paragraph integrates the handwriting with the slide.
+
+**Standalone sections** (no slide close enough, or no slides in the scene at all) get their own explanation card. A section is anchored only if it lies within about 1.5 slide widths of a slide (a tunable); otherwise it is standalone and ordered by reading position among the other standalone sections and slide pages.
+
+**Ink-only scenes** are a supported mode, not "nothing to do". The framer's ink clustering splits the strokes into sections; each is framed as `Notes N` in reading order (no sidecar needed in this mode). The agent transcribes each section and writes one card per section, **organized by section**: paragraph 1 says what the section is doing (setup, derivation, example), paragraph 2 interprets the transcribed steps. With no slide to ground it, the card may state only what the ink supports; unreadable or ambiguous ink yields `needs_review`, never a guess. Neighbouring sections' transcriptions are passed as context for notation, and a card never references a slide that is not in the scene.
 
 ### Card placement contract
 
@@ -178,7 +186,7 @@ Anything needing an owner decision uses an **interactive Artifact** with decisio
 
 ## First release and boundary
 
-**First release:** the existing two-slide scratch scene (`Auto-Frame Scratch 2026-11-08`, 56 strokes, 4 images, 2 frames). Run stage 0 (already done), then collect, interactive agent produces `result.json`, apply on a scratch copy, reframe, export PDF. **Then** LIML2 as a large already-explained case, to prove `skipped_existing` and re-run `noop`. Microeconomics scenes (slides plus ink, no frames) cover the frame-then-explain chain. Ink-only scenes are expected to be `no slides: nothing to do` and must not error.
+**First release:** the existing two-slide scratch scene (`Auto-Frame Scratch 2026-11-08`, 56 strokes, 4 images, 2 frames). Run stage 0 (already done), then collect, interactive agent produces `result.json`, apply on a scratch copy, reframe, export PDF. **Then** LIML2 as a large already-explained case, to prove `skipped_existing` and re-run `noop`. Microeconomics scenes (slides plus ink, no frames) cover the frame-then-explain chain. One ink-only econometrics scene covers the section-only mode.
 
 **Out of the first release:** headless `agy`, scheduling, whole-vault discovery, canvas rearrangement, the "adjacent section" ordering for scenes with no sidecar.
 
@@ -191,12 +199,13 @@ Anything needing an owner decision uses an **interactive Artifact** with decisio
 5. Existing LIML2 explanations are `skipped_existing` and untouched by default.
 6. Each failure yields a specific no-write result: stale scene hash, `placement_conflict`, `needs_review`, schema violation, duplicate stroke, unknown ID, canvas changed since collect.
 7. After cards exist, rerunning the framer yields `noop` for existing frames and does not classify cards as foreign content (the amended Node tests cover this; a live scratch run confirms it).
-8. Ink-only and no-slide scenes exit with a clear "nothing to do", not an error.
+8. An ink-only scene (one of the three in the corpus) yields `Notes N` frames in reading order, a card per section, full ink coverage, and no reference to slides; rerun is `noop`.
+9. A scene with slides and a block of ink far from every slide yields standalone sections, not an arbitrary anchor.
 
 ## My calls (for the owner to check; all overridable)
 
 - The nearest-slide fallback margin of 0.5 and the 4% gap in the slot rule are defaults, to be tuned against LIML2 geometry (P5).
-- Sections get a transcription note, not a two-paragraph card.
+- Anchored sections get a transcription note that feeds their slide's card; standalone and ink-only sections get their own two-paragraph card (owner decision, 2026-11-13). The framer gains a no-slide mode that needs no sidecar.
 - Interactive agent is the first-release generation route; `agy` is a later swap-in.
 - Git commit before apply is the recovery mechanism, not a separate backup file.
 - A single ordered context summary (5 to 10 preceding cards) is passed to the agent per batch for notation consistency; its exact format is left to the builder.
