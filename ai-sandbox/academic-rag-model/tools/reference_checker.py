@@ -103,7 +103,7 @@ def extract(text: str) -> list[dict]:
             continue
         bullet = bool(re.match(r"(?:[-*+]\s+|\d+[.)]\s+)", line))
         table = line.startswith("|") and not re.match(r"^\|?\s*[-:| ]+\|", line)
-        if reference_headings and not in_references:
+        if reference_headings and not in_references and not line.startswith("|") and not LINK.search(line):
             continue
         if markdown_document and not (bullet or table):
             continue
@@ -584,7 +584,9 @@ def _identity_tier(identity: str, citation: str, record: dict | None = None) -> 
 def check(row: dict, client: RegistryClient) -> dict:
     citation, ident, kind = clean_citation(row["citation"]), row["identifier"], row["kind"]
     result = {"citation": citation, "identifier": ident, "registry_answer": None,
-              "classification": "UNRESOLVED", "identity": "UNRESOLVED", "text_fidelity": ["UNCHECKED"], "reason": ""}
+              "classification": "UNRESOLVED", "identity": "UNRESOLVED", "tier": "UNRESOLVED",
+              "evidence": "title_in_citation" if citation_fields(citation)["title"] else "",
+              "text_fidelity": ["UNCHECKED"], "reason": ""}
     if kind == "arxiv":
         ident = "10.48550/arXiv." + ident
         result["identifier"] = ident
@@ -622,6 +624,75 @@ def check(row: dict, client: RegistryClient) -> dict:
     return result
 
 
+def _citation_key(citation: str) -> dict | None:
+    parsed = parse_inline_citations(citation)
+    return parsed[0] if parsed else None
+
+
+def _reference_key(entry: dict) -> tuple[str, int | None, str, tuple[str, ...]]:
+    authors = entry.get("authors") or []
+    surnames = tuple(normalized(author.split(",", 1)[0]) for author in authors)
+    return (surnames[0] if surnames else "", entry.get("year"), entry.get("suffix", ""), surnames[1:])
+
+
+def _entry_matches_citation(entry: dict, citation: dict) -> bool:
+    first, year, suffix, coauthors = _reference_key(entry)
+    mentioned = tuple(normalized(author) for author in citation.get("authors", []))
+    if not first or not mentioned or first != mentioned[0]:
+        return False
+    if year != citation.get("year") or suffix != citation.get("suffix", ""):
+        return False
+    return set(mentioned[1:]).issubset(set(coauthors))
+
+
+def check_note(text: str, client: RegistryClient, rows: list[dict] | None = None) -> list[dict]:
+    """Check extracted DOI rows after linking inline mentions to bibliography titles."""
+    source_rows = extract(text) if rows is None else rows
+    entries = parse_reference_list(text)
+    results = []
+    for row in source_rows:
+        original = check(row, client)
+        original["evidence"] = "title_in_citation" if citation_fields(row["citation"])["title"] else ""
+        if original["identity"] != "SAME_WORK" or original["evidence"]:
+            results.append(original)
+            continue
+        mention = _citation_key(row["citation"])
+        if not mention:
+            results.append(original)
+            continue
+        titled = [entry for entry in entries if entry.get("title")]
+        doi_entries = [entry for entry in titled if entry.get("doi", "").casefold() == row["identifier"].casefold()]
+        candidates = doi_entries or [entry for entry in titled if _entry_matches_citation(entry, mention)]
+        evidence = "doi_in_list" if doi_entries else "list_entry"
+        chosen = None
+        if len(candidates) == 1:
+            chosen = candidates[0]
+        elif len(candidates) > 1:
+            record = (original.get("registry_answer") or {}).get("record") or {}
+            titles = [record.get("title") or ""]
+            if record.get("subtitle"):
+                titles.append(titles[0] + ": " + record["subtitle"])
+            matches = [entry for entry in candidates if max(
+                (similarity(entry["title"], title) for title in titles if title), default=0.0) >= 0.92]
+            if len(matches) == 1:
+                chosen = matches[0]
+            else:
+                original["tier"] = "REVIEW"
+                original["reason"] += "; multiple reference-list entries match without a unique registry-title match"
+                results.append(original)
+                continue
+        if chosen is None:
+            results.append(original)
+            continue
+        linked_citation = row["citation"].rstrip(" .") + ". " + chosen["title"]
+        linked = check({**row, "citation": linked_citation}, client)
+        linked["citation"] = original["citation"]
+        linked["linked_citation"] = linked_citation
+        linked["evidence"] = evidence
+        results.append(linked)
+    return results
+
+
 def identity_counts(rows: list[dict]) -> dict:
     rank = {"WRONG_WORK": 5, "NOT_FOUND": 4, "AMBIGUOUS": 3, "SAME_WORK": 2, "UNCHECKED": 1, "UNRESOLVED": 0}
     doi_rows = {}
@@ -654,8 +725,8 @@ def identity_counts(rows: list[dict]) -> dict:
 def markdown(rows: list[dict]) -> str:
     def cell(value):
         return str(value or "").replace("|", "\\|").replace("\n", " ")
-    out = ["| Citation | Identifier | Registry answer | Identity | Tier | Text fidelity | Classification | Reason |",
-           "|---|---|---|---|---|---|---|---|"]
+    out = ["| Citation | Identifier | Registry answer | Identity | Tier | Evidence | Text fidelity | Classification | Reason |",
+           "|---|---|---|---|---|---|---|---|---|"]
     for row in rows:
         answer = row["registry_answer"] or {}
         record = answer.get("record") or {}
@@ -663,7 +734,8 @@ def markdown(rows: list[dict]) -> str:
         if "candidates" in answer:
             summary = "; ".join(f"{c['title']} ({c['score']})" for c in answer["candidates"])
         out.append("| " + " | ".join(cell(v) for v in (row["citation"], row["identifier"], summary,
-                        row["identity"], row.get("tier", row["identity"]), ", ".join(row["text_fidelity"]), row["classification"], row["reason"])) + " |")
+                        row["identity"], row.get("tier", row["identity"]), row.get("evidence", ""),
+                        ", ".join(row["text_fidelity"]), row["classification"], row["reason"])) + " |")
     counts = identity_counts(rows)
     out.extend(["", f"Mention counts: {json.dumps(counts['mentions'], sort_keys=True)}",
                 f"Tier mention counts: {json.dumps(counts['tier_mentions'], sort_keys=True)}",
@@ -683,10 +755,12 @@ def main(argv=None) -> int:
     parser.add_argument("--exit-nonzero-on-findings", action="store_true",
                         help="exit 1 when any row is not a clean MATCH (advisory default is exit 0)")
     args = parser.parse_args(argv)
+    raw_input = args.input.read_text(encoding="utf-8")
     extracted = load_references(args.input)
-    source_coverage = coverage(args.input.read_text(encoding="utf-8"), extracted) if args.input.suffix.lower() != ".json" else None
+    source_coverage = coverage(raw_input, extracted) if args.input.suffix.lower() != ".json" else None
     client = RegistryClient(args.cache, args.pace, not args.offline, args.refresh)
-    rows = [check(row, client) for row in extracted]
+    rows = (check_note(raw_input, client, extracted) if args.input.suffix.lower() != ".json" else
+            [check(row, client) for row in extracted])
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     if args.format == "json":

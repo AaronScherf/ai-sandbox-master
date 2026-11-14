@@ -542,6 +542,83 @@ def test_inline_author_year_parser_supports_year_suffixes_and_skips_reference_li
     ]
 
 
+def test_linking_pass_confirms_unique_reference_entry_with_evidence():
+    from tools.reference_checker import check_note
+    note = """# Note
+| Citation | DOI |
+|---|---|
+| Hjort (2021) | https://doi.org/10.1257/aer.20190830 |
+
+## References
+- Hjort, B. (2021). How Research Affects Policy: Experimental Evidence from 2,150 Brazilian Municipalities.
+"""
+    row = check_note(note, FixtureClient())[0]
+    assert row["tier"] == "CONFIRMED"
+    assert row["evidence"] == "list_entry"
+
+
+def test_linking_pass_uses_same_doi_before_author_year_key():
+    from tools.reference_checker import check_note
+    note = """# Note
+| Citation | DOI |
+|---|---|
+| Hjort (2021) | https://doi.org/10.1257/aer.20190830 |
+
+## References
+- Someone Else (1999). How Research Affects Policy: Experimental Evidence from 2,150 Brazilian Municipalities. https://doi.org/10.1257/aer.20190830
+"""
+    row = check_note(note, FixtureClient())[0]
+    assert row["tier"] == "CONFIRMED"
+    assert row["evidence"] == "doi_in_list"
+
+
+def test_linking_pass_resolves_multiple_author_year_entries_by_registry_title():
+    from tools.reference_checker import check_note
+    note = """# Note
+| Citation | DOI |
+|---|---|
+| Hjort (2021) | https://doi.org/10.1257/aer.20190830 |
+
+## References
+- Hjort, B. (2021). An unrelated article about something else.
+- Hjort, B. (2021). How Research Affects Policy: Experimental Evidence from 2,150 Brazilian Municipalities.
+"""
+    row = check_note(note, FixtureClient())[0]
+    assert row["tier"] == "CONFIRMED"
+    assert row["evidence"] == "list_entry"
+
+
+def test_linking_pass_sends_unresolved_duplicate_links_to_review():
+    from tools.reference_checker import check_note
+    note = """# Note
+| Citation | DOI |
+|---|---|
+| Hjort (2021) | https://doi.org/10.1257/aer.20190830 |
+
+## References
+- Hjort, B. (2021). An unrelated article about something else.
+- Hjort, B. (2021). A second unrelated work about another topic.
+"""
+    row = check_note(note, FixtureClient())[0]
+    assert row["tier"] == "REVIEW"
+
+
+def test_linking_wrong_reference_title_is_review_never_confirmed():
+    from tools.reference_checker import check_note
+    note = """# Note
+| Citation | DOI |
+|---|---|
+| Hjort (2021) | https://doi.org/10.1257/aer.20190830 |
+
+## References
+- Hjort, B. (2021). Completely unrelated quantum widgets.
+"""
+    row = check_note(note, FixtureClient())[0]
+    assert row["text_fidelity"] != ["OK"]
+    assert row["tier"] == "REVIEW"
+    assert row["tier"] != "CONFIRMED"
+
+
 def test_clean_v2_citations_have_no_parser_artifact_flags():
     for doi in ("10.1093/jeea/jvaa019", "10.1016/j.jeconom.2004.04.009",
                 "10.1016/j.jclinepi.2007.03.013"):
