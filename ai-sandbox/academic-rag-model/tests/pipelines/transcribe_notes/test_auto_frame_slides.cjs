@@ -507,3 +507,39 @@ test("section with an unknown stroke id is skipped", () => {
   assert.equal(report.plans[1].action,"skip");
   assert.equal(report.plans[1].reason,"missing_strokes");
 });
+
+test("ink-only scene yields Notes frames in reading order", () => {
+  const els=[stroke("c",0,1500),stroke("b",3000,0),stroke("a",0,0)];
+  const report=af.planFrames(els,registry,null);
+  assert.equal(JSON.stringify(report.plans.map(p=>p.name)),
+    JSON.stringify(["Notes 001","Notes 002","Notes 003"]));
+  assert.equal(JSON.stringify(report.plans.map(p=>p.memberIds[0])),
+    JSON.stringify(["a","b","c"]));
+  assert.ok(report.plans.every(p=>p.action==="create" && p.slideId.startsWith("section:")));
+  assert.ok(af.contains(report.plans[0].bounds,af.box(els[2])));
+});
+
+test("ink-only mode needs no slide-order sidecar", () => {
+  const report=af.planFrames([stroke("a",0,0)],registry,null);
+  assert.equal(report.orderErrors.length,0);
+});
+
+test("empty scene yields no plans", () => {
+  const report=af.planFrames([],registry,null);
+  assert.equal(report.plans.length,0);
+  assert.equal(report.orderErrors.length,0);
+});
+
+test("scene with slides still requires the sidecar", () => {
+  const s=png("s",0,0,"a".repeat(40));
+  const report=af.planFrames([s,stroke("a",9000,0)],registry,null);
+  assert.ok(report.orderErrors.length>0);
+});
+
+test("explicit sections replace automatic clustering in ink-only mode", () => {
+  const els=[stroke("a",0,0),stroke("b",3000,0)];
+  const report=af.planFrames(els,registry,null,
+    secFile(sec("only","standalone",null,1,["a","b"])));
+  assert.equal(report.plans.length,1);
+  assert.equal(report.plans[0].memberIds.length,2);
+});
