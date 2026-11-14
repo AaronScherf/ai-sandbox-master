@@ -5,10 +5,12 @@ The in-vault apply script re-checks the same invariants (shared fixtures)."""
 from __future__ import annotations
 
 import copy
+from collections import Counter
 
+from pipelines.transcribe_notes.framed_explainer.bands import assign_strokes
 from pipelines.transcribe_notes.framed_explainer.identity import input_fingerprint
 from pipelines.transcribe_notes.framed_explainer.ink import (
-    Bounds, Region, anchor_for, fallback_slide, reading_order)
+    Bounds, Region, anchor_for, reading_order)
 
 FORBIDDEN = ("## Agent output", "# Markdown Images", "<!-- excalidraw-markdown-image:")
 LEGIBILITY = {"legible", "partial", "unreadable"}
@@ -113,6 +115,8 @@ def resolve_result(result: dict, facts: dict) -> dict:
     slide_elems = [{"id": s["id"], "x": s["box"]["x"], "y": s["box"]["y"],
                     "width": s["box"]["w"], "height": s["box"]["h"]} for s in facts["slides"]]
     frame_of = {s["id"]: s["frame_id"] for s in facts["slides"]}
+    slide_of = {i: sid for sid, ids in assign_strokes(slide_elems, facts["strokes"]).by_slide.items()
+                for i in ids}               # band rule, same as the framer
     frames = {f["id"]: f["box"] for f in facts.get("frames", [])}
 
     def in_frame(sid: str, fid: str) -> bool:
@@ -156,7 +160,11 @@ def resolve_result(result: dict, facts: dict) -> dict:
     kept: list[tuple[dict, Region]] = []
     for sec in sections:
         region = next(r for r in all_regions if r.region_id == sec["section_id"])
-        target = fallback_slide(region, slide_elems, all_regions)
+        votes = Counter(slide_of.get(i) for i in sec["stroke_ids"])
+        best, n = votes.most_common(1)[0]
+        target = best if best is not None and n >= 0.6 * len(sec["stroke_ids"]) else None
+        if target and not all(in_frame(i, frame_of[target]) for i in sec["stroke_ids"]):
+            target = None            # a frame that cannot hold the ink keeps it as a section
         if target:
             rec = next((s for s in out["slides"] if s["slide_id"] == target), None)
             if rec is None:
@@ -165,7 +173,7 @@ def resolve_result(result: dict, facts: dict) -> dict:
                 out["slides"].append(rec)
             rec["ink"].append({"region_id": sec.get("region_id", sec["section_id"]),
                                "stroke_ids": sec["stroke_ids"], "disposition": "fallback_nearest",
-                               "confidence": None, "rationale": "nearest slide, clear margin",
+                               "confidence": None, "rationale": "band rule: ink sits in this slide's band",
                                "transcription": sec.get("transcription", ""),
                                "legibility": sec["legibility"],
                                "context_assisted": sec.get("context_assisted", False)})

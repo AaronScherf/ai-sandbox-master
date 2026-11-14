@@ -102,3 +102,14 @@ def test_namespace_is_vault_relative_not_absolute(tmp_path):
     b = collect(_scene(tmp_path / "b", _framed_slide()), str(tmp_path / "b"), "r")
     ns = lambda r: json.load(open(r.facts_path, encoding="utf-8"))["namespace"]
     assert ns(a) == ns(b)
+
+
+def test_band_assignment_is_staged_per_slide_and_region(tmp_path):
+    els = [slide("s1", 0, 0), slide("s2", 20, 1000), stroke("a", 3000, 100), stroke("b", 3000, 1100)]
+    res = collect(_scene(tmp_path, els), str(tmp_path), "run1")
+    facts = json.load(open(res.facts_path, encoding="utf-8"))
+    ink = {s["id"]: s["ink_stroke_ids"] for s in facts["slides"]}
+    assert ink == {"s1": ["a"], "s2": ["b"]}
+    band = {tuple(r["stroke_ids"]): r["band_slide"] for r in facts["regions"]}
+    assert band == {("a",): "s1", ("b",): "s2"}
+    assert all("created" in s for s in facts["strokes"])

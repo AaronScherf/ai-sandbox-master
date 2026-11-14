@@ -4,6 +4,7 @@ rasters and course context under .agent_work/<run>/<scene-slug>/ for the agent."
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
 import json
 import os
 from dataclasses import dataclass
@@ -13,6 +14,7 @@ from pipelines.transcribe_notes.agent_work import (
     ManifestEntry, doc_slug_for, doc_work_dir, load_manifest, render_worklist, save_manifest)
 from pipelines.transcribe_notes.framed_explainer.course_context import build_course_context
 from pipelines.transcribe_notes.framed_explainer.identity import input_fingerprint
+from pipelines.transcribe_notes.framed_explainer.bands import assign_strokes
 from pipelines.transcribe_notes.framed_explainer.ink import Bounds, box_gap, cluster_ink, merge_fragments
 from pipelines.transcribe_notes.framed_explainer.rasters import rasterize_frame_pdf
 from pipelines.transcribe_notes.framed_explainer.review import load_declined
@@ -81,6 +83,8 @@ def collect(scene_path: str, hub_root: str, run_id: str, frame_pdf: str | None =
     wanted = set(frames) if frames else None
 
     ink_by_id = {e["id"]: e for e in c.ink}
+    banded = assign_strokes(c.slides, c.ink)          # band rule, same as the framer
+    slide_of = {i: sid for sid, ids in banded.by_slide.items() for i in ids}
     slide_rows, targets = [], []
     for s in sorted(c.slides, key=lambda e: (e["y"], e["x"], e["id"])):
         frame = _frame_for(_b(s), c.frames)
@@ -88,11 +92,7 @@ def collect(scene_path: str, hub_root: str, run_id: str, frame_pdf: str | None =
         link = scene.registry.get(s.get("fileId"), "")
         existing = [x["id"] for x in c.explanations
                     if frame and (x.get("frameId") == fid or _inside(_b(x), _b(frame)))]
-        near_ink = [ink_by_id[i] for r in regions for i in r.stroke_ids
-                    if box_gap(r.bounds, _b(s)) == min(
-                        box_gap(r.bounds, _b(o)) for o in c.slides)]
-        if frame:
-            near_ink = [e for e in c.ink if _inside(_b(e), _b(frame))]
+        near_ink = [ink_by_id[i] for i in banded.by_slide.get(s["id"], [])]
         if wanted is not None and fid not in wanted:
             continue
         fp = input_fingerprint(s.get("fileId"), near_ink, fid, PROMPT_VERSION, context.version)
@@ -111,14 +111,17 @@ def collect(scene_path: str, hub_root: str, run_id: str, frame_pdf: str | None =
             elig = "declined"
         slide_rows.append({"id": s["id"], "file_id": s.get("fileId"), "link": link,
                            "frame_id": fid, "box": _box_json(_b(s)),
+                           "ink_stroke_ids": sorted(banded.by_slide.get(s["id"], [])),
                            "existing_explanation_ids": sorted(existing)})
         targets.append(Target(fid, s["id"], elig, fp))
 
     region_rows = []
     for r in regions:
         near = sorted(((box_gap(r.bounds, _b(s)), s["id"]) for s in c.slides))[:2]
+        votes = Counter(slide_of[i] for i in r.stroke_ids if i in slide_of)
         region_rows.append({"region_id": r.region_id, "bounds": _box_json(r.bounds),
                             "stroke_ids": sorted(r.stroke_ids),
+                            "band_slide": votes.most_common(1)[0][0] if votes else None,
                             "candidate_slides": [{"id": i, "distance": round(d, 1)}
                                                  for d, i in near]})
         if mode == "ink_only":
@@ -134,6 +137,7 @@ def collect(scene_path: str, hub_root: str, run_id: str, frame_pdf: str | None =
         "frames": [{"id": f["id"], "name": f.get("name"), "box": _box_json(_b(f))}
                    for f in sorted(c.frames, key=lambda f: f["id"])],
         "strokes": [{"id": e["id"], "version": e.get("version", 1), "x": e["x"], "y": e["y"],
+                     "created": e.get("created"),
                      "width": e["width"], "height": e["height"]}
                     for e in sorted(c.ink, key=lambda e: e["id"])],
         "targets": [{"frame_id": t.frame_id, "slide_id": t.slide_id, "region_id": t.region_id,

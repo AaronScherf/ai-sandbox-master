@@ -162,3 +162,12 @@ def test_assigned_ink_outside_its_slide_frame_becomes_a_section(result, facts):
     assert all("k1" not in i["stroke_ids"] for i in s1["ink"])
     c = resolved["coverage"]
     assert c["assigned"] + c["fallback_nearest"] + c["section"] == len(facts["strokes"])
+
+
+def test_unassigned_ink_inside_a_slides_frame_falls_back_by_band(result, facts):
+    result["sections"] = [s for s in result["sections"] if s["section_id"] != "sec2"]
+    k3 = next(s for s in facts["strokes"] if s["id"] == "k3")
+    k3["x"], k3["y"] = 1500, 300          # inside f1, in slide 1's band
+    resolved = resolve_result(result, facts)
+    s1 = next(s for s in resolved["slides"] if s["slide_id"] == "s1")
+    assert any(i["disposition"] == "fallback_nearest" and "k3" in i["stroke_ids"] for i in s1["ink"])

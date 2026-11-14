@@ -30,7 +30,7 @@
           ],
           "disposition": "fallback_nearest",
           "confidence": null,
-          "rationale": "nearest slide, clear margin",
+          "rationale": "band rule: ink sits in this slide's band",
           "transcription": "see slide 1",
           "legibility": "partial",
           "context_assisted": false
