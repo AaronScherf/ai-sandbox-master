@@ -440,7 +440,8 @@ def test_low_scoring_unrelated_title_probe_is_review():
 
 def test_three_v2_notes_same_work_tier_split():
     from collections import Counter
-    same_work = [check(row, RecordedClient()) for row in V2_REFERENCES]
+    from tools.reference_checker import check_note
+    same_work = check_note("", RecordedClient(), rows=V2_REFERENCES)
     same_work = [row for row in same_work if row["identity"] == "SAME_WORK"]
     assert len(same_work) == 31
     assert Counter(row["tier"] for row in same_work) == {"CONFIRMED": 27, "REVIEW": 4}
@@ -451,6 +452,7 @@ def test_three_v2_notes_same_work_tier_split():
 
 
 def test_memo_v2_seven_dois_are_plausible_using_recorded_registry_answers():
+    from tools.reference_checker import check_note
     memo_rows = [
         ("Thalheimer, Schwarz, & Pretis (2023)", "10.1016/j.gloenvcha.2023.102641"),
         ("Zens & Thalheimer (2025)", "10.1214/24-AOAS1959"),
@@ -460,11 +462,16 @@ def test_memo_v2_seven_dois_are_plausible_using_recorded_registry_answers():
         ("Raleigh, Choi, & Kniveton (2015)", "10.1016/j.gloenvcha.2015.03.005"),
         ("Marchiori, Maystadt, & Schumacher (2012)", "10.1016/j.jeem.2012.02.001"),
     ]
-    results = [check({"citation": citation, "identifier": doi, "kind": "doi"}, MemoV2RecordedClient())
-               for citation, doi in memo_rows]
-    assert [row["identity"] for row in results] == ["SAME_WORK"] * 7
-    assert [row["tier"] for row in results] == ["PLAUSIBLE"] * 7
-    assert not any(row["tier"] == "CONFIRMED" for row in results)
+    note = "# Memo v2\n| Citation | DOI |\n|---|---|\n" + "\n".join(
+        f"| {citation} | https://doi.org/{doi} |" for citation, doi in memo_rows
+    ) + "\n| Institutional source (2022) | [source](https://example.org/a) |\n| Institutional source (2022) | [source](https://example.org/b) |\n"
+    results = check_note(note, MemoV2RecordedClient())
+    doi_results = results[:7]
+    url_results = results[7:]
+    assert len(doi_results) == 7
+    assert [row["identity"] for row in doi_results] == ["SAME_WORK"] * 7
+    assert [row["tier"] for row in doi_results] == ["PLAUSIBLE"] * 7
+    assert not any(row["tier"] == "CONFIRMED" for row in doi_results)
     expected_registry_facts = {
         "10.1214/24-AOAS1959": (
             ["Zens", "Thalheimer"],
@@ -480,15 +487,14 @@ def test_memo_v2_seven_dois_are_plausible_using_recorded_registry_answers():
             "Journal of Environmental Economics and Management",
         ),
     }
-    for result in results:
+    for result in doi_results:
         expected = expected_registry_facts.get(result["identifier"])
         if expected:
             record = result["registry_answer"]["record"]
             assert record["authors"] == expected[0]
             assert record["title"] == expected[1]
             assert record["venue"] == expected[2]
-    assert [check({"citation": "Institutional source (2022)", "identifier": url, "kind": "url"}, MemoV2RecordedClient())["tier"]
-            for url in ("https://example.org/a", "https://example.org/b")] == ["UNCHECKED", "UNCHECKED"]
+    assert [row["tier"] for row in url_results] == ["UNCHECKED", "UNCHECKED"]
 
 
 def test_reference_list_parser_keeps_entries_separate_and_extracts_fields():
@@ -601,6 +607,74 @@ def test_linking_pass_sends_unresolved_duplicate_links_to_review():
 """
     row = check_note(note, FixtureClient())[0]
     assert row["tier"] == "REVIEW"
+
+
+def test_linking_keeps_two_cited_same_author_year_works_distinct_by_doi():
+    from tools.reference_checker import check_note
+
+    class TwoWorkClient:
+        works = {
+            "10.5555/alpha": "Alpha methods paper",
+            "10.5555/beta": "Beta outcomes paper",
+        }
+
+        def get(self, url):
+            if "/doiRA/" in url:
+                return {"status": 200, "data": [{"RA": "Crossref"}]}
+            doi = urllib.parse.unquote(url.rsplit("/", 1)[-1])
+            title = self.works[doi]
+            return {"status": 200, "data": {"message": {
+                "title": [title], "author": [{"family": "Smith"}],
+                "published": {"date-parts": [[2020]]}, "container-title": ["Example Journal"], "DOI": doi,
+            }}}
+
+    note = """# Note
+| Citation | DOI |
+|---|---|
+| Smith (2020) | https://doi.org/10.5555/alpha |
+| Smith (2020) | https://doi.org/10.5555/beta |
+
+## References
+- Smith, J. (2020). Alpha methods paper. https://doi.org/10.5555/alpha
+- Smith, J. (2020). Beta outcomes paper. https://doi.org/10.5555/beta
+"""
+    rows = check_note(note, TwoWorkClient())
+    assert [(row["identifier"], row["tier"], row["evidence"]) for row in rows] == [
+        ("10.5555/alpha", "CONFIRMED", "doi_in_list"),
+        ("10.5555/beta", "CONFIRMED", "doi_in_list"),
+    ]
+
+
+def test_linking_duplicate_candidates_review_if_registry_title_matches_neither():
+    from tools.reference_checker import check_note
+    note = """# Note
+| Citation | DOI |
+|---|---|
+| Hjort (2021) | https://doi.org/10.1257/aer.20190830 |
+
+## References
+- Hjort, B. (2021). Evidence on unrelated agricultural subsidies.
+- Hjort, B. (2021). Randomized evaluations of urban transport.
+"""
+    row = check_note(note, FixtureClient())[0]
+    assert row["tier"] == "REVIEW"
+    assert row["evidence"] == ""
+
+
+def test_linking_does_not_match_reference_entry_with_different_year():
+    from tools.reference_checker import check_note
+    note = """# Note
+| Citation | DOI |
+|---|---|
+| Hjort (2021) | https://doi.org/10.1257/aer.20190830 |
+
+## References
+- Hjort, B. (2020). How Research Affects Policy: Experimental Evidence from 2,150 Brazilian Municipalities.
+"""
+    row = check_note(note, FixtureClient())[0]
+    assert row["tier"] == "PLAUSIBLE"
+    assert row["evidence"] == ""
+    assert "linked_citation" not in row
 
 
 def test_linking_wrong_reference_title_is_review_never_confirmed():

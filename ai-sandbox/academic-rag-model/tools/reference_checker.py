@@ -649,6 +649,18 @@ def check_note(text: str, client: RegistryClient, rows: list[dict] | None = None
     """Check extracted DOI rows after linking inline mentions to bibliography titles."""
     source_rows = extract(text) if rows is None else rows
     entries = parse_reference_list(text)
+    bibliography_dois = {entry["doi"].casefold() for entry in entries if entry.get("doi")}
+    body_dois_without_title = {
+        row["identifier"].casefold() for row in source_rows
+        if row.get("identifier", "").casefold() in bibliography_dois
+        and not citation_fields(row["citation"])["title"]
+    }
+    # A DOI row in the body owns the result; its repeated bibliography entry
+    # supplies title evidence and must not become a second checker row.
+    source_rows = [row for row in source_rows if not (
+        row.get("identifier", "").casefold() in body_dois_without_title
+        and citation_fields(row["citation"])["title"]
+    )]
     results = []
     for row in source_rows:
         original = check(row, client)
