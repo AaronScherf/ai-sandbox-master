@@ -71,6 +71,43 @@ def cluster_ink(strokes: list[dict]) -> list[Region]:
     return regions
 
 
+def merge_fragments(regions: list[Region], small: int = 20, reach: float = 300,
+                    cap_w: float = INK_MAX_W * 1.5, cap_h: float = INK_MAX_H * 1.5) -> list[Region]:
+    """Fold tiny clusters into the nearest cluster so sections stay readable.
+    Mirrors the framer's JS mergeFragments; ids are renumbered r1.. in page order."""
+    work = [Region(r.region_id, r.bounds, list(r.stroke_ids)) for r in regions]
+    while True:
+        frags = sorted((r for r in work if len(r.stroke_ids) <= small),
+                       key=lambda r: (len(r.stroke_ids), min(r.stroke_ids)))
+        merged = False
+        for f in frags:
+            best = None
+            for o in work:
+                if o is f:
+                    continue
+                u = _union(f.bounds, o.bounds)
+                if u.w > cap_w or u.h > cap_h:
+                    continue
+                d = box_gap(f.bounds, o.bounds)
+                if d > reach:
+                    continue
+                if best is None or d < best[0] or (d == best[0] and min(o.stroke_ids) < min(best[1].stroke_ids)):
+                    best = (d, o, u)
+            if best:
+                _, o, u = best
+                o.bounds = u
+                o.stroke_ids.extend(f.stroke_ids)
+                work = [r for r in work if r is not f]
+                merged = True
+                break
+        if not merged:
+            break
+    work.sort(key=lambda r: (r.bounds.y, r.bounds.x, min(r.stroke_ids)))
+    for i, r in enumerate(work, start=1):
+        r.region_id = f"r{i}"
+    return work
+
+
 def _ranked(region: Region, slides: list[dict]) -> list[tuple[float, dict]]:
     return sorted(((box_gap(region.bounds, _box(s)), s) for s in slides),
                   key=lambda t: (t[0], t[1]["id"]))

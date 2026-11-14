@@ -67,3 +67,20 @@ def test_fallback_has_distance_cap_with_single_slide():
     slides = [{"id": "A", "x": 0, "y": 0, "width": 907, "height": 510}]
     far = Region("r", Bounds(20000, 20000, 20, 20), ["k"])
     assert fallback_slide(far, slides, [far]) is None
+
+
+def test_merge_fragments_absorbs_small_clusters_into_nearest_big_one():
+    from pipelines.transcribe_notes.framed_explainer.ink import merge_fragments
+    big = Region("r1", Bounds(0, 0, 400, 300), [f"b{i:02d}" for i in range(30)])
+    near = Region("r2", Bounds(550, 0, 20, 20), ["n1", "n2"])
+    far = Region("r3", Bounds(9000, 0, 20, 20), ["f1"])
+    out = merge_fragments([big, near, far])
+    assert sorted(len(r.stroke_ids) for r in out) == [1, 32]
+    assert [r.region_id for r in out] == ["r1", "r2"]
+
+
+def test_merge_fragments_never_merges_two_large_clusters():
+    from pipelines.transcribe_notes.framed_explainer.ink import merge_fragments
+    a = Region("r1", Bounds(0, 0, 400, 300), [f"a{i:02d}" for i in range(30)])
+    b = Region("r2", Bounds(450, 0, 400, 300), [f"b{i:02d}" for i in range(30)])
+    assert len(merge_fragments([a, b])) == 2

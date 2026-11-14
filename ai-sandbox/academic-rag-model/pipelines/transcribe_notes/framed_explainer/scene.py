@@ -74,7 +74,8 @@ def _is_slide(e: dict, link: str) -> bool:
     w, h = e["width"], e["height"]
     sized = abs(w - 907) <= 25 and abs(h - 510) <= 20
     wide = w >= 700 and h > 0 and abs(w / h - 16 / 9) < 0.035
-    return (sized or wide) and link.lower().endswith(".png")
+    four_three = w >= 500 and h > 0 and abs(w / h - 4 / 3) < 0.035
+    return (sized or wide or four_three) and link.lower().endswith(".png")
 
 
 def classify(scene: Scene) -> Classified:

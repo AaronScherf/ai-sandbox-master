@@ -530,10 +530,10 @@ test("empty scene yields no plans", () => {
   assert.equal(report.orderErrors.length,0);
 });
 
-test("scene with slides still requires the sidecar", () => {
+test("scene with slides and no sidecar falls back to reading order", () => {
   const s=png("s",0,0,"a".repeat(40));
   const report=af.planFrames([s,stroke("a",9000,0)],registry,null);
-  assert.ok(report.orderErrors.length>0);
+  assert.equal(report.orderErrors.length,0); assert.equal(report.plans[0].page,1);
 });
 
 test("explicit sections replace automatic clustering in ink-only mode", () => {
@@ -565,4 +565,32 @@ test("neighbouring section frames shrink their padding instead of overlapping", 
   assert.ok(a.y+a.h<=b.y || b.y+b.h<=a.y);
   for (const [p,k] of [[a,els[0]],[b,els[1]]])
     assert.ok(p.x<=k.x && p.y<=k.y && p.x+p.w>=k.x+k.width && p.y+p.h>=k.y+k.height);
+});
+
+test("4:3 PNG slides are classified as slides", () => {
+  const s={id:"p",type:"image",x:0,y:0,width:726,height:544,fileId:"a".repeat(40)};
+  assert.equal(af.classify([s],registry).slides.length,1);
+});
+
+test("without a slide-order file slides are numbered like reading a page", () => {
+  const a=png("a",0,0,"a".repeat(40)), b=png("b",1000,0,"b".repeat(40)),
+    c=png("c",0,900,"a".repeat(40));
+  const report=af.planFrames([c,b,a],registry,null);
+  assert.deepEqual(JSON.parse(JSON.stringify(report.plans.map(p=>p.slideId))),["a","b","c"]);
+  assert.deepEqual(JSON.parse(JSON.stringify(report.plans.map(p=>p.page))),[1,2,3]);
+  assert.equal(report.orderErrors.length,0);
+});
+
+test("an unreadable slide-order file is still an error, not a silent fallback", () => {
+  const a=png("a",0,0,"a".repeat(40));
+  const report=af.planFrames([a],registry,{slides:[]});
+  assert.ok(report.orderErrors.length>0);
+});
+
+test("ink-only sections absorb tiny fragments into the nearest large cluster", () => {
+  const els=[];
+  for (let i=0;i<25;i++) els.push(stroke("b"+String(i).padStart(2,"0"),i*40,0));
+  els.push(stroke("f1",1100,0),stroke("f2",1130,0));
+  const report=af.planFrames(els,registry,{slides:[]});
+  assert.equal(report.plans.length,1);
 });

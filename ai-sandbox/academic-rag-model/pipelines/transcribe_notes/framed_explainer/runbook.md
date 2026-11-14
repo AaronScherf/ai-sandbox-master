@@ -50,4 +50,6 @@ Do not decide sections yourself. Report unassigned ink as unassigned; code appli
   }]
 }
 ```
+Regions are geometric hints, not units you must keep: you may group several neighbouring regions into one section when they are one train of thought (aim for sections a reader would call a topic, not one per fragment).
+
 `sections` holds the unassigned regions (and every region in an ink-only scene). A `card` is optional on a section: omit it for a section that sits beside a slide; include it for ink-only scenes. Copy `scene` and `scene_sha1` verbatim from `facts.json`. Targets whose `eligibility` is not `eligible` get no new card.

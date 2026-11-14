@@ -13,7 +13,7 @@ from pipelines.transcribe_notes.agent_work import (
     ManifestEntry, doc_slug_for, doc_work_dir, load_manifest, render_worklist, save_manifest)
 from pipelines.transcribe_notes.framed_explainer.course_context import build_course_context
 from pipelines.transcribe_notes.framed_explainer.identity import input_fingerprint
-from pipelines.transcribe_notes.framed_explainer.ink import Bounds, box_gap, cluster_ink
+from pipelines.transcribe_notes.framed_explainer.ink import Bounds, box_gap, cluster_ink, merge_fragments
 from pipelines.transcribe_notes.framed_explainer.rasters import rasterize_frame_pdf
 from pipelines.transcribe_notes.framed_explainer.review import load_declined
 from pipelines.transcribe_notes.framed_explainer.scene import classify, load_scene
@@ -76,7 +76,7 @@ def collect(scene_path: str, hub_root: str, run_id: str, frame_pdf: str | None =
     run_dir = doc_work_dir(hub_root, run_id, slug)
     context = build_course_context(scene_path, hub_root)
     declined = load_declined(hub_root, slug)
-    regions = cluster_ink(c.ink)
+    regions = merge_fragments(cluster_ink(c.ink))
     mode = "slides" if c.slides else "ink_only"
     wanted = set(frames) if frames else None
 

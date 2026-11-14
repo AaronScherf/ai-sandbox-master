@@ -55,3 +55,12 @@ def test_scene_without_compressed_json_raises(tmp_path):
     p.write_text("# nothing here\n", encoding="utf-8")
     with pytest.raises(SceneFormatError):
         load_scene(str(p))
+
+
+def test_four_by_three_png_is_a_slide(tmp_path):
+    from framed_explainer_helpers import el, write_scene
+    from pipelines.transcribe_notes.framed_explainer.scene import classify, load_scene
+    scene = load_scene(write_scene(tmp_path / "s.excalidraw.md",
+        [el("p", "image", 0, 0, 726, 544, fileId="a" * 40)],
+        {"a" * 40: "[[Lecture1_PhD_x.png]]"}))
+    assert [s["id"] for s in classify(scene).slides] == ["p"]
