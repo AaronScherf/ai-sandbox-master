@@ -725,3 +725,8 @@ test("preview text tells the user to move the next slide and rerun", () => {
   assert.match(line,/move/i);
   assert.match(line,/rerun/i);
 });
+
+test("ink above the next slide's top stays with its slide even when drawn after the transition", () => {
+  const res=af.matchInk(column(),boundaryScene([tstroke("x",2500,950,299000)])); // centre 960 < 1000
+  assert.ok(idsOf(res,"s1").includes("x"));
+});
