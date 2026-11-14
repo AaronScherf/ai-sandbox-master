@@ -460,6 +460,34 @@ def test_memo_v2_seven_dois_are_plausible_using_recorded_registry_answers():
             for url in ("https://example.org/a", "https://example.org/b")] == ["UNCHECKED", "UNCHECKED"]
 
 
+def test_reference_list_parser_keeps_entries_separate_and_extracts_fields():
+    from tools.reference_checker import parse_reference_list
+    text = """# Notes
+Smith (2020) makes a claim in the prose.
+
+## References
+1. Smith, J., & Jones, A. (2020a). A useful paper title. Journal of Example Studies, 4(2), 22-40. https://doi.org/10.1234/example
+2. Brown, D. (2020b). Another useful paper title. *Review of Example Research*, 8(1), 5-19.
+"""
+    entries = parse_reference_list(text)
+    assert len(entries) == 2
+    assert entries[0] == {
+        "authors": ["Smith, J.", "Jones, A."], "year": 2020, "suffix": "a",
+        "title": "A useful paper title", "doi": "10.1234/example",
+    }
+    assert entries[1]["authors"] == ["Brown, D."]
+    assert entries[1]["year"] == 2020
+    assert entries[1]["suffix"] == "b"
+    assert entries[1]["title"] == "Another useful paper title"
+    assert entries[1]["doi"] == ""
+
+
+def test_reference_list_parser_does_not_promote_journal_to_title():
+    from tools.reference_checker import parse_reference_list
+    entries = parse_reference_list("## Bibliography\n- Thalheimer, P. (2023). *Global Environmental Change*.\n")
+    assert entries[0]["title"] == ""
+
+
 def test_clean_v2_citations_have_no_parser_artifact_flags():
     for doi in ("10.1093/jeea/jvaa019", "10.1016/j.jeconom.2004.04.009",
                 "10.1016/j.jclinepi.2007.03.013"):

@@ -263,6 +263,64 @@ def citation_fields(citation: str) -> dict:
             "pages": "-".join(pages.groups()) if pages else ""}
 
 
+def _reference_authors(prefix: str) -> list[str]:
+    prefix = re.sub(r"\bet\s+al\.?\s*$", "", prefix, flags=re.I).strip(" ,;*&")
+    # Split author groups while keeping surname/initial commas together.
+    parts = re.split(r"\s*(?:&|\band\b|;)\s*|,\s*(?=[A-Z][\w'’.-]+,\s*[A-Z])", prefix)
+    return [part.strip(" ,") for part in parts if part.strip(" ,")]
+
+
+def _parse_reference_entry(entry: str) -> dict:
+    entry = re.sub(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)", "", entry).strip()
+    entry = re.sub(r"\[([^]]+)\]\((https?://[^)]+)\)", r"\1 \2", entry)
+    year_match = re.search(r"\(((?:19|20)\d{2})([a-z])?\)\s*\.?", entry, re.I)
+    prefix = entry[:year_match.start()].strip(" ,") if year_match else ""
+    clean = URL.sub("", DOI.sub("", entry))
+    clean = re.sub(r"\(((?:19|20)\d{2})[a-z]\)", r"(\1)", clean, flags=re.I)
+    fields = citation_fields(clean)
+    kind, identifier = identifiers(entry)
+    return {
+        "authors": _reference_authors(prefix),
+        "year": int(year_match.group(1)) if year_match else None,
+        "suffix": (year_match.group(2) or "").lower() if year_match else "",
+        "title": fields["title"],
+        "doi": identifier if kind == "doi" else "",
+    }
+
+
+def parse_reference_list(text: str) -> list[dict]:
+    """Parse bibliography entries separately from inline author-year mentions."""
+    lines = text.splitlines()
+    heading_re = re.compile(r"^(#+)\s+.*\b(?:references|bibliography)\b", re.I)
+    active = False
+    level = 0
+    entries = []
+    current = ""
+    for raw in lines:
+        line = raw.strip()
+        heading = re.match(r"^(#+)\s", line)
+        if heading:
+            match = heading_re.match(line)
+            if match:
+                active, level = True, len(heading.group(1))
+            elif active and len(heading.group(1)) <= level:
+                active = False
+            continue
+        if not active or not line:
+            continue
+        starts_entry = bool(re.match(r"^(?:[-*+]\s+|\d+[.)]\s+)", line) or
+                            re.match(r"^[^|].*\((?:19|20)\d{2}[a-z]?\)", line, re.I))
+        if starts_entry:
+            if current:
+                entries.append(_parse_reference_entry(current))
+            current = line
+        elif current:
+            current += " " + line
+    if current:
+        entries.append(_parse_reference_entry(current))
+    return entries
+
+
 class RegistryClient:
     def __init__(self, cache: Path, pace: float = 0.2, online: bool = True, refresh: bool = False):
         self.cache, self.pace, self.online, self.refresh = cache, pace, online, refresh
