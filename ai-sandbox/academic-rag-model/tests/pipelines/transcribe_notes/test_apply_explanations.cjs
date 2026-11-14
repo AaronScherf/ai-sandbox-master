@@ -80,3 +80,63 @@ test("deleted strokes are ignored by the audit", () => {
   const a=ax.auditCoverage(load("result_resolved_ok.json"),els,framesOf(els));
   assert.equal(a.ok,true);
 });
+
+const slide907 = {x:0,y:0,width:907,height:510};
+const frame = (w=2200) => ({x:-10,y:-10,width:w,height:600});
+const natural = {w:1000,h:547};
+const near = (a,b,eps=0.01) => Math.abs(a-b) < eps;
+
+test("slot is right of the slide with a 4 percent gap, top-aligned", () => {
+  const r=ax.planCardSlot(frame(),slide907,natural,[]);
+  assert.equal(r.ok,true);
+  assert.ok(near(r.x,907+0.04*907));
+  assert.equal(r.y,0);
+  assert.ok(near(r.w,907));
+  assert.ok(near(r.h,547*907/1000));
+});
+
+test("width is clamped to the free frame width", () => {
+  const r=ax.planCardSlot(frame(1500),slide907,natural,[]);
+  assert.equal(r.ok,true);
+  assert.ok(near(r.x+r.w,1490));   // frame right edge
+});
+
+test("ink in the slot yields placement_conflict", () => {
+  const r=ax.planCardSlot(frame(),slide907,natural,[{x:1000,y:100,width:50,height:50}]);
+  assert.equal(r.ok,false);
+  assert.equal(r.reason,"placement_conflict");
+});
+
+test("expansion happens only when allowed by the caller", () => {
+  const narrow=frame(1300);
+  const denied=ax.planCardSlot(narrow,slide907,natural,[],{canExpand:()=>false});
+  assert.equal(denied.ok,false);
+  const allowed=ax.planCardSlot(narrow,slide907,natural,[],{canExpand:()=>true});
+  assert.equal(allowed.ok,true);
+  assert.ok(near(allowed.w,907));
+  assert.ok(allowed.expandFrame.x+allowed.expandFrame.width >= allowed.x+allowed.w);
+  assert.ok(allowed.expandFrame.x <= narrow.x);
+});
+
+test("slot scales with slide size (607 and 1473 wide)", () => {
+  const small={x:0,y:0,width:607,height:457}, big={x:0,y:0,width:1473,height:828};
+  const a=ax.planCardSlot({x:-10,y:-10,width:1500,height:560},small,natural,[]);
+  const b=ax.planCardSlot({x:-10,y:-10,width:3400,height:900},big,natural,[]);
+  assert.ok(near(a.x,607*1.04) && near(a.w,607));
+  assert.ok(near(b.x,1473*1.04) && near(b.w,1473));
+});
+
+test("card taller than the frame is a conflict unless expansion is allowed", () => {
+  const short={x:-10,y:-10,width:2200,height:400};
+  assert.equal(ax.planCardSlot(short,slide907,natural,[]).ok,false);
+  assert.equal(ax.planCardSlot(short,slide907,natural,[],{canExpand:()=>true}).ok,true);
+});
+
+test("card action: create, noop, update_stale, skipped_existing", () => {
+  const cards=new Map([["k1",{fingerprint:"fpA"}]]);
+  assert.equal(ax.decideCardAction(cards,"k2","fpA",false),"create");
+  assert.equal(ax.decideCardAction(cards,"k1","fpA",false),"noop");
+  assert.equal(ax.decideCardAction(cards,"k1","fpB",false),"update_stale");
+  assert.equal(ax.decideCardAction(cards,"k2","fpA",true),"skipped_existing");
+  assert.equal(ax.decideCardAction(cards,"k1","fpB",true),"update_stale");
+});
