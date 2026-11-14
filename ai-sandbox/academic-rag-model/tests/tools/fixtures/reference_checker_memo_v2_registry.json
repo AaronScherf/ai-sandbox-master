@@ -1,0 +1,646 @@
+{
+  "10.1016/j.gloenvcha.2023.102641": {
+    "agency": {
+      "status": 200,
+      "data": [
+        {
+          "DOI": "10.1016/j.gloenvcha.2023.102641",
+          "RA": "Crossref"
+        }
+      ]
+    },
+    "registry": "Crossref",
+    "answer": {
+      "status": 200,
+      "data": {
+        "status": "ok",
+        "message-type": "work",
+        "message-version": "1.0.0",
+        "message": {
+          "published-print": {
+            "date-parts": [
+              [
+                2023,
+                3
+              ]
+            ]
+          },
+          "DOI": "10.1016/j.gloenvcha.2023.102641",
+          "page": "102641",
+          "title": [
+            "Large weather and conflict effects on internal displacement in Somalia with little evidence of feedback onto conflict"
+          ],
+          "volume": "79",
+          "author": [
+            {
+              "ORCID": "https://orcid.org/0000-0002-3737-3586",
+              "authenticated-orcid": false,
+              "given": "Lisa",
+              "family": "Thalheimer",
+              "sequence": "first",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "Moritz P.",
+              "family": "Schwarz",
+              "sequence": "additional",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "Felix",
+              "family": "Pretis",
+              "sequence": "additional",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            }
+          ],
+          "container-title": [
+            "Global Environmental Change"
+          ],
+          "subtitle": [],
+          "issued": {
+            "date-parts": [
+              [
+                2023,
+                3
+              ]
+            ]
+          },
+          "published": {
+            "date-parts": [
+              [
+                2023,
+                3
+              ]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "10.1214/24-AOAS1959": {
+    "agency": {
+      "status": 200,
+      "data": [
+        {
+          "DOI": "10.1214/24-AOAS1959",
+          "RA": "Crossref"
+        }
+      ]
+    },
+    "registry": "Crossref",
+    "answer": {
+      "status": 200,
+      "data": {
+        "status": "ok",
+        "message-type": "work",
+        "message-version": "1.0.0",
+        "message": {
+          "published-print": {
+            "date-parts": [
+              [
+                2025,
+                3,
+                1
+              ]
+            ]
+          },
+          "DOI": "10.1214/24-aoas1959",
+          "page": "286-301",
+          "title": [
+            "The short-term dynamics of conflict-driven displacement: Bayesian modeling of disaggregated data from Somalia"
+          ],
+          "volume": "19",
+          "author": [
+            {
+              "given": "Gregor",
+              "family": "Zens",
+              "sequence": "first",
+              "affiliation": [
+                {
+                  "name": "Population and Just Societies Program, International Institute for Applied Systems Analysis (IIASA)"
+                }
+              ],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "Lisa",
+              "family": "Thalheimer",
+              "sequence": "additional",
+              "affiliation": [
+                {
+                  "name": "Environment and Migration: Interactions and Choices Division, United Nations University (UNU)"
+                }
+              ],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            }
+          ],
+          "container-title": [
+            "The Annals of Applied Statistics"
+          ],
+          "subtitle": [],
+          "issued": {
+            "date-parts": [
+              [
+                2025,
+                3,
+                1
+              ]
+            ]
+          },
+          "published": {
+            "date-parts": [
+              [
+                2025,
+                3,
+                1
+              ]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "10.1093/ajae/aau010": {
+    "agency": {
+      "status": 200,
+      "data": [
+        {
+          "DOI": "10.1093/ajae/aau010",
+          "RA": "Crossref"
+        }
+      ]
+    },
+    "registry": "Crossref",
+    "answer": {
+      "status": 200,
+      "data": {
+        "status": "ok",
+        "message-type": "work",
+        "message-version": "1.0.0",
+        "message": {
+          "published-print": {
+            "date-parts": [
+              [
+                2014,
+                7
+              ]
+            ]
+          },
+          "DOI": "10.1093/ajae/aau010",
+          "page": "1157-1182",
+          "title": [
+            "Extreme Weather and Civil War: Does Drought Fuel Conflict in Somalia through Livestock Price Shocks?"
+          ],
+          "volume": "96",
+          "author": [
+            {
+              "given": "Jean-François",
+              "family": "Maystadt",
+              "sequence": "first",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "Olivier",
+              "family": "Ecker",
+              "sequence": "additional",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            }
+          ],
+          "published-online": {
+            "date-parts": [
+              [
+                2014,
+                7
+              ]
+            ]
+          },
+          "container-title": [
+            "American Journal of Agricultural Economics"
+          ],
+          "subtitle": [],
+          "issued": {
+            "date-parts": [
+              [
+                2014,
+                7
+              ]
+            ]
+          },
+          "published": {
+            "date-parts": [
+              [
+                2014,
+                7
+              ]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "10.1086/709993": {
+    "agency": {
+      "status": 200,
+      "data": [
+        {
+          "DOI": "10.1086/709993",
+          "RA": "Crossref"
+        }
+      ]
+    },
+    "registry": "Crossref",
+    "answer": {
+      "status": 200,
+      "data": {
+        "status": "ok",
+        "message-type": "work",
+        "message-version": "1.0.0",
+        "message": {
+          "published-print": {
+            "date-parts": [
+              [
+                2020,
+                10,
+                1
+              ]
+            ]
+          },
+          "DOI": "10.1086/709993",
+          "page": "3940-3997",
+          "title": [
+            "The Economic Origins of Conflict in Africa"
+          ],
+          "volume": "128",
+          "author": [
+            {
+              "given": "Eoin",
+              "family": "McGuirk",
+              "sequence": "first",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "Marshall",
+              "family": "Burke",
+              "sequence": "additional",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            }
+          ],
+          "container-title": [
+            "Journal of Political Economy"
+          ],
+          "subtitle": [],
+          "issued": {
+            "date-parts": [
+              [
+                2020,
+                10,
+                1
+              ]
+            ]
+          },
+          "published": {
+            "date-parts": [
+              [
+                2020,
+                10,
+                1
+              ]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "10.1162/rest_a_00730": {
+    "agency": {
+      "status": 200,
+      "data": [
+        {
+          "DOI": "10.1162/rest_a_00730",
+          "RA": "Crossref"
+        }
+      ]
+    },
+    "registry": "Crossref",
+    "answer": {
+      "status": 200,
+      "data": {
+        "status": "ok",
+        "message-type": "work",
+        "message-version": "1.0.0",
+        "message": {
+          "published-print": {
+            "date-parts": [
+              [
+                2018,
+                10
+              ]
+            ]
+          },
+          "DOI": "10.1162/rest_a_00730",
+          "page": "594-608",
+          "title": [
+            "Conflict, Climate, and Cells: A Disaggregated Analysis"
+          ],
+          "volume": "100",
+          "author": [
+            {
+              "given": "Mariaflavia",
+              "family": "Harari",
+              "sequence": "first",
+              "affiliation": [
+                {
+                  "name": "University of Pennsylvania"
+                }
+              ],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "Eliana La",
+              "family": "Ferrara",
+              "sequence": "additional",
+              "affiliation": [
+                {
+                  "name": "Bocconi University, IGIER, and LEAP"
+                }
+              ],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            }
+          ],
+          "container-title": [
+            "The Review of Economics and Statistics"
+          ],
+          "subtitle": [],
+          "issued": {
+            "date-parts": [
+              [
+                2018,
+                10
+              ]
+            ]
+          },
+          "published": {
+            "date-parts": [
+              [
+                2018,
+                10
+              ]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "10.1016/j.gloenvcha.2015.03.005": {
+    "agency": {
+      "status": 200,
+      "data": [
+        {
+          "DOI": "10.1016/j.gloenvcha.2015.03.005",
+          "RA": "Crossref"
+        }
+      ]
+    },
+    "registry": "Crossref",
+    "answer": {
+      "status": 200,
+      "data": {
+        "status": "ok",
+        "message-type": "work",
+        "message-version": "1.0.0",
+        "message": {
+          "published-print": {
+            "date-parts": [
+              [
+                2015,
+                5
+              ]
+            ]
+          },
+          "DOI": "10.1016/j.gloenvcha.2015.03.005",
+          "page": "187-199",
+          "title": [
+            "The devil is in the details: An investigation of the relationships between conflict, food price and climate across Africa"
+          ],
+          "volume": "32",
+          "author": [
+            {
+              "given": "Clionadh",
+              "family": "Raleigh",
+              "sequence": "first",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "ORCID": "https://orcid.org/0000-0002-2095-6427",
+              "authenticated-orcid": false,
+              "given": "Hyun Jin",
+              "family": "Choi",
+              "sequence": "additional",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "Dominic",
+              "family": "Kniveton",
+              "sequence": "additional",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            }
+          ],
+          "container-title": [
+            "Global Environmental Change"
+          ],
+          "subtitle": [],
+          "issued": {
+            "date-parts": [
+              [
+                2015,
+                5
+              ]
+            ]
+          },
+          "published": {
+            "date-parts": [
+              [
+                2015,
+                5
+              ]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "10.1016/j.jeem.2012.02.001": {
+    "agency": {
+      "status": 200,
+      "data": [
+        {
+          "DOI": "10.1016/j.jeem.2012.02.001",
+          "RA": "Crossref"
+        }
+      ]
+    },
+    "registry": "Crossref",
+    "answer": {
+      "status": 200,
+      "data": {
+        "status": "ok",
+        "message-type": "work",
+        "message-version": "1.0.0",
+        "message": {
+          "published-print": {
+            "date-parts": [
+              [
+                2012,
+                5
+              ]
+            ]
+          },
+          "DOI": "10.1016/j.jeem.2012.02.001",
+          "page": "355-374",
+          "title": [
+            "The impact of weather anomalies on migration in sub-Saharan Africa"
+          ],
+          "volume": "63",
+          "author": [
+            {
+              "given": "Luca",
+              "family": "Marchiori",
+              "sequence": "first",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "Jean-François",
+              "family": "Maystadt",
+              "sequence": "additional",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "Ingmar",
+              "family": "Schumacher",
+              "sequence": "additional",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            }
+          ],
+          "container-title": [
+            "Journal of Environmental Economics and Management"
+          ],
+          "subtitle": [],
+          "issued": {
+            "date-parts": [
+              [
+                2012,
+                5
+              ]
+            ]
+          },
+          "published": {
+            "date-parts": [
+              [
+                2012,
+                5
+              ]
+            ]
+          }
+        }
+      }
+    }
+  }
+}

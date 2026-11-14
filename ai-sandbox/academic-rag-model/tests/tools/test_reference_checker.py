@@ -16,6 +16,7 @@ from tools.reference_checker import RegistryClient, check, clean_identifier, cov
 FIXTURES = json.loads((Path(__file__).parent / "fixtures" / "reference_checker.json").read_text(encoding="utf-8"))
 V2_FIXTURES = json.loads((Path(__file__).parent / "fixtures" / "reference_checker_v2.json").read_text(encoding="utf-8"))
 V2_REFERENCES = json.loads((Path(__file__).parent / "fixtures" / "reference_checker_v2_references.json").read_text(encoding="utf-8"))
+MEMO_V2_REGISTRY = json.loads((Path(__file__).parent / "fixtures" / "reference_checker_memo_v2_registry.json").read_text(encoding="utf-8"))
 
 
 class RecordedClient:
@@ -31,6 +32,20 @@ class RecordedClient:
         if "api.datacite.org" in url:
             answer = row["answer"]
             return {"status": 200, "data": {"data": {"attributes": answer["data"]}}} if row["registry"] == "DataCite" and answer["status"] == 200 else {"status": 404, "data": None}
+        raise AssertionError(url)
+
+
+class MemoV2RecordedClient:
+    """Offline Crossref answers recorded for the seven DOI rows in Memo v2."""
+    def get(self, url):
+        if "query.title" in url:
+            return {"status": 200, "data": {"message": {"items": []}}}
+        for doi, endpoints in MEMO_V2_REGISTRY.items():
+            encoded = urllib.parse.quote(doi, safe="")
+            if url.endswith("doiRA/" + encoded):
+                return endpoints["agency"]
+            if url.endswith("/works/" + encoded):
+                return endpoints["answer"]
         raise AssertionError(url)
 
 
@@ -395,6 +410,54 @@ def test_full_v2_doi_regression_set_offline():
     olea = next(row for row in results if row["identifier"] == "10.48550/arXiv.2408.09187")
     assert olea["registry_answer"]["registry"] == "DataCite"
     assert "TITLE_DIFFERS" in olea["text_fidelity"]
+
+
+@pytest.mark.parametrize("citation,doi", [
+    ("Brown, D., Salisbury, M., & Ball, E. (2025). Evidence-based funding and the value of information: A case study from GiveWell.", "10.1257/pandp.20251021"),
+    ("Lopez, A., Coughlan de Perez, E., Bazo, J., Suarez, P., et al. (2020). Bridging the gap between climate science and humanitarian action: An analysis of forecast-based financing in Peru.", "10.1016/j.wace.2018.03.006"),
+    ("Montiel Olea, J. L., et al. (2024). Externally valid policy choice.", "10.48550/arXiv.2408.09187"),
+    ("Rosenzweig, M. R., & Udry, C. (2020). External validity, information and prices: Methods and results from investments in Indian agriculture.", "10.1093/restud/rdz021"),
+])
+def test_owner_confirmed_low_title_score_matches_are_review(citation, doi):
+    result = check({"citation": citation, "identifier": doi, "kind": "doi"}, RecordedClient())
+    assert result["identity"] == "SAME_WORK"
+    assert result["tier"] == "REVIEW"
+
+
+def test_low_scoring_unrelated_title_probe_is_review():
+    from tools.reference_checker import _identity_tier, citation_fields
+    citation = "White, H. (2020). Completely unrelated quantum widgets."
+    record = {"authors": ["White"], "title": "Evidence and gap maps", "years": [2020]}
+    score = similarity(citation_fields(citation)["title"], record["title"])
+    assert score < 0.5
+    assert _identity_tier("SAME_WORK", citation, record) == "REVIEW"
+
+
+def test_three_v2_notes_same_work_tier_split():
+    from collections import Counter
+    same_work = [check(row, RecordedClient()) for row in V2_REFERENCES]
+    same_work = [row for row in same_work if row["identity"] == "SAME_WORK"]
+    assert len(same_work) == 31
+    assert Counter(row["tier"] for row in same_work) == {"CONFIRMED": 27, "REVIEW": 4}
+
+
+def test_memo_v2_seven_dois_are_plausible_using_recorded_registry_answers():
+    memo_rows = [
+        ("Thalheimer, Schwarz, & Pretis (2023)", "10.1016/j.gloenvcha.2023.102641"),
+        ("Zens & Thalheimer (2025)", "10.1214/24-AOAS1959"),
+        ("Maystadt & Ecker (2014)", "10.1093/ajae/aau010"),
+        ("McGuirk & Burke (2020)", "10.1086/709993"),
+        ("Harari & La Ferrara (2018)", "10.1162/rest_a_00730"),
+        ("Raleigh, Choi, & Kniveton (2015)", "10.1016/j.gloenvcha.2015.03.005"),
+        ("Marchiori, Maystadt, & Schumacher (2012)", "10.1016/j.jeem.2012.02.001"),
+    ]
+    results = [check({"citation": citation, "identifier": doi, "kind": "doi"}, MemoV2RecordedClient())
+               for citation, doi in memo_rows]
+    assert [row["identity"] for row in results] == ["SAME_WORK"] * 7
+    assert [row["tier"] for row in results] == ["PLAUSIBLE"] * 7
+    assert not any(row["tier"] == "CONFIRMED" for row in results)
+    assert [check({"citation": "Institutional source (2022)", "identifier": url, "kind": "url"}, MemoV2RecordedClient())["tier"]
+            for url in ("https://example.org/a", "https://example.org/b")] == ["UNCHECKED", "UNCHECKED"]
 
 
 def test_clean_v2_citations_have_no_parser_artifact_flags():
