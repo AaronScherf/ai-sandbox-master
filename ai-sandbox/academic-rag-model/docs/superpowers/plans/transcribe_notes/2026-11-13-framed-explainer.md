@@ -18,7 +18,7 @@
 - Result schema `1`; `prompt_version` `explainer-v1`; card = **exactly two** paragraphs when `status` is `ok`.
 - Card key = `<scene namespace>|<frame id>|<slide element id>`; section key = `<scene namespace>|<anchor slide id or "standalone">|<section seq>`. Cards carry `customData.autoExplainKey`.
 - Nearest-slide fallback accepted only when nearest distance `< 0.5 x` second-nearest and no other group's ink lies between. Section is anchored only if within `1.5 x` slide width of a slide; otherwise standalone.
-- Card slot: top-aligned with the slide, right of it, gap `4%` of slide width, width = slide width clamped to free frame width. Frame names: `018 Slide 18 · notes 1`; no-slide mode: `Notes 001`.
+- Card slot (measured from LIML2, P5): LEFT of the slide, top-aligned, gap `4%` of slide width, width `1.08 x` slide width; expansion preferred over clamping; never narrower than half the slide width. Frame names: `018 Slide 18 · notes 1`; no-slide mode: `Notes 001`.
 - Ink regions use the framer's rules: `inkGapX 75, inkGapY 55, inkMaxW 1200, inkMaxH 850`.
 - Course context cap about 2,000 tokens; neighbour window default +/-7 days; context is hint-only, `context_assisted` flag.
 - States: `pending -> generated -> validated -> applied -> verified`; terminal `needs_review`, `placement_conflict`, `declined`, `skipped_existing`; same fingerprint at `verified` is `noop`; changed fingerprint is `stale`, one replacement.

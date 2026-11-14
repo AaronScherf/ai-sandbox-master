@@ -82,52 +82,59 @@ test("deleted strokes are ignored by the audit", () => {
 });
 
 const slide907 = {x:0,y:0,width:907,height:510};
-const frame = (w=2200) => ({x:-10,y:-10,width:w,height:600});
+const frameAt = (x,w=3300,h=600) => ({x,y:-10,width:w,height:h});
 const natural = {w:1000,h:547};
 const near = (a,b,eps=0.01) => Math.abs(a-b) < eps;
 
-test("slot is right of the slide with a 4 percent gap, top-aligned", () => {
-  const r=ax.planCardSlot(frame(),slide907,natural,[]);
+test("slot is left of the slide, top-aligned, 4 percent gap, 1.08x width (LIML2 convention)", () => {
+  const r=ax.planCardSlot(frameAt(-1100),slide907,natural,[]);
   assert.equal(r.ok,true);
-  assert.ok(near(r.x,907+0.04*907));
+  assert.ok(near(r.w,1.08*907));
+  assert.ok(near(r.x+r.w,-0.04*907));
   assert.equal(r.y,0);
-  assert.ok(near(r.w,907));
-  assert.ok(near(r.h,547*907/1000));
+  assert.ok(near(r.h,547*r.w/1000));
 });
 
-test("width is clamped to the free frame width", () => {
-  const r=ax.planCardSlot(frame(1500),slide907,natural,[]);
+test("width is clamped to the free frame width when expansion is not offered", () => {
+  const r=ax.planCardSlot(frameAt(-600),slide907,natural,[]);
   assert.equal(r.ok,true);
-  assert.ok(near(r.x+r.w,1490));   // frame right edge
+  assert.ok(near(r.x,-600));
+  assert.ok(r.w < 1.08*907 && r.w >= 0.5*907);
 });
 
 test("ink in the slot yields placement_conflict", () => {
-  const r=ax.planCardSlot(frame(),slide907,natural,[{x:1000,y:100,width:50,height:50}]);
+  const r=ax.planCardSlot(frameAt(-1100),slide907,natural,[{x:-500,y:100,width:50,height:50}]);
   assert.equal(r.ok,false);
   assert.equal(r.reason,"placement_conflict");
 });
 
 test("expansion happens only when allowed by the caller", () => {
-  const narrow=frame(1300);
+  const narrow=frameAt(-200);
   const denied=ax.planCardSlot(narrow,slide907,natural,[],{canExpand:()=>false});
   assert.equal(denied.ok,false);
   const allowed=ax.planCardSlot(narrow,slide907,natural,[],{canExpand:()=>true});
   assert.equal(allowed.ok,true);
-  assert.ok(near(allowed.w,907));
-  assert.ok(allowed.expandFrame.x+allowed.expandFrame.width >= allowed.x+allowed.w);
-  assert.ok(allowed.expandFrame.x <= narrow.x);
+  assert.ok(near(allowed.w,1.08*907));
+  assert.ok(allowed.expandFrame.x <= allowed.x);
+  assert.ok(allowed.expandFrame.x+allowed.expandFrame.width >= narrow.x+narrow.width);
+});
+
+test("expansion is preferred over clamping when allowed", () => {
+  const r=ax.planCardSlot(frameAt(-600),slide907,natural,[],{canExpand:()=>true});
+  assert.ok(near(r.w,1.08*907));
+  assert.ok(r.expandFrame);
 });
 
 test("slot scales with slide size (607 and 1473 wide)", () => {
   const small={x:0,y:0,width:607,height:457}, big={x:0,y:0,width:1473,height:828};
-  const a=ax.planCardSlot({x:-10,y:-10,width:1500,height:560},small,natural,[]);
-  const b=ax.planCardSlot({x:-10,y:-10,width:3400,height:900},big,natural,[]);
-  assert.ok(near(a.x,607*1.04) && near(a.w,607));
-  assert.ok(near(b.x,1473*1.04) && near(b.w,1473));
+  const a=ax.planCardSlot(frameAt(-800,2600,560),small,natural,[]);
+  const b=ax.planCardSlot(frameAt(-2000,6000,900),big,natural,[]);
+  assert.ok(near(a.w,1.08*607) && near(a.x+a.w,-0.04*607));
+  assert.ok(near(b.w,1.08*1473) && near(b.x+b.w,-0.04*1473));
 });
 
 test("card taller than the frame is a conflict unless expansion is allowed", () => {
-  const short={x:-10,y:-10,width:2200,height:400};
+  const short=frameAt(-1100,3300,400);
   assert.equal(ax.planCardSlot(short,slide907,natural,[]).ok,false);
   assert.equal(ax.planCardSlot(short,slide907,natural,[],{canExpand:()=>true}).ok,true);
 });
