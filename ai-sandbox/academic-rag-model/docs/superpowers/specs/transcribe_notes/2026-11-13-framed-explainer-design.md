@@ -132,6 +132,22 @@ Two coverage guarantees are kept separate:
 
 **Ink-only scenes** are a supported mode, not "nothing to do". The framer's ink clustering splits the strokes into sections; each is framed as `Notes N` in reading order (no sidecar needed in this mode). The agent transcribes each section and writes one card per section, **organized by section**: paragraph 1 says what the section is doing (setup, derivation, example), paragraph 2 interprets the transcribed steps. With no slide to ground it, the card may state only what the ink supports; unreadable or ambiguous ink yields `needs_review`, never a guess. Neighbouring sections' transcriptions are passed as context for notation, and a card never references a slide that is not in the scene.
 
+### Course context (optional input to stage 1)
+
+The vault is organized `academic_notes/<course>/part_N/` with sibling `syllabus/`, `professor_notes/`, `ta_notes/` and `problem_sets/` folders, and scene filenames carry a lecture timestamp. The collector builds one bounded **`course_context.md`** per scene and passes it to the agent, so the prompt is tailored to the course without per-run authoring:
+
+- **Course profile:** course and part, discipline, level, taken from the folder path and the syllabus.
+- **Topic window:** the syllabus entries nearest the scene's timestamp (the lecture date maps to a syllabus week), so the agent knows what is being covered that day.
+- **Neighbouring material:** titles and headings of professor/TA notes and neighbouring scenes within a small date window (default plus or minus 7 days), plus the notation already accepted in earlier cards for the same course.
+- **Symbol glossary** assembled from the above (for example, estimator names such as LIML or HLIM), used only to disambiguate ink that reads two ways.
+
+Rules, so context helps without corrupting grounding:
+- **Hint, not evidence.** Context may select between plausible readings of unclear ink. It may not supply claims. A statement in a card must come from the slide or the ink; where the reading rests on context alone, the card says so and the section is marked `context_assisted`.
+- **Authority order** follows the repo's rule: instructor and TA handouts outrank the owner's own notes, which are fallible.
+- **Bounded and provenance-labelled:** a hard size cap (default about 2,000 tokens) and a source path per line. Cached per course and window by the hash of the source files, so reruns do not rebuild it. It is part of the input fingerprint, so a changed syllabus marks cards `stale` deliberately.
+- **Read-only:** built from existing files; no model call is required to assemble it. An LLM summarization of long handouts is an optional later step, with the cost rule applied.
+- Missing folders (no syllabus, no timestamp) degrade to the course profile alone, never to an error.
+
 ### Card placement contract
 
 Applies to every card the apply script creates.
@@ -208,6 +224,7 @@ Anything needing an owner decision uses an **interactive Artifact** with decisio
 - Anchored sections get a transcription note that feeds their slide's card; standalone and ink-only sections get their own two-paragraph card (owner decision, 2026-11-13). The framer gains a no-slide mode that needs no sidecar.
 - Interactive agent is the first-release generation route; `agy` is a later swap-in.
 - Git commit before apply is the recovery mechanism, not a separate backup file.
+- Course context (syllabus window, neighbouring notes, glossary) is an optional, bounded, hint-only input; the date-to-syllabus-week mapping and the exact file selection are left to the builder after reading a real `syllabus/` folder.
 - A single ordered context summary (5 to 10 preceding cards) is passed to the agent per batch for notation consistency; its exact format is left to the builder.
 - Collector and prompt/runbook live in `pipelines/transcribe_notes/`; the apply script is added beside `Auto-Frame Slides.md` in the nested vault.
 
