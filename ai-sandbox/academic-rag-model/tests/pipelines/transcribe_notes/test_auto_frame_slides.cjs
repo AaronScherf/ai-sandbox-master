@@ -699,3 +699,29 @@ test("tightly stacked slides still get frames that do not cover their neighbours
   assert.ok(mid.bounds.y>=a.y+a.height && mid.bounds.y+mid.bounds.h<=c.y);
   assert.ok(af.contains(mid.bounds,af.box(b)));
 });
+
+test("clamped frame suggests how far to move the next slide", () => {
+  const a=png("a",0,0,"a".repeat(40)), b=png("b",3000,0,"b".repeat(40));
+  const edge=stroke("edge",2940,100,100,10);          // right edge 3040, band limit 2988
+  const first=af.planFrames([a,b,edge],registry,{slides:[entry(a,1),entry(b,2)]})
+    .plans.find(p=>p.slideId==="a");
+  assert.equal(first.suggestion.axis,"x");
+  assert.equal(first.suggestion.nextSlideId,"b");
+  assert.ok(first.suggestion.px>=52 && first.suggestion.px<=100);
+});
+
+test("no suggestion when all ink fits", () => {
+  const a=png("a",0,0,"a".repeat(40)), b=png("b",3000,0,"b".repeat(40));
+  const first=af.planFrames([a,b,stroke("ok",1500,100)],registry,{slides:[entry(a,1),entry(b,2)]})
+    .plans.find(p=>p.slideId==="a");
+  assert.equal(first.suggestion||null,null);
+});
+
+test("preview text tells the user to move the next slide and rerun", () => {
+  const a=png("a",0,0,"a".repeat(40)), b=png("b",3000,0,"b".repeat(40));
+  const plan=af.planFrames([a,b,stroke("edge",2940,100,100,10)],registry,{slides:[entry(a,1),entry(b,2)]}).plans[0];
+  const line=af.previewLine({...plan,inkStrokes:plan.inkIds.length,
+    atRiskInkStrokes:plan.atRiskInkIds.length});
+  assert.match(line,/move/i);
+  assert.match(line,/rerun/i);
+});
