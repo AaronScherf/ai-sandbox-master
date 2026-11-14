@@ -147,3 +147,106 @@ test("card action: create, noop, update_stale, skipped_existing", () => {
   assert.equal(ax.decideCardAction(cards,"k2","fpA",true),"skipped_existing");
   assert.equal(ax.decideCardAction(cards,"k1","fpB",true),"update_stale");
 });
+
+test("refWidth sizes the card from a reference width instead of the box width", () => {
+  const inkBox={x:0,y:0,width:300,height:200};
+  const r=ax.planCardSlot(frameAt(-1500),inkBox,natural,[],{refWidth:907});
+  assert.ok(near(r.w,1.08*907));
+  assert.ok(near(r.x+r.w,-0.04*907));
+});
+
+// ---- applyResolved orchestration (adapter stubbed; real card creation is a live probe) ----
+function makeAdapter(els, o={}) {
+  const calls=[]; let n=0;
+  return {calls,
+    measureCard: async () => ({w:1000,h:547}),
+    createCard: async (spec) => {
+      calls.push(["create",spec.key]);
+      const id="card"+(++n);
+      if (!o.dropCard) els.push({id,type:"image",x:spec.x,y:spec.y,width:spec.w,height:spec.h,
+        fileId:"f"+id,frameId:spec.frameId,
+        customData:{markdownImage:{schemaVersion:1},autoExplainKey:spec.key,
+          autoExplainFingerprint:spec.fingerprint}});
+      return {id};
+    },
+    deleteElement: async (id) => { calls.push(["delete",id]);
+      els.find(e=>e.id===id).isDeleted=true; },
+    expandFrame: async (id,b) => { calls.push(["expand",id]);
+      Object.assign(els.find(e=>e.id===id),b); },
+    writeSections: async (json) => { calls.push(["sections",json.sections.length]); this_last=json; },
+    getElements: () => els};
+}
+let this_last=null;
+const ctxFor = (els, adapter, resolved=load("result_resolved_ok.json"), sha="1".repeat(40)) =>
+  ({resolved, elements:els, sceneSha1:sha, adapter});
+
+test("apply aborts with no write when the scene hash differs from collect", async () => {
+  const els=elements(), ad=makeAdapter(els);
+  await assert.rejects(ax.applyResolved(ctxFor(els,ad,undefined,"2".repeat(40))),
+    /changed since collect/);
+  assert.equal(ad.calls.length,0);
+});
+
+test("apply refuses when the coverage audit fails", async () => {
+  const els=elements(), ad=makeAdapter(els), res=load("result_resolved_ok.json");
+  res.slides[0].ink[0].stroke_ids=["k1"];   // k2 has no disposition
+  await assert.rejects(ax.applyResolved(ctxFor(els,ad,res)),/coverage/);
+  assert.equal(ad.calls.length,0);
+});
+
+test("apply writes sections first, creates one card for s1, reports the rest", async () => {
+  const els=elements(), ad=makeAdapter(els);
+  const results=await ax.applyResolved(ctxFor(els,ad));
+  assert.equal(ad.calls[0][0],"sections");
+  assert.ok(ad.calls.some(c=>c[0]==="expand" && c[1]==="f1"));
+  const byKey=Object.fromEntries(results.map(r=>[r.key,r.action]));
+  assert.equal(byKey["t--x|f1|s1"],"create");
+  assert.equal(byKey["t--x|f2|s2"],"needs_review");
+  assert.equal(Object.values(byKey).filter(a=>a==="awaiting_frame").length,1);
+  assert.equal(this_last.sections[0].kind,"standalone");
+  const card=els.find(e=>e.customData?.autoExplainKey==="t--x|f1|s1");
+  const f1=els.find(e=>e.id==="f1");
+  assert.ok(card.x+card.width <= -0.04*907+0.01 && card.x >= f1.x);
+});
+
+test("rerun on unchanged input is a no-op", async () => {
+  const els=elements(), ad=makeAdapter(els);
+  await ax.applyResolved(ctxFor(els,ad));
+  const before=ad.calls.filter(c=>c[0]==="create").length;
+  const again=await ax.applyResolved(ctxFor(els,ad));
+  assert.equal(ad.calls.filter(c=>c[0]==="create").length,before);
+  assert.equal(again.find(r=>r.key==="t--x|f1|s1").action,"noop");
+});
+
+test("changed fingerprint replaces the card once, never duplicates it", async () => {
+  const els=elements(), ad=makeAdapter(els);
+  await ax.applyResolved(ctxFor(els,ad));
+  const res=load("result_resolved_ok.json"); res.fingerprints.s1="fpNEW";
+  const out=await ax.applyResolved(ctxFor(els,ad,res));
+  assert.equal(out.find(r=>r.key==="t--x|f1|s1").action,"update_stale");
+  const live=els.filter(e=>!e.isDeleted && e.customData?.autoExplainKey==="t--x|f1|s1");
+  assert.equal(live.length,1);
+  assert.equal(live[0].customData.autoExplainFingerprint,"fpNEW");
+});
+
+test("a manual explanation in the frame is protected", async () => {
+  const els=elements(), ad=makeAdapter(els);
+  els.push({id:"manual",type:"image",x:-1000,y:0,width:950,height:500,fileId:"m",
+    frameId:"f1",customData:{markdownImage:{schemaVersion:1}}});
+  const out=await ax.applyResolved(ctxFor(els,ad));
+  assert.equal(out.find(r=>r.key==="t--x|f1|s1").action,"skipped_existing");
+  assert.equal(ad.calls.filter(c=>c[0]==="create").length,0);
+});
+
+test("a blocked slot is a placement_conflict and leaves the frame untouched", async () => {
+  const els=elements(), ad=makeAdapter(els);
+  els.push({id:"blocker",type:"image",x:-500,y:100,width:200,height:200,fileId:"b"});
+  const out=await ax.applyResolved(ctxFor(els,ad));
+  assert.equal(out.find(r=>r.key==="t--x|f1|s1").action,"placement_conflict");
+  assert.equal(ad.calls.filter(c=>c[0]==="create"||c[0]==="expand").length,0);
+});
+
+test("post-save audit failure aborts loudly", async () => {
+  const els=elements(), ad=makeAdapter(els,{dropCard:true});
+  await assert.rejects(ax.applyResolved(ctxFor(els,ad)),/Post-save audit/);
+});
