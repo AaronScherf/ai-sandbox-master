@@ -155,13 +155,13 @@ def extract(text: str) -> list[dict]:
                         if found_author_year:
                             candidate = part[:found_author_year.end()].strip(" |*`_")
                             break
-                    rows.append({"citation": clean_citation(candidate or citation), "identifier": ident, "kind": "doi"})
+                    rows.append({"citation": clean_citation(candidate or citation), "identifier": ident, "kind": "doi", "line": index + 1})
                     seen.add(ident.lower())
             if not seen:
                 for link in LINK.finditer(line):
                     kind, ident = identifiers(link.group(2))
                     if kind:
-                        rows.append({"citation": clean_citation(citation), "identifier": ident, "kind": kind})
+                        rows.append({"citation": clean_citation(citation), "identifier": ident, "kind": kind, "line": index + 1})
             continue
         links = list(LINK.finditer(line))
         if links:
@@ -181,7 +181,7 @@ def extract(text: str) -> list[dict]:
                     following = lines[index + 1].strip()
                     if following.startswith("*") and YEAR.search(following) and not LINK.search(following):
                         citation = following.strip("* ")
-                rows.append({"citation": clean_citation(citation), "identifier": ident, "kind": kind})
+                rows.append({"citation": clean_citation(citation), "identifier": ident, "kind": kind, "line": index + 1})
             continue
         line = re.sub(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)", "", line)
         dois = list(DOI.finditer(line))
@@ -200,14 +200,14 @@ def extract(text: str) -> list[dict]:
                     names = list(re.finditer(r"[A-ZÀ-ÖØ-Þ][\w'’\-]*(?:\s+[A-ZÀ-ÖØ-Þ][\w'’\-]*){0,3}\s*\((?:19|20)\d{2}(?=[),])", before))
                     citation = before[names[-1].start():] if names else before
                     citation = citation.strip(" *`():—–-.") or line
-                rows.append({"citation": citation, "identifier": clean_identifier(match.group()), "kind": "doi"})
+                rows.append({"citation": citation, "identifier": clean_identifier(match.group()), "kind": "doi", "line": index + 1})
             continue
         kind, ident = identifiers(line)
         if kind in ("arxiv", "url"):
-            rows.append({"citation": clean_citation(line.strip("* ")), "identifier": ident, "kind": kind})
+            rows.append({"citation": clean_citation(line.strip("* ")), "identifier": ident, "kind": kind, "line": index + 1})
         elif ((in_references and re.search(r"\(\d{4}\)\.\s+\w", line)) or
               (not markdown_document and YEAR.search(line) and len(line.split()) >= 3)):
-            rows.append({"citation": clean_citation(line.strip("* ")), "identifier": "", "kind": ""})
+            rows.append({"citation": clean_citation(line.strip("* ")), "identifier": "", "kind": "", "line": index + 1})
     return rows
 
 
@@ -704,6 +704,8 @@ def check_note(text: str, client: RegistryClient, rows: list[dict] | None = None
     results = []
     for row in source_rows:
         original = check(row, client)
+        if "line" in row:
+            original["line"] = row["line"]
         original["evidence"] = "title_in_citation" if citation_fields(row["citation"])["title"] else ""
         if original["identity"] != "SAME_WORK" or original["evidence"]:
             results.append(original)
@@ -739,6 +741,8 @@ def check_note(text: str, client: RegistryClient, rows: list[dict] | None = None
         linked_citation = row["citation"].rstrip(" .") + ". " + chosen["title"]
         linked = check({**row, "citation": linked_citation}, client)
         linked["citation"] = original["citation"]
+        if "line" in row:
+            linked["line"] = row["line"]
         linked["linked_citation"] = linked_citation
         linked["evidence"] = evidence
         results.append(linked)
