@@ -112,6 +112,32 @@ def test_markdown_link_preserves_sici_doi_inside_target():
     assert rows[0]["identifier"] == doi
 
 
+def test_literature_review_entry_binds_doi_to_author_year_and_heading_title():
+    from tools.reference_checker import check_note
+
+    note = """# Literature Review
+### <a id="paper-1"></a>1. How Research Affects Policy: Experimental Evidence from 2,150 Brazilian Municipalities
+- **Authors:** Hjort, B. et al. (4 authors total)
+- **Publication Year:** 2021
+- **Journal / Venue:** American Economic Review
+- **DOI / Link:** [https://doi.org/10.1257/aer.20190830](https://doi.org/10.1257/aer.20190830)
+
+**Abstract:**
+> Abstract text is not citation evidence.
+"""
+
+    rows = extract(note)
+    assert len(rows) == 1
+    assert rows[0]["citation"] == (
+        "Hjort, B. et al. (2021). "
+        "How Research Affects Policy: Experimental Evidence from 2,150 Brazilian Municipalities"
+    )
+    result = check_note(note, FixtureClient())[0]
+    assert result["identity"] == "SAME_WORK"
+    assert result["tier"] == "CONFIRMED"
+    assert result["evidence"] == "title_in_citation"
+
+
 def test_regression_wrong_and_correct_dois():
     client = FixtureClient()
     for citation, doi in [("Vivalt (2020)", "10.1093/jeea/jvz054"),

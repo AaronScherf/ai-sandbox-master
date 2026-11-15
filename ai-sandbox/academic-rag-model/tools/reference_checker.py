@@ -93,6 +93,9 @@ def extract(text: str) -> list[dict]:
                           if re.match(r"^#{1,6}\s+.*\b(?:references|bibliography)\b", line, re.I)]
     in_references = False
     reference_level = 0
+    literature_title = ""
+    literature_authors = ""
+    literature_year = ""
     for index, raw in enumerate(lines):
         line = raw.strip()
         heading = re.match(r"^(#+)\s", line)
@@ -101,8 +104,23 @@ def extract(text: str) -> list[dict]:
                 in_references, reference_level = True, len(heading.group(1))
             elif in_references and len(heading.group(1)) <= reference_level:
                 in_references = False
+            paper_heading = re.match(
+                r"^#{1,6}\s+<a\s+id=[\"']paper-\d+[\"']\s*>\s*</a>\s*\d+\.\s*(.+?)\s*$",
+                line, re.I,
+            )
+            literature_title = html.unescape(paper_heading.group(1)).strip() if paper_heading else ""
+            literature_authors = ""
+            literature_year = ""
             continue
         if not line:
+            continue
+        authors_match = re.match(r"^[-*+]\s+\*\*Authors?:\*\*\s*(.+)$", line, re.I)
+        if authors_match and literature_title:
+            literature_authors = re.sub(r"\s*\(\d+\s+authors?\s+total\)\s*$", "", authors_match.group(1), flags=re.I)
+            continue
+        year_match = re.match(r"^[-*+]\s+\*\*Publication Year:\*\*\s*((?:19|20)\d{2})\b", line, re.I)
+        if year_match and literature_title:
+            literature_year = year_match.group(1)
             continue
         bullet = bool(re.match(r"(?:[-*+]\s+|\d+[.)]\s+)", line))
         table = line.startswith("|") and not re.match(r"^\|?\s*[-:| ]+\|", line)
@@ -152,6 +170,9 @@ def extract(text: str) -> list[dict]:
                 if not kind:
                     continue
                 citation = link.group(1)
+                if (re.match(r"^[-*+]\s+\*\*DOI\s*/\s*Link:\*\*", line, re.I)
+                        and literature_title and literature_authors and literature_year):
+                    citation = f"{literature_authors} ({literature_year}). {literature_title}"
                 end = links[link_index + 1].start() if link_index + 1 < len(links) else len(line)
                 suffix = line[link.end():end].lstrip(" —–-:")
                 if YEAR.search(suffix) and re.match(r"[A-ZÀ-ÖØ-Þ]", suffix):
