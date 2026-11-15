@@ -177,6 +177,13 @@ def test_identity_counts_aggregate_worst_tier_per_distinct_doi():
     assert counts["tier_distinct_dois"] == {"REVIEW": 1, "WRONG_WORK": 1, "PLAUSIBLE": 1}
 
 
+def test_identity_counts_detect_dois_without_a_kind_field():
+    from tools.reference_checker import identity_counts
+    counts = identity_counts([{"identity": "SAME_WORK", "tier": "CONFIRMED", "identifier": "10.5555/no-kind"}])
+    assert counts["doi_count"] == 1
+    assert counts["distinct_dois"] == {"SAME_WORK": 1}
+
+
 def test_memo_doi_ground_truth_against_recorded_raw_registry_answers():
     raw = json.loads((Path(__file__).parent / "fixtures/reference_checker_memo_registry_raw.json").read_text(encoding="utf-8"))
     class MemoRecordedClient:
@@ -324,6 +331,14 @@ def test_crossref_organization_name_and_german_surname_equivalence():
     assert record["authors"] == ["World Bank"]
     assert compare("Mueller (2020). A Test Paper", {"authors": ["Müller"],
                    "title": "A Test Paper", "years": [2020]})[0] == "SAME_WORK"
+
+
+def test_compound_surname_uses_last_surname_token_not_sorted_token():
+    from tools.reference_checker import compare
+    identity, _, _ = compare("O'Connor McCarthy (2020). A Relevant Study Title", {
+        "authors": ["McCarthy", "Other Author"], "title": "A Relevant Study Title", "years": [2020],
+    })
+    assert identity == "SAME_WORK"
 
 
 def test_cli_exit_codes_are_advisory_by_default(tmp_path, monkeypatch):

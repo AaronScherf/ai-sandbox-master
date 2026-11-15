@@ -498,8 +498,10 @@ def compare(citation: str, record: dict) -> tuple[str, list[str], str]:
     first_block = re.split(r",|\s+&\s+|\s+and\s+", author_prefix, maxsplit=1)[0]
     first_cited = _author_tokens(first_block)
     first_registered = _author_tokens((record.get("authors") or [record.get("author", "")])[0])
+    first_surname = normalized(first_block.split(",", 1)[0]).split()
+    last_name_token = first_surname[-1] if first_surname else ""
     first_matches = bool(first_cited and first_registered and first_cited & first_registered and
-                         (sorted(first_cited)[-1] in first_registered or first_cited <= first_registered))
+                         (last_name_token in first_registered or first_cited <= first_registered))
     identity = ("SAME_WORK" if first_matches or len(overlap) >= 2 else
                 "AMBIGUOUS" if overlap else
                 "WRONG_WORK" if cited_authors and registered_authors else "UNCHECKED")
@@ -714,7 +716,7 @@ def identity_counts(rows: list[dict]) -> dict:
                  "REVIEW": 4, "AMBIGUOUS": 4, "NOT_FOUND": 5, "WRONG_WORK": 6}
     doi_tiers = {}
     for row in rows:
-        if row.get("kind") == "doi" or str(row.get("identifier", "")).lower().startswith("10."):
+        if str(row.get("identifier", "")).lower().startswith("10."):
             key = str(row.get("identifier", "")).lower()
             current = doi_rows.get(key)
             if current is None or rank.get(row.get("identity"), 0) > rank.get(current, 0):
@@ -731,7 +733,7 @@ def identity_counts(rows: list[dict]) -> dict:
             "tier_mentions": tally(row.get("tier", row.get("identity", "UNRESOLVED")) for row in rows),
             "tier_distinct_dois": tally(doi_tiers.values()),
             "distinct_dois": tally(doi_rows.values()), "doi_count": len(doi_rows),
-            "non_doi_entries": sum(1 for row in rows if not (row.get("kind") == "doi" or str(row.get("identifier", "")).lower().startswith("10.")))}
+            "non_doi_entries": sum(1 for row in rows if not str(row.get("identifier", "")).lower().startswith("10."))}
 
 
 def markdown(rows: list[dict]) -> str:
