@@ -51,7 +51,7 @@ DOI = re.compile(r"10\.\d{4,9}/[^\s\]\[{}\"']+", re.I)
 ARXIV = re.compile(r"(?:arxiv(?:\.org/(?:abs|pdf)/|:|\s+))(\d{4}\.\d{4,5}(?:v\d+)?|[a-z.\-]+/\d{7}(?:v\d+)?)", re.I)
 URL = re.compile(r"https?://[^\s\])]+", re.I)
 YEAR = re.compile(r"\b(?:19|20)\d{2}\b")
-LINK = re.compile(r"\[([^]]+)\]\((https?://.*?)\)(?=\s|$|[.,;])")
+LINK = re.compile(r"\[([^]]+)\]\((https?://(?:[^()]|\([^()]*\))*)\)(?=\s|$|[.,;])")
 SOURCE_TAG = re.compile(r"\s*\*{0,2}\[(?:VERIFIED|UNVERIFIED|ABSTRACT-ONLY)\]\*{0,2}", re.I)
 
 

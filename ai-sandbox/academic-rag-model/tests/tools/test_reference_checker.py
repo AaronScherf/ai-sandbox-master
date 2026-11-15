@@ -86,6 +86,20 @@ def test_wiley_sici_preserves_balanced_parentheses_and_angle_brackets():
     assert extract(f"* [Claxton (1999)](https://doi.org/{doi})")[0]["identifier"] == doi
 
 
+def test_markdown_link_keeps_parenthesized_doi_suffix():
+    doi = "10.31499/2616-5236.2(28).2024.300402"
+    rows = extract(f"* [paper](https://doi.org/{doi})")
+    assert len(rows) == 1
+    assert rows[0]["identifier"] == doi
+
+
+def test_markdown_link_preserves_sici_doi_inside_target():
+    doi = "10.1002/(SICI)1099-1050(199906)8:4<341::AID-HEC449>3.0.CO;2-9"
+    rows = extract(f"* [Claxton (1999)](https://doi.org/{doi})")
+    assert len(rows) == 1
+    assert rows[0]["identifier"] == doi
+
+
 def test_regression_wrong_and_correct_dois():
     client = FixtureClient()
     for citation, doi in [("Vivalt (2020)", "10.1093/jeea/jvz054"),
