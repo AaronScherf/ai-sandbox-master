@@ -171,8 +171,14 @@ def extract(text: str) -> list[dict]:
                 for segment in before.split(": "):
                     if YEAR.search(segment):
                         before = segment
-                names = list(re.finditer(r"[A-ZÀ-ÖØ-Þ][\w'’\-]*(?:\s+[A-ZÀ-ÖØ-Þ][\w'’\-]*){0,3}\s*\((?:19|20)\d{2}(?=[),])", before))
-                citation = (before[names[-1].start():] if names else before).strip(" *`():—–-.") or line
+                comma_year = re.search(r"\(((?:19|20)\d{2})(?=\s*[,;])", before)
+                if comma_year:
+                    author_block = before[:comma_year.start()].strip(" *`():—–-")
+                    citation = f"{author_block} ({comma_year.group(1)})" if author_block else before
+                else:
+                    names = list(re.finditer(r"[A-ZÀ-ÖØ-Þ][\w'’\-]*(?:\s+[A-ZÀ-ÖØ-Þ][\w'’\-]*){0,3}\s*\((?:19|20)\d{2}(?=[),])", before))
+                    citation = before[names[-1].start():] if names else before
+                    citation = citation.strip(" *`():—–-.") or line
                 rows.append({"citation": citation, "identifier": clean_identifier(match.group()), "kind": "doi"})
             continue
         kind, ident = identifiers(line)

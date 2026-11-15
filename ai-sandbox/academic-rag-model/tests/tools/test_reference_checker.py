@@ -16,6 +16,7 @@ from tools.reference_checker import RegistryClient, check, clean_identifier, cov
 FIXTURES = json.loads((Path(__file__).parent / "fixtures" / "reference_checker.json").read_text(encoding="utf-8"))
 V2_FIXTURES = json.loads((Path(__file__).parent / "fixtures" / "reference_checker_v2.json").read_text(encoding="utf-8"))
 V2_REFERENCES = json.loads((Path(__file__).parent / "fixtures" / "reference_checker_v2_references.json").read_text(encoding="utf-8"))
+SUMMARY_V3_REGISTRY = json.loads((Path(__file__).parent / "fixtures" / "reference_checker_summary_v3_registry.json").read_text(encoding="utf-8"))
 MEMO_V2_REGISTRY = json.loads((Path(__file__).parent / "fixtures" / "reference_checker_memo_v2_registry.json").read_text(encoding="utf-8"))
 MEMO_V2_MISSING_RAW = json.loads((Path(__file__).parent / "fixtures" / "reference_checker_memo_v2_registry_missing_raw.json").read_text(encoding="utf-8"))
 
@@ -33,6 +34,17 @@ class RecordedClient:
         if "api.datacite.org" in url:
             answer = row["answer"]
             return {"status": 200, "data": {"data": {"attributes": answer["data"]}}} if row["registry"] == "DataCite" and answer["status"] == 200 else {"status": 404, "data": None}
+        raise AssertionError(url)
+
+
+class SummaryV3RecordedClient:
+    def get(self, url):
+        for doi, endpoints in SUMMARY_V3_REGISTRY.items():
+            encoded = urllib.parse.quote(doi, safe="")
+            if url.endswith("doiRA/" + encoded):
+                return endpoints["agency"]
+            if url.endswith("/works/" + encoded):
+                return endpoints["answer"]
         raise AssertionError(url)
 
 
@@ -811,6 +823,24 @@ def test_v2_reference_line_and_table_extraction():
     rows = extract(note)
     assert len(rows) == 2
     assert "Predicting the efficacy" in rows[0]["citation"]
+
+
+def test_summary_v3_author_year_doi_rows_match_crossref_facts():
+    note = Path(__file__).parents[3] / "research" / "independent-research" / "notes" / "00_overview-and-strategy" / "03_novelty-check" / "Novelty Check - Summary - v3.md"
+    rows = extract(note.read_text(encoding="utf-8"))
+    expected = {
+        "10.1111/j.1540-5907.2011.00515.x": ("Butler & Broockman (2011)", ["Butler", "Broockman"], 2011),
+        "10.1016/j.jdeveco.2023.103121": ("Vivalt & Coville (2023)", ["Vivalt", "Coville"], 2023),
+        "10.1093/ije/dyn188": ("Brok et al. (2008)", ["Brok", "Thorlund", "Wetterslev", "Gluud"], 2008),
+    }
+    for doi, (citation, authors, year) in expected.items():
+        row = next(row for row in rows if row["identifier"] == doi)
+        assert row["citation"] == citation
+        result = check(row, SummaryV3RecordedClient())
+        registry_record = result["registry_answer"]["record"]
+        assert registry_record["authors"] == authors
+        assert year in registry_record["years"]
+        assert result["identity"] == "SAME_WORK"
 
 
 def test_identifier_only_table_uses_adjacent_citation_and_never_accuses():

@@ -1,0 +1,284 @@
+{
+  "10.1111/j.1540-5907.2011.00515.x": {
+    "agency": {
+      "status": 200,
+      "data": [
+        {
+          "DOI": "10.1111/j.1540-5907.2011.00515.x",
+          "RA": "Crossref"
+        }
+      ]
+    },
+    "answer": {
+      "status": 200,
+      "data": {
+        "message": {
+          "published-print": {
+            "date-parts": [
+              [
+                2011,
+                7
+              ]
+            ]
+          },
+          "DOI": "10.1111/j.1540-5907.2011.00515.x",
+          "page": "463-477",
+          "title": [
+            "Do Politicians Racially Discriminate Against Constituents? A Field Experiment on State Legislators"
+          ],
+          "volume": "55",
+          "author": [
+            {
+              "given": "Daniel M.",
+              "family": "Butler",
+              "sequence": "first",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "David E.",
+              "family": "Broockman",
+              "sequence": "additional",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            }
+          ],
+          "published-online": {
+            "date-parts": [
+              [
+                2011,
+                4,
+                27
+              ]
+            ]
+          },
+          "container-title": [
+            "American Journal of Political Science"
+          ],
+          "subtitle": [
+            "DO POLITICIANS RACIALLY DISCRIMINATE?"
+          ],
+          "issued": {
+            "date-parts": [
+              [
+                2011,
+                4,
+                27
+              ]
+            ]
+          },
+          "published": {
+            "date-parts": [
+              [
+                2011,
+                4,
+                27
+              ]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "10.1016/j.jdeveco.2023.103121": {
+    "agency": {
+      "status": 200,
+      "data": [
+        {
+          "DOI": "10.1016/j.jdeveco.2023.103121",
+          "RA": "Crossref"
+        }
+      ]
+    },
+    "answer": {
+      "status": 200,
+      "data": {
+        "message": {
+          "published-print": {
+            "date-parts": [
+              [
+                2023,
+                10
+              ]
+            ]
+          },
+          "DOI": "10.1016/j.jdeveco.2023.103121",
+          "page": "103121",
+          "title": [
+            "How do policymakers update their beliefs?"
+          ],
+          "volume": "165",
+          "author": [
+            {
+              "given": "Eva",
+              "family": "Vivalt",
+              "sequence": "first",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "Aidan",
+              "family": "Coville",
+              "sequence": "additional",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            }
+          ],
+          "container-title": [
+            "Journal of Development Economics"
+          ],
+          "subtitle": [],
+          "issued": {
+            "date-parts": [
+              [
+                2023,
+                10
+              ]
+            ]
+          },
+          "published": {
+            "date-parts": [
+              [
+                2023,
+                10
+              ]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "10.1093/ije/dyn188": {
+    "agency": {
+      "status": 200,
+      "data": [
+        {
+          "DOI": "10.1093/ije/dyn188",
+          "RA": "Crossref"
+        }
+      ]
+    },
+    "answer": {
+      "status": 200,
+      "data": {
+        "message": {
+          "published-print": {
+            "date-parts": [
+              [
+                2009,
+                2
+              ]
+            ]
+          },
+          "DOI": "10.1093/ije/dyn188",
+          "page": "287-298",
+          "title": [
+            "Apparently conclusive meta-analyses may be inconclusive—Trial sequential analysis adjustment of random error risk due to repetitive testing of accumulating data in apparently conclusive neonatal meta-analyses"
+          ],
+          "volume": "38",
+          "author": [
+            {
+              "given": "Jesper",
+              "family": "Brok",
+              "sequence": "first",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "Kristian",
+              "family": "Thorlund",
+              "sequence": "additional",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "Jørn",
+              "family": "Wetterslev",
+              "sequence": "additional",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            },
+            {
+              "given": "Christian",
+              "family": "Gluud",
+              "sequence": "additional",
+              "affiliation": [],
+              "role": [
+                {
+                  "vocabulary": "crossref",
+                  "role": "author"
+                }
+              ]
+            }
+          ],
+          "published-online": {
+            "date-parts": [
+              [
+                2008,
+                9,
+                29
+              ]
+            ]
+          },
+          "container-title": [
+            "International Journal of Epidemiology"
+          ],
+          "subtitle": [],
+          "issued": {
+            "date-parts": [
+              [
+                2008,
+                9,
+                29
+              ]
+            ]
+          },
+          "published": {
+            "date-parts": [
+              [
+                2008,
+                9,
+                29
+              ]
+            ]
+          }
+        }
+      }
+    }
+  }
+}
