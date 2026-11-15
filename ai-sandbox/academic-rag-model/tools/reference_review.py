@@ -1,7 +1,7 @@
 """Local, metadata-only ledger for reference-checker human review.
 
-Decision operations are added in later steps. This module owns selection,
-stable IDs, the shared ReviewItem shape, and atomic storage.
+This module owns selection, stable IDs, decisions, the shared ReviewItem shape,
+and atomic storage. CLI dispatch is added in a later step.
 """
 from __future__ import annotations
 
@@ -17,7 +17,8 @@ from tools.reference_checker import check_note, normalized
 
 DEFAULT_STORE = Path(__file__).resolve().parents[1] / ".reference_checker_review"
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[3]
-FILES = {"review": "review.json", "dismissals": "dismissals.json", "defects": "defects.json"}
+FILES = {"review": "review.json", "dismissals": "dismissals.json", "defects": "defects.json",
+         "false_positives": "false_positives.json"}
 TIER_RANK = {"CONFIRMED": 0, "PLAUSIBLE": 1, "UNCHECKED": 2, "UNRESOLVED": 3,
              "REVIEW": 4, "AMBIGUOUS": 4, "NOT_FOUND": 5, "WRONG_WORK": 6}
 REVIEW_TIERS = {"REVIEW", "AMBIGUOUS", "PLAUSIBLE", "UNCHECKED", "UNRESOLVED"}
@@ -109,6 +110,14 @@ def save_defects(entries: list[dict], store: Path = DEFAULT_STORE) -> None:
     _save("defects", entries, Path(store))
 
 
+def load_false_positives(store: Path = DEFAULT_STORE) -> list[dict]:
+    return _load("false_positives", Path(store))
+
+
+def save_false_positives(entries: list[dict], store: Path = DEFAULT_STORE) -> None:
+    _save("false_positives", entries, Path(store))
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -167,7 +176,17 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
         scanned.add(relative)
         rows = check_note(absolute.read_text(encoding="utf-8"), client)
         current, found_defects = _selected(relative, rows, dismissed)
-        defects = [d for d in defects if not (d.get("note") == relative and d.get("source") == "checker")]
+        current_citations = {}
+        for row in rows:
+            doi = str(row.get("identifier") or "").lower()
+            if doi.startswith("10."):
+                current_citations.setdefault(doi, set()).add(normalized(row["citation"]))
+        defects = [d for d in defects if not (
+            d.get("note") == relative and (
+                d.get("source") == "checker" or
+                (d.get("source") == "human" and
+                 {normalized(m["cited_text"]) for m in d.get("mentions", [])}
+                 != current_citations.get(d.get("doi"), set()))))]
         defects.extend(found_defects)
         current_ids = {item.item_id for item in current}
         existing = {iid: item for iid, item in existing.items()
@@ -184,8 +203,111 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
             else:
                 item.created = item.updated = now
             existing[item.item_id] = item
-            raised.append(item)
+            if item.status in {"pending", "deferred"}:
+                raised.append(item)
     if scanned:
         save_review(sorted(existing.values(), key=lambda item: item.item_id), store)
         save_defects(sorted(defects, key=lambda d: (d.get("note", ""), d.get("doi", ""), d.get("source", ""))), store)
     return raised
+
+
+def _find_open(item_id: str, store: Path) -> tuple[list[ReviewItem], ReviewItem | None]:
+    items = load_review(store)
+    item = next((i for i in items if i.item_id == item_id), None)
+    return items, item
+
+
+def _mention_keys(item: ReviewItem) -> set[tuple[str, str]]:
+    doi = item.subject_ids[1]
+    return {dismissal_key(doi, mention["cited_text"])
+            for mention in item.candidates[0]["mentions"]}
+
+
+def is_human_confirmed(doi: str, citation: str, *, store: Path = DEFAULT_STORE) -> bool:
+    """Read-only later-gate hook; not wired to any checker or pipeline."""
+    wanted = dismissal_key(doi, citation)
+    return wanted in {(entry.get("doi"), entry.get("normalized_citation"))
+                      for entry in load_dismissals(store)}
+
+
+def resolve(item_id: str, *, store: Path = DEFAULT_STORE) -> bool:
+    """Accept same-work and dismiss every mention key, including across notes."""
+    store = Path(store)
+    items, item = _find_open(item_id, store)
+    if item is None or item.status not in {"pending", "deferred", "accepted"}:
+        return False
+    existing = load_dismissals(store)
+    known = {(entry.get("doi"), entry.get("normalized_citation")) for entry in existing}
+    now = _now()
+    added = False
+    for doi, citation in sorted(_mention_keys(item)):
+        if (doi, citation) not in known:
+            existing.append({"doi": doi, "normalized_citation": citation,
+                             "item_id": item_id, "decided_at": now})
+            added = True
+    if added:
+        save_dismissals(existing, store)
+    dismissed = {(entry.get("doi"), entry.get("normalized_citation")) for entry in existing}
+    changed = False
+    for candidate in items:
+        if candidate.status in {"pending", "deferred"} and _mention_keys(candidate) <= dismissed:
+            candidate.status = "accepted"
+            candidate.updated = now
+            changed = True
+    if changed:
+        save_review(items, store)
+    return True
+
+
+def reject(item_id: str, reason: str, *, store: Path = DEFAULT_STORE) -> bool:
+    """Decline one note's item as wrong work or an extraction false positive."""
+    if reason not in {"wrong_work", "not_citation"}:
+        raise ValueError("reason must be wrong_work or not_citation")
+    store = Path(store)
+    items, item = _find_open(item_id, store)
+    if item is None or item.status not in {"pending", "deferred", "declined"}:
+        return False
+    note, doi = item.subject_ids
+    mentions = [{"line": m["line"], "cited_text": m["cited_text"]}
+                for m in item.candidates[0]["mentions"]]
+    if item.status == "declined":
+        if reason == "wrong_work":
+            return any(d.get("note") == note and d.get("doi") == doi.lower()
+                       and d.get("source") == "human" and d.get("mentions") == mentions
+                       for d in load_defects(store))
+        return any(row.get("item_id") == item_id and row.get("mentions") == mentions
+                   for row in load_false_positives(store))
+    now = _now()
+    if reason == "wrong_work":
+        defects = load_defects(store)
+        entry = {"note": note, "doi": doi.lower(), "tier": "WRONG_WORK",
+                 "reason": "human reviewer: wrong work", "mentions": mentions,
+                 "source": "human"}
+        defects = [d for d in defects if not (d.get("note"), d.get("doi"), d.get("source"))
+                   == (note, doi.lower(), "human")]
+        defects.append(entry)
+        save_defects(defects, store)
+    else:
+        false_positives = load_false_positives(store)
+        if not any(row.get("item_id") == item_id and row.get("mentions") == mentions
+                   for row in false_positives):
+            false_positives.append({"item_id": item_id, "note": note, "doi": doi.lower(),
+                                    "mentions": mentions, "recorded_at": now})
+            save_false_positives(false_positives, store)
+    if item.status != "declined":
+        item.status = "declined"
+        item.updated = now
+        save_review(items, store)
+    return True
+
+
+def defer(item_id: str, *, store: Path = DEFAULT_STORE) -> bool:
+    """Keep an unresolved question available on the next raise."""
+    items, item = _find_open(item_id, Path(store))
+    if item is None or item.status not in {"pending", "deferred"}:
+        return False
+    if item.status == "pending":
+        item.status = "deferred"
+        item.updated = _now()
+        save_review(items, Path(store))
+    return True

@@ -164,3 +164,87 @@ def test_raise_with_recorded_registry_answer_keeps_exact_line(tmp_path):
     assert items[0].candidates[0]["tier"] == "PLAUSIBLE"
     assert items[0].candidates[0]["mentions"] == [
         {"line": 3, "cited_text": "Smith (2020)", "normalized_citation": "smith 2020"}]
+
+
+def test_resolve_dismisses_every_mention_and_carries_across_notes(tmp_path, monkeypatch):
+    a, b, c = (tmp_path / name for name in ("a.md", "b.md", "c.md"))
+    for note in (a, b, c):
+        note.write_text(note.stem, encoding="utf-8")
+    rows = {
+        "a": [_row("10.1234/a", "PLAUSIBLE"),
+              _row("10.1234/a", "REVIEW", "Smith and Jones (2020)", 4)],
+        "b": [_row("10.1234/a", "PLAUSIBLE")],
+        "c": [_row("10.1234/a", "PLAUSIBLE"),
+              _row("10.1234/a", "REVIEW", "Changed citation (2020)", 7)],
+    }
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: rows[text])
+    store = tmp_path / "store"
+    items = ledger.raise_items([a, b, c], object(), store=store, repo_root=tmp_path)
+    source = next(item for item in items if item.subject_ids[0] == "a.md")
+    assert ledger.resolve(source.item_id, store=store)
+    assert ledger.resolve(source.item_id, store=store)
+    assert len(ledger.load_dismissals(store)) == 2
+    assert ledger.is_human_confirmed("10.1234/A", "Smith (2020)", store=store)
+    assert not ledger.is_human_confirmed("10.1234/a", "Changed citation (2020)", store=store)
+    assert {item.subject_ids[0]: item.status for item in ledger.load_review(store)} == {
+        "a.md": "accepted", "b.md": "accepted", "c.md": "pending"}
+    assert [item.subject_ids[0] for item in ledger.raise_items([a, b, c], object(), store=store,
+                                                                 repo_root=tmp_path)] == ["c.md"]
+
+
+def test_reject_wrong_work_is_note_local_idempotent_and_invalidated_by_changed_citation(tmp_path, monkeypatch):
+    a, b = tmp_path / "a.md", tmp_path / "b.md"
+    a.write_text("a", encoding="utf-8")
+    b.write_text("b", encoding="utf-8")
+    rows = {"a": [_row("10.1234/a", "REVIEW")], "b": [_row("10.1234/a", "REVIEW")]}
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: rows[text])
+    store = tmp_path / "store"
+    items = ledger.raise_items([a, b], object(), store=store, repo_root=tmp_path)
+    source = next(item for item in items if item.subject_ids[0] == "a.md")
+    assert ledger.reject(source.item_id, "wrong_work", store=store)
+    assert ledger.reject(source.item_id, "wrong_work", store=store)
+    assert not ledger.reject(source.item_id, "not_citation", store=store)
+    assert [(d["note"], d["source"]) for d in ledger.load_defects(store)] == [("a.md", "human")]
+    assert not ledger.is_human_confirmed("10.1234/a", "Smith (2020)", store=store)
+    assert {item.subject_ids[0]: item.status for item in ledger.load_review(store)} == {
+        "a.md": "declined", "b.md": "pending"}
+    assert [item.subject_ids[0] for item in ledger.raise_items([a, b], object(), store=store,
+                                                                 repo_root=tmp_path)] == ["b.md"]
+    rows["a"] = [_row("10.1234/a", "REVIEW", "Smith and Jones (2020)")]
+    refreshed = ledger.raise_items([a], object(), store=store, repo_root=tmp_path)
+    assert refreshed[0].status == "pending"
+    assert ledger.load_defects(store) == []
+
+
+def test_reject_not_citation_records_false_positive_without_confirming(tmp_path):
+    store = tmp_path / "store"
+    item = ledger.make_item("research/note.md", "10.1234/a",
+                            [{"line": 9, "cited_text": "Smith (2020)"}],
+                            tier="REVIEW", reason="title differs", evidence="")
+    ledger.save_review([item], store)
+    assert ledger.reject(item.item_id, "not_citation", store=store)
+    assert ledger.reject(item.item_id, "not_citation", store=store)
+    assert not ledger.reject(item.item_id, "wrong_work", store=store)
+    assert ledger.load_review(store)[0].status == "declined"
+    assert len(ledger.load_false_positives(store)) == 1
+    assert ledger.load_defects(store) == []
+    assert not ledger.is_human_confirmed("10.1234/a", "Smith (2020)", store=store)
+
+
+def test_defer_survives_raise_and_invalid_decisions_do_not_write(tmp_path, monkeypatch):
+    note = tmp_path / "note.md"
+    note.write_text("note", encoding="utf-8")
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: [_row("10.1234/a", "PLAUSIBLE")])
+    store = tmp_path / "store"
+    item = ledger.raise_items([note], object(), store=store, repo_root=tmp_path)[0]
+    assert ledger.defer(item.item_id, store=store)
+    assert ledger.defer(item.item_id, store=store)
+    assert ledger.raise_items([note], object(), store=store, repo_root=tmp_path)[0].status == "deferred"
+    before = (store / "review.json").read_bytes()
+    assert not ledger.resolve("unknown", store=store)
+    assert not ledger.reject("unknown", "wrong_work", store=store)
+    assert not ledger.defer("unknown", store=store)
+    with pytest.raises(ValueError, match="reason must be"):
+        ledger.reject(item.item_id, "other", store=store)
+    assert (store / "review.json").read_bytes() == before
+    assert sorted(p.name for p in store.iterdir()) == ["defects.json", "review.json"]
