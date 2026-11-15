@@ -12,12 +12,15 @@ inherit the same citation. This can misclassify a dataset DOI using paper author
 review such rows manually and prefer separate DOI rows in the input.
 
 Identity-to-tier mapping:
-- SAME_WORK is CONFIRMED when an explicit title scores >= 0.92, or when its
-  title scores >= 0.5 and the cited year matches any registered year.
+- SAME_WORK is CONFIRMED when an explicit title scores >= 0.92 and the cited
+  year is within one year of any registered year, or when its title scores
+  >= 0.5 and the cited year matches a registered year exactly.
 - SAME_WORK with no explicit title is PLAUSIBLE; all other SAME_WORK is REVIEW.
 - AMBIGUOUS maps to REVIEW.
 - WRONG_WORK, NOT_FOUND, UNCHECKED, and UNRESOLVED retain their identity as
   their tier.
+- DOI aggregation ranks CONFIRMED < PLAUSIBLE < UNCHECKED < UNRESOLVED <
+  REVIEW (= AMBIGUOUS) < NOT_FOUND < WRONG_WORK; WRONG_WORK is highest risk.
 
 The legacy classification field remains for one release. Its mapping is
 unchanged: MATCH means SAME_WORK with text_fidelity ["OK"], MISMATCH means
@@ -353,6 +356,11 @@ def parse_inline_citations(text: str) -> list[dict]:
             author_text, year_text = match.group("nauthors"), match.group("nyear")
         else:
             author_text, year_text = match.group("bauthors"), match.group("byear")
+            if normalized(author_text) in {
+                "january", "february", "march", "april", "may", "june",
+                "july", "august", "september", "october", "november", "december",
+            }:
+                continue
         date_match = re.fullmatch(date, year_text)
         found.append({
             "authors": _reference_authors(author_text),
@@ -578,7 +586,10 @@ def _identity_tier(identity: str, citation: str, record: dict | None = None) -> 
     if (record or {}).get("subtitle"):
         titles.append(registered_title + ": " + record["subtitle"])
     score = max((similarity(title, candidate) for candidate in titles if candidate), default=0.0)
-    if score >= 0.92 or (score >= 0.5 and fields["year"] in years):
+    cited_year = fields["year"]
+    year_within_tolerance = bool(cited_year and any(abs(cited_year - year) <= 1 for year in years))
+    year_matches = bool(cited_year and cited_year in years)
+    if (score >= 0.92 and year_within_tolerance) or (score >= 0.5 and year_matches):
         return "CONFIRMED"
     return "REVIEW"
 

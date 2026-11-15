@@ -444,6 +444,30 @@ def test_owner_confirmed_low_title_score_matches_are_review(citation, doi):
     assert result["tier"] == "REVIEW"
 
 
+def test_exact_title_with_year_five_years_away_is_review():
+    row = {"citation": "Hjort (2026). How Research Affects Policy: Experimental Evidence from 2,150 Brazilian Municipalities",
+           "identifier": "10.1257/aer.20190830", "kind": "doi"}
+    result = check(row, FixtureClient())
+    assert result["identity"] == "SAME_WORK"
+    assert result["tier"] == "REVIEW"
+
+
+def test_exact_title_with_different_authors_is_wrong_work_not_confirmed():
+    row = {"citation": "Unrelated Author (2021). How Research Affects Policy: Experimental Evidence from 2,150 Brazilian Municipalities",
+           "identifier": "10.1257/aer.20190830", "kind": "doi"}
+    result = check(row, FixtureClient())
+    assert result["identity"] == "WRONG_WORK"
+    assert result["tier"] == "WRONG_WORK"
+
+
+def test_dahabreh_one_year_tolerance_remains_confirmed():
+    row = next(row for row in V2_REFERENCES if row["identifier"] == "10.1111/biom.13009")
+    result = check(row, RecordedClient())
+    assert "YEAR_DIFFERS" in result["text_fidelity"]
+    assert result["registry_answer"]["record"]["years"] == [2018, 2019]
+    assert result["tier"] == "CONFIRMED"
+
+
 def test_low_scoring_unrelated_title_probe_is_review():
     from tools.reference_checker import _identity_tier, citation_fields
     citation = "White, H. (2020). Completely unrelated quantum widgets."
@@ -540,6 +564,25 @@ def test_reference_list_parser_does_not_promote_journal_to_title():
     assert entries[0]["title"] == ""
 
 
+def test_extraction_keeps_body_table_doi_when_reference_heading_exists():
+    note = """# Note
+| Citation | DOI |
+|---|---|
+| Smith (2020) | https://doi.org/10.1234/body |
+* [Jones (2021)](https://doi.org/10.5678/body)
+
+## References
+- Smith, J. (2020). A useful paper title.
+"""
+    rows = extract(note)
+    assert len(rows) == 3
+    assert rows[0]["citation"] == "Smith (2020)"
+    assert rows[0]["identifier"] == "10.1234/body"
+    assert rows[1]["citation"] == "Jones (2021)"
+    assert rows[1]["identifier"] == "10.5678/body"
+    assert rows[2]["citation"].startswith("Smith, J. (2020). A useful paper title")
+
+
 def test_inline_author_year_parser_supports_narrative_and_parenthetical_forms():
     from tools.reference_checker import parse_inline_citations
     text = (
@@ -561,6 +604,11 @@ def test_inline_author_year_parser_supports_year_suffixes_and_skips_reference_li
     assert [(row["authors"], row["year"], row["suffix"]) for row in citations] == [
         (["Smith"], 2020, "a"), (["Jones"], 2020, "b"),
     ]
+
+
+def test_inline_author_year_parser_ignores_month_year_phrases():
+    from tools.reference_checker import parse_inline_citations
+    assert parse_inline_citations("Hiring in March 2020 followed by reporting in May 2021.") == []
 
 
 def test_linking_pass_confirms_unique_reference_entry_with_evidence():
