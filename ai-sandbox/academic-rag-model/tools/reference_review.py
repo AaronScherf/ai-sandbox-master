@@ -1,18 +1,20 @@
 """Local, metadata-only ledger for reference-checker human review.
 
 This module owns selection, stable IDs, decisions, the shared ReviewItem shape,
-and atomic storage. CLI dispatch is added in a later step.
+atomic storage, and its command-line entry point.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import os
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
 from core.indexer.review_envelope import ReviewItem, _digest
-from tools.reference_checker import check_note, normalized
+from tools.reference_checker import RegistryClient, check_note, normalized
 
 
 DEFAULT_STORE = Path(__file__).resolve().parents[1] / ".reference_checker_review"
@@ -311,3 +313,111 @@ def defer(item_id: str, *, store: Path = DEFAULT_STORE) -> bool:
         item.updated = _now()
         save_review(items, Path(store))
     return True
+
+
+def apply_decisions(decisions: list, *, dry_run: bool = False,
+                    store: Path = DEFAULT_STORE) -> list[dict]:
+    """Apply hub-review-shaped records; report bad records without stopping the batch."""
+    results, seen = [], set()
+    for decision in decisions:
+        iid = decision.get("item_id") if isinstance(decision, dict) else None
+        action = decision.get("action") if isinstance(decision, dict) else None
+        chosen = decision.get("chosen") if isinstance(decision, dict) else None
+        result = {"item_id": iid, "type": "reference_check", "action": action}
+        try:
+            if not isinstance(iid, str) or action not in {"accept", "decline", "defer"}:
+                result.update(outcome="error", detail="malformed decision")
+            elif iid in seen:
+                result.update(outcome="stale", detail="duplicate decision in batch")
+            elif action == "decline" and chosen not in {"wrong_work", "not_citation"}:
+                result.update(outcome="error", detail="decline needs chosen: wrong_work or not_citation")
+            else:
+                item = next((item for item in load_review(store) if item.item_id == iid), None)
+                if item is None:
+                    result.update(outcome="stale", detail="unknown item_id")
+                elif item.status == "accepted" and action == "accept":
+                    result.update(outcome="already_applied", detail="already accepted")
+                elif item.status == "declined" and action == "decline" and reject_reason_matches(item, chosen, store):
+                    result.update(outcome="already_applied", detail="already declined")
+                elif item.status not in {"pending", "deferred"}:
+                    result.update(outcome="stale", detail=f"item is {item.status}")
+                elif dry_run:
+                    result.update(outcome="would_apply", detail=action if action != "decline" else chosen)
+                else:
+                    ok = (resolve(iid, store=store) if action == "accept" else
+                          reject(iid, chosen, store=store) if action == "decline" else
+                          defer(iid, store=store))
+                    result.update(outcome="applied" if ok else "stale",
+                                  detail=action if action != "decline" else chosen)
+                if result["outcome"] not in {"error", "stale"}:
+                    seen.add(iid)
+        except Exception as exc:
+            result.update(outcome="error", detail=f"{type(exc).__name__}: {exc}")
+        results.append(result)
+    return results
+
+
+def reject_reason_matches(item: ReviewItem, reason: str, store: Path) -> bool:
+    """Check a declined item's recorded reason without causing a write."""
+    note, doi = item.subject_ids
+    mentions = [{"line": m["line"], "cited_text": m["cited_text"]}
+                for m in item.candidates[0]["mentions"]]
+    if reason == "wrong_work":
+        return any(d.get("note") == note and d.get("doi") == doi.lower()
+                   and d.get("source") == "human" and d.get("mentions") == mentions
+                   for d in load_defects(store))
+    if reason == "not_citation":
+        return any(row.get("item_id") == item.item_id and row.get("mentions") == mentions
+                   for row in load_false_positives(store))
+    return False
+
+
+def list_items(status: str = "open", *, store: Path = DEFAULT_STORE) -> list[ReviewItem]:
+    """Read-only view; open includes deferred questions."""
+    items = load_review(store)
+    if status == "all":
+        return items
+    if status == "open":
+        return [item for item in items if item.status in {"pending", "deferred"}]
+    return [item for item in items if item.status == status]
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="python -m tools.reference_review")
+    sub = parser.add_subparsers(dest="command", required=True)
+    raising = sub.add_parser("raise", help="check notes and update the local review ledger")
+    raising.add_argument("notes", nargs="+", type=Path)
+    raising.add_argument("--offline", action="store_true", help="read cached registry answers only")
+    raising.add_argument("--cache", type=Path, default=Path(__file__).resolve().parents[1] / ".reference_checker_cache")
+    listing = sub.add_parser("list", help="print stored review items without writing")
+    listing.add_argument("--status", choices=("open", "pending", "deferred", "accepted", "declined", "all"),
+                         default="open")
+    applying = sub.add_parser("apply", help="apply a JSON list of review decisions")
+    applying.add_argument("decisions", type=Path)
+    applying.add_argument("--dry-run", action="store_true", help="report actions without writing")
+    args = parser.parse_args(argv)
+    try:
+        if args.command == "raise":
+            client = RegistryClient(args.cache, online=not args.offline)
+            items = raise_items(args.notes, client, store=DEFAULT_STORE, repo_root=DEFAULT_REPO_ROOT)
+            requested = {_note_path(path, DEFAULT_REPO_ROOT)[1] for path in args.notes}
+            defects = [d for d in load_defects(DEFAULT_STORE) if d.get("note") in requested]
+            payload = {"items": [item.to_dict() for item in items], "defects": defects}
+        elif args.command == "list":
+            payload = [item.to_dict() for item in list_items(args.status, store=DEFAULT_STORE)]
+        else:
+            decisions = json.loads(args.decisions.read_text(encoding="utf-8"))
+            if not isinstance(decisions, list):
+                raise ValueError("decisions file must be a JSON list")
+            payload = apply_decisions(decisions, dry_run=args.dry_run, store=DEFAULT_STORE)
+    except (OSError, ValueError) as exc:
+        print(f"reference review: {exc}", file=sys.stderr)
+        return 2
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    print(json.dumps(payload, indent=2, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

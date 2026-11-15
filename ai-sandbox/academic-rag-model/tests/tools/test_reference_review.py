@@ -248,3 +248,78 @@ def test_defer_survives_raise_and_invalid_decisions_do_not_write(tmp_path, monke
         ledger.reject(item.item_id, "other", store=store)
     assert (store / "review.json").read_bytes() == before
     assert sorted(p.name for p in store.iterdir()) == ["defects.json", "review.json"]
+
+
+def test_apply_decisions_reports_unknown_continues_and_is_idempotent(tmp_path):
+    store = tmp_path / "store"
+    items = [ledger.make_item("a.md", f"10.1234/{suffix}",
+                              [{"line": 1, "cited_text": f"Smith ({year})"}],
+                              tier="PLAUSIBLE", reason="no title", evidence="")
+             for suffix, year in (("a", 2020), ("b", 2021), ("c", 2022))]
+    ledger.save_review(items, store)
+    decisions = [
+        {"item_id": "unknown", "action": "accept", "chosen": None, "ts": "2026-11-15T00:00:00Z"},
+        {"item_id": items[0].item_id, "action": "accept", "chosen": None, "ts": "2026-11-15T00:00:00Z"},
+        {"item_id": items[1].item_id, "action": "decline", "chosen": "wrong_work", "ts": "2026-11-15T00:00:00Z"},
+        {"item_id": items[2].item_id, "action": "defer", "chosen": None, "ts": "2026-11-15T00:00:00Z"},
+    ]
+    results = ledger.apply_decisions(decisions, store=store)
+    assert [result["outcome"] for result in results] == ["stale", "applied", "applied", "applied"]
+    assert results[0]["detail"] == "unknown item_id"
+    assert [item.status for item in ledger.load_review(store)] == ["accepted", "declined", "deferred"]
+    repeated = ledger.apply_decisions(decisions, store=store)
+    assert [result["outcome"] for result in repeated] == [
+        "stale", "already_applied", "already_applied", "applied"]
+    assert len(ledger.load_dismissals(store)) == 1
+    assert len(ledger.load_defects(store)) == 1
+
+
+def test_apply_dry_run_writes_nothing_and_rejects_invalid_chosen(tmp_path):
+    store = tmp_path / "store"
+    item = ledger.make_item("a.md", "10.1234/a", [{"line": 1, "cited_text": "Smith (2020)"}],
+                            tier="REVIEW", reason="title differs", evidence="")
+    ledger.save_review([item], store)
+    before = {path.name: path.read_bytes() for path in store.iterdir()}
+    decisions = [{"item_id": item.item_id, "action": "decline", "chosen": "wrong_work"},
+                 {"item_id": item.item_id, "action": "accept"}]
+    results = ledger.apply_decisions(decisions, dry_run=True, store=store)
+    assert [result["outcome"] for result in results] == ["would_apply", "stale"]
+    assert ledger.apply_decisions([{"item_id": item.item_id, "action": "decline", "chosen": "other"}],
+                                  store=store)[0]["outcome"] == "error"
+    assert {path.name: path.read_bytes() for path in store.iterdir()} == before
+
+
+def test_cli_list_apply_and_raise_with_recorded_client(tmp_path, monkeypatch, capsys):
+    store = tmp_path / "store"
+    monkeypatch.setattr(ledger, "DEFAULT_STORE", store)
+    monkeypatch.setattr(ledger, "DEFAULT_REPO_ROOT", tmp_path)
+    note = tmp_path / "note.md"
+    note.write_text("# References\n* [Smith (2020)](https://doi.org/10.1234/sample)\n", encoding="utf-8")
+
+    class Client:
+        def __init__(self, cache, online):
+            assert online is False
+
+        def get(self, url):
+            if "/doiRA/" in url:
+                return {"data": [{"RA": "Crossref"}]}
+            return {"status": 200, "data": {"message": {
+                "title": ["Sample paper"], "author": [{"family": "Smith"}],
+                "published": {"date-parts": [[2020]]}, "container-title": ["Journal"]}}}
+
+    monkeypatch.setattr(ledger, "RegistryClient", Client)
+    assert ledger.main(["raise", str(note), "--offline", "--cache", str(tmp_path / "cache")]) == 0
+    raised = json.loads(capsys.readouterr().out)
+    iid = raised["items"][0]["item_id"]
+    assert raised["defects"] == []
+    assert ledger.main(["list", "--status", "pending"]) == 0
+    assert [row["item_id"] for row in json.loads(capsys.readouterr().out)] == [iid]
+    decisions = tmp_path / "decisions.json"
+    decisions.write_text(json.dumps([{"item_id": iid, "action": "defer", "chosen": None,
+                                      "ts": "2026-11-15T00:00:00Z"}]), encoding="utf-8")
+    assert ledger.main(["apply", str(decisions), "--dry-run"]) == 0
+    assert json.loads(capsys.readouterr().out)[0]["outcome"] == "would_apply"
+    assert ledger.main(["apply", str(decisions)]) == 0
+    assert json.loads(capsys.readouterr().out)[0]["outcome"] == "applied"
+    assert ledger.main(["list"]) == 0
+    assert json.loads(capsys.readouterr().out)[0]["status"] == "deferred"
