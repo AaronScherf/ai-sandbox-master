@@ -25,7 +25,7 @@ Implement proposal rules 1-4 in `selection_reason`/`run_checks`:
 2. In-project non-`.py` files map to the nearest package with a `tests/<pkg>` directory; otherwise run `tests/tools`.
 3. `core/` changes run `tests/core` plus packages that import the changed module (start with a static `import` scan; fall back to full if unsure).
 4. Always full: `--full`, any `GUARD_POLICY_PATHS` file, `conftest.py` or top-level test helpers, dependency pins, pytest config.
-5. Post-landing safety net: after `land`, start a background full chunked run on `main` and append the result to the landing log as `{"event": "post_land_full", ...}`. Surface failures in `tools.landing_metrics`.
+5. Safety net (revised 2026-11-16, see proposal rules 5 and 6): no full run per landing for `outside_project_only` or `doc_only`. Add (a) a guard test that fails when any test reads a path above the project root that is not on the allowlist, and (b) a scheduled full run of `main` logged as `{"event": "scheduled_full", ...}` and surfaced in `tools.landing_metrics`. Make the allowlist one constant replacing `RETEST_OUTSIDE_PATHS`, used by both `selection_reason` and the land-time re-test. Add the two new allowlist entries from the proposal table (`hub_config.json`, the Novelty Check note). The proposal's daily-workflow acceptance table is the test spec.
 
 Tests:
 - Fixtures from the logged cases: an outside-only `.json` change, a `.docx` move, a research-repo pin → `outside_project_only`; an edit to `tools/land_branch.py` → full.
