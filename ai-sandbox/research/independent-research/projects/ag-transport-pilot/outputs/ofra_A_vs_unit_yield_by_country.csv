@@ -1,0 +1,19 @@
+country,crop,unit_years,median_ratio
+Benin,Sorghum,1,1.13
+Burkina Faso,Maize,2,1.46
+Burkina Faso,Sorghum,5,1.17
+Ethiopia,Maize,7,1.83
+Ethiopia,Sorghum,6,1.19
+Ghana,Maize,6,1.52
+Kenya,Maize,8,2.38
+Kenya,Sorghum,2,0.67
+Mali,Maize,4,1.73
+Mali,Sorghum,4,1.17
+Mozambique,Sorghum,1,5.46
+Niger,Maize,4,1.02
+Niger,Sorghum,6,1.73
+Nigeria,Maize,7,2.12
+Nigeria,Sorghum,6,1.96
+"Tanzania, United Republic of",Maize,16,2.54
+"Tanzania, United Republic of",Sorghum,3,4.78
+Zambia,Maize,6,1.38

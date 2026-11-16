@@ -1,0 +1,820 @@
+{
+ "generated": "2026-11-16",
+ "sources": {
+  "harveststat": {
+   "provider": "Lee et al., HarvestStat Africa v1.2 (CC-BY-4.0)",
+   "url": "https://datadryad.org/dataset/doi:10.5061/dryad.vq83bk42w",
+   "paper": "https://doi.org/10.1038/s41597-025-05001-z",
+   "note": "downloaded in a browser by the owner; Dryad file API needs a login token"
+  },
+  "ofra": {
+   "provider": "OFRA response-function dataset, updated Aug 2023 (Wortmann, UNL)",
+   "url": "https://datadryad.org/dataset/doi:10.5061/dryad.tt6h5h1",
+   "note": "xlsx supplied by the owner; Raw sheet used"
+  },
+  "acled": {
+   "provider": "ACLED (acleddata.com), event_date 2010-01-01 to 2025-10-31 per country via API; Somalia and Sudan exports downloaded by hand (1997-2025)",
+   "url": "https://acleddata.com/api/acled/read",
+   "note": "ACLED terms forbid redistribution; do not commit. Accessed 2026-11-16 (API pulls)"
+  },
+  "chirps": {
+   "provider": "UCSB CHC CHIRPS v2.0 Africa monthly GeoTIFFs",
+   "url": "https://data.chc.ucsb.edu/products/CHIRPS/v2.0/africa_monthly/tifs/",
+   "note": "2010-01 to 2023-12; accessed 2026-11-16"
+  }
+ },
+ "files": {
+  "acled/ACLED Data_2026-10-31_event_date_from_1997-01-01_event_date_to_2025-10-31.csv": {
+   "bytes": 54656965,
+   "sha256": "b97dc491ffbd06b5ce6535805731212c7cb09e94ee6e7c843b46e993da128565"
+  },
+  "acled/ACLED Data_2026-11-02_event_date_from_1997-01-01_event_date_to_2025-10-31.csv": {
+   "bytes": 37024727,
+   "sha256": "0de5a805aa727558081879ba6c766a62a59c296d82f01eedb82264d7d71d91b0"
+  },
+  "acled/Burkina_Faso.csv": {
+   "bytes": 7733973,
+   "sha256": "503138340029e4f0790d16d5dd0482c210d506b3f03cc5ee2d1b7922f96041e3"
+  },
+  "acled/Burundi.csv": {
+   "bytes": 4485551,
+   "sha256": "c0a35b4263c1ae185af42e326218cdd8eed06c5c6d8f6457bf0c336fe4e32bde"
+  },
+  "acled/Cameroon.csv": {
+   "bytes": 12452139,
+   "sha256": "2983b63b30ba5a12ae659f232a3a7a8c61bad43a64c3cc9d5d739c4d05663bb6"
+  },
+  "acled/Central_African_Republic.csv": {
+   "bytes": 4773247,
+   "sha256": "be9b1217e2d1f446ec8ff26516ea24091fb9fdab77660c567620e94e6e59cc8b"
+  },
+  "acled/Chad.csv": {
+   "bytes": 963038,
+   "sha256": "4bae473d95b19503e68a9475c24a57fa09822dea980fbbe57e69e6d57765c343"
+  },
+  "acled/Democratic_Republic_of_Congo.csv": {
+   "bytes": 23987801,
+   "sha256": "fee38e7082d1fd9bf12cbd898d38229f89f58636aa4e463b4f5cfb556ffbb086"
+  },
+  "acled/Ethiopia.csv": {
+   "bytes": 10217110,
+   "sha256": "d51a1af78f027941630caa48b645d2869a2c3a7cceaff6ac197f37cafe572ed9"
+  },
+  "acled/Ghana.csv": {
+   "bytes": 1801425,
+   "sha256": "c55cb47cac8e1a8521e30867cf6276ea8742e42ba7dd1f40aa82be8515f01c8a"
+  },
+  "acled/Kenya.csv": {
+   "bytes": 9798817,
+   "sha256": "0ffffb752371f4ca59e04f41887336577473fc455b926c97c810a90d4265987b"
+  },
+  "acled/Malawi.csv": {
+   "bytes": 868723,
+   "sha256": "59707c7e76da3befd27d99b6e1b7432356c2f0885e0268e28220a75888fe80a8"
+  },
+  "acled/Mali.csv": {
+   "bytes": 7793917,
+   "sha256": "47b13ca3d9073444d864597acb32da342b87b153a9f2eda756550fda47cb7e0f"
+  },
+  "acled/Mozambique.csv": {
+   "bytes": 3346441,
+   "sha256": "5481f9d81b92f06e80d6eb7c92999f7446f7cc9d09e6c4c44a65e2b7a2b758ad"
+  },
+  "acled/Niger.csv": {
+   "bytes": 3026371,
+   "sha256": "08ba3086d44deaee2ff151eda745fbd7e2faa977b00c8ba3a1c5487f21018366"
+  },
+  "acled/Nigeria.csv": {
+   "bytes": 26083226,
+   "sha256": "b1703230028a52fd1d5f56e4b6ff052c4e6084851ba1d23e9917acb9748d845a"
+  },
+  "acled/Rwanda.csv": {
+   "bytes": 247610,
+   "sha256": "be226d75088472d9184ec78187fa7d396363e8f72550ac09ce559a0b4da35f6b"
+  },
+  "acled/South_Africa.csv": {
+   "bytes": 12366637,
+   "sha256": "b21e28e5b6f2e71fa1f30f90d3e9b938209680e7e3d8a0d65e16cd7f12366669"
+  },
+  "acled/South_Sudan.csv": {
+   "bytes": 11519743,
+   "sha256": "3fa90a57952ed8765d54062b3b1ca75f53caf6ef24b6fa3e42410fef2cb7c376"
+  },
+  "acled/Tanzania.csv": {
+   "bytes": 833142,
+   "sha256": "da869c7dbb100e79bd8599c10897576e155f338d5fa54315fa1c0aee9ce08096"
+  },
+  "acled/Togo.csv": {
+   "bytes": 390360,
+   "sha256": "484d3d2ac1627597949f5bc57429a411f2be57db87c45615853d67ae92623c64"
+  },
+  "acled/Uganda.csv": {
+   "bytes": 3317222,
+   "sha256": "ce3402707f161203c43079f994db785e713a9bca7f031b5f7438b3d2a3b1d315"
+  },
+  "acled/Zambia.csv": {
+   "bytes": 539078,
+   "sha256": "78dbe8914465a33821ed9fb14fc59c4bf64e302d9dedd426042274a064e67e2c"
+  },
+  "acled/Zimbabwe.csv": {
+   "bytes": 1717523,
+   "sha256": "ae78b66646144ba7567a2941b0cded5bc461594aaa0307e035c19a78511c1b36"
+  },
+  "chirps/chirps-v2.0.2010.01.tif.gz": {
+   "bytes": 4426931,
+   "sha256": "98514247d727055ee56b4d7d539ed9c978cb14151ac718528cfbc6283afb0a29"
+  },
+  "chirps/chirps-v2.0.2010.02.tif.gz": {
+   "bytes": 4509669,
+   "sha256": "c0dc91a71b6acd015132e8fe3088d41539711bfbe2705636c530956d4ba5d0cd"
+  },
+  "chirps/chirps-v2.0.2010.03.tif.gz": {
+   "bytes": 4489228,
+   "sha256": "d1f099de8f0d072e9e6762ab969797871913ca79da15bedd0ea479073ffe7333"
+  },
+  "chirps/chirps-v2.0.2010.04.tif.gz": {
+   "bytes": 4499465,
+   "sha256": "f1f1a0786b7d0bb60802701585f19d5f5dfcd686edc3b599438ab5e3678bd63f"
+  },
+  "chirps/chirps-v2.0.2010.05.tif.gz": {
+   "bytes": 4500962,
+   "sha256": "2e04cb9843df2e0004f12ee5fc1ddf4ba802b52f75643bf189edda8bbb38cfb4"
+  },
+  "chirps/chirps-v2.0.2010.06.tif.gz": {
+   "bytes": 4532287,
+   "sha256": "6059eb219a970f3da17007849b09f2e17d50eebb8d0dc53bb3bc27baecc82dfa"
+  },
+  "chirps/chirps-v2.0.2010.07.tif.gz": {
+   "bytes": 4550407,
+   "sha256": "1d92ac49db21ef47e39c7d8f7579e6c229dc8b90e3da4c4965e43607cbe45364"
+  },
+  "chirps/chirps-v2.0.2010.08.tif.gz": {
+   "bytes": 4550890,
+   "sha256": "ee5a43e8f936391882648c4a49da3335c2930ed99ddf88f8610fbf680d3fbb5c"
+  },
+  "chirps/chirps-v2.0.2010.09.tif.gz": {
+   "bytes": 4541902,
+   "sha256": "2acf5f207401effe538d7417fd527ca758ab3365d8482fb039e881a87c05718b"
+  },
+  "chirps/chirps-v2.0.2010.10.tif.gz": {
+   "bytes": 4510877,
+   "sha256": "649ceaad9efcfca09bb92ff779b4407774b7b95f2283e679ad68bec7d82589be"
+  },
+  "chirps/chirps-v2.0.2010.11.tif.gz": {
+   "bytes": 4513334,
+   "sha256": "b861bb6c4f359c7773fcdfebaab2bde2a0bd07aad3aa1271aa2360f8744001fa"
+  },
+  "chirps/chirps-v2.0.2010.12.tif.gz": {
+   "bytes": 4527667,
+   "sha256": "1eb9d65efb45aa2adb57ae3b6a42d352ad0a0796ef487fd66aa5fb0a7674577a"
+  },
+  "chirps/chirps-v2.0.2011.01.tif.gz": {
+   "bytes": 4430035,
+   "sha256": "fdc4a05d24b302d91ee69f5c519def8049ccd4496e3aa80080b3ba4b21195a6c"
+  },
+  "chirps/chirps-v2.0.2011.02.tif.gz": {
+   "bytes": 4519132,
+   "sha256": "b7a63c19e06c569f1fe7e0f58e706cc989d5fba77e37744ec5505b7ccf5f89d9"
+  },
+  "chirps/chirps-v2.0.2011.03.tif.gz": {
+   "bytes": 4499358,
+   "sha256": "69952b4bce00e12b083ef889834b6257908b395b9e897a21943c3deb882aa570"
+  },
+  "chirps/chirps-v2.0.2011.04.tif.gz": {
+   "bytes": 4503863,
+   "sha256": "9615cfc8799f0de503e7e2c590478af8ead484202c43a262e6a29349e4aac564"
+  },
+  "chirps/chirps-v2.0.2011.05.tif.gz": {
+   "bytes": 4501521,
+   "sha256": "540e458b0ef8750806fc576527c6e1fced86566f72e2882b77894d1a46ed7a7f"
+  },
+  "chirps/chirps-v2.0.2011.06.tif.gz": {
+   "bytes": 4532752,
+   "sha256": "01da24d9d825d7fca1c35560c622a616438f3054b3252f9224f837271a8c3ad3"
+  },
+  "chirps/chirps-v2.0.2011.07.tif.gz": {
+   "bytes": 4556645,
+   "sha256": "ae89fae4108be8cdab76c9f05bd8eea7cf34292c31f4499253b59e41c1e3a022"
+  },
+  "chirps/chirps-v2.0.2011.08.tif.gz": {
+   "bytes": 4546283,
+   "sha256": "4537da4c0a43c25fc61c0d93d5c8a911ec1bf9ae2ec7f07bee54a7fdf922d4b6"
+  },
+  "chirps/chirps-v2.0.2011.09.tif.gz": {
+   "bytes": 4526077,
+   "sha256": "ed02672e6c32d24c8e78157a110dd90e67794918b821581a1df47c2948ba54de"
+  },
+  "chirps/chirps-v2.0.2011.10.tif.gz": {
+   "bytes": 4492478,
+   "sha256": "2785d9d3d56631f46ce63239666daa4d4f2dcb367edbed04d769e3affefc4a7a"
+  },
+  "chirps/chirps-v2.0.2011.11.tif.gz": {
+   "bytes": 4509874,
+   "sha256": "d30f1dd7c7085dad680e44b91e90573ae4f062936e689c2f733d960e4abe598e"
+  },
+  "chirps/chirps-v2.0.2011.12.tif.gz": {
+   "bytes": 4512983,
+   "sha256": "ed49840bc0b0c0c249c4388c1d7fca0bf3827f6a152269b1b5c4764647fc264b"
+  },
+  "chirps/chirps-v2.0.2012.01.tif.gz": {
+   "bytes": 4430684,
+   "sha256": "9dc47d690d77579156342e446c0e687387ff08aead5bc14c16dc68d2848d7f72"
+  },
+  "chirps/chirps-v2.0.2012.02.tif.gz": {
+   "bytes": 4521730,
+   "sha256": "60a19e4f4a4fd30472280a4d09214e0665d9258ff64becf8a19f059dd6a46935"
+  },
+  "chirps/chirps-v2.0.2012.03.tif.gz": {
+   "bytes": 4504749,
+   "sha256": "886a1be8281877138e8e57d031da5e27598bb6c6076be25736fa15562f65eaa2"
+  },
+  "chirps/chirps-v2.0.2012.04.tif.gz": {
+   "bytes": 4505029,
+   "sha256": "17803a067e5029c6c1784f4d085b319646fda00bee35b883d8990d9f64865e10"
+  },
+  "chirps/chirps-v2.0.2012.05.tif.gz": {
+   "bytes": 4489745,
+   "sha256": "b2c8648196e3b6863e30467033101133ab719ef5a1ae9c6d999340fe162d0bb4"
+  },
+  "chirps/chirps-v2.0.2012.06.tif.gz": {
+   "bytes": 4529336,
+   "sha256": "3d2243c4a1c39c70bb1e8b98561de812d017e6a5b8d4b1b4916a93a07bfca57f"
+  },
+  "chirps/chirps-v2.0.2012.07.tif.gz": {
+   "bytes": 4553596,
+   "sha256": "bd82457a892101e78a86ed2972c6cc560f862c5ddd6f2379fa5af3d72d624359"
+  },
+  "chirps/chirps-v2.0.2012.08.tif.gz": {
+   "bytes": 4547199,
+   "sha256": "7266822c06df8dfd490ba0d9ff35272385ae739119d6e00a60e51a12458554cc"
+  },
+  "chirps/chirps-v2.0.2012.09.tif.gz": {
+   "bytes": 4547768,
+   "sha256": "a0f4a9b132f0b9a8eacc2a54983728ae60eccf7744d07dab052244b9236240ff"
+  },
+  "chirps/chirps-v2.0.2012.10.tif.gz": {
+   "bytes": 4503840,
+   "sha256": "3386d44f7966a991e4ab6732da63f8bd260a3bb5fc24b97c38273fb834afa592"
+  },
+  "chirps/chirps-v2.0.2012.11.tif.gz": {
+   "bytes": 4516820,
+   "sha256": "9498038ed3967e9091871082d1d46866925f9337c9cedfc93776a7e16ba38afb"
+  },
+  "chirps/chirps-v2.0.2012.12.tif.gz": {
+   "bytes": 4528107,
+   "sha256": "13006278d79b3436e6c51d86a8563f66fc84c2cc1bd194bfd3989e4f5b54631f"
+  },
+  "chirps/chirps-v2.0.2013.01.tif.gz": {
+   "bytes": 4433336,
+   "sha256": "d0271dae59c3a1a45d6543cb2b807bef9bcae06eaa14b396bb78413ae13a6d74"
+  },
+  "chirps/chirps-v2.0.2013.02.tif.gz": {
+   "bytes": 4519890,
+   "sha256": "88f2db759aadf1065b1d97e371c2d0f97e46e9052fbb62daffa0bdf6d48b385a"
+  },
+  "chirps/chirps-v2.0.2013.03.tif.gz": {
+   "bytes": 4493907,
+   "sha256": "6b4ed665e4ed711bc47d63ec6ffe00dd068eec26ea94babf25a22d5e81dbb4c1"
+  },
+  "chirps/chirps-v2.0.2013.04.tif.gz": {
+   "bytes": 4490738,
+   "sha256": "71a69fb530708dc075e21577047bf71589659bd6a322aab44f7aea5e05fbdbbb"
+  },
+  "chirps/chirps-v2.0.2013.05.tif.gz": {
+   "bytes": 4501068,
+   "sha256": "9f122fc26198bcbf7885f551f5612b7551af9634951185b4c8346f4587078939"
+  },
+  "chirps/chirps-v2.0.2013.06.tif.gz": {
+   "bytes": 4529296,
+   "sha256": "5f112a5f932969a47d6055554dc94ca07c8d7e29c3cc2add11d43699a70d08f1"
+  },
+  "chirps/chirps-v2.0.2013.07.tif.gz": {
+   "bytes": 4560328,
+   "sha256": "80b3f8f4df1bc85eec6044d2e86aab7a823771f9a1c6cbc2b1dbf1c991f60db3"
+  },
+  "chirps/chirps-v2.0.2013.08.tif.gz": {
+   "bytes": 4555973,
+   "sha256": "8a623c04f7164b0b7c9277865a142814e3248de698bd83cbc81062e1b5a4697a"
+  },
+  "chirps/chirps-v2.0.2013.09.tif.gz": {
+   "bytes": 4533395,
+   "sha256": "e01c1b11228370e7e7cb69542f7f89278b6951eb1dbf8ad67f972729c644697b"
+  },
+  "chirps/chirps-v2.0.2013.10.tif.gz": {
+   "bytes": 4499788,
+   "sha256": "fefabe0574a87f4d7ac41128fd8b9397d71941e50cad0bde19a56f9ea9226283"
+  },
+  "chirps/chirps-v2.0.2013.11.tif.gz": {
+   "bytes": 4517901,
+   "sha256": "6c526cdf2c366c922e25b55f88295387e472b163413c73429d2438f00949c575"
+  },
+  "chirps/chirps-v2.0.2013.12.tif.gz": {
+   "bytes": 4513560,
+   "sha256": "e47518df0ba561a6ef25a0021e9d3f04d6a8e8b622298758977dd99db129c290"
+  },
+  "chirps/chirps-v2.0.2014.01.tif.gz": {
+   "bytes": 4434174,
+   "sha256": "71c94f8f3ca5674b8e771ddc58aeb770c95bc3e57ae99fcbcf534e82ba03ffdb"
+  },
+  "chirps/chirps-v2.0.2014.02.tif.gz": {
+   "bytes": 4514045,
+   "sha256": "2b79317da32f22727f3b83081e5a2f5937af438040f6c1171223d907f972a68a"
+  },
+  "chirps/chirps-v2.0.2014.03.tif.gz": {
+   "bytes": 4498950,
+   "sha256": "e923da7ed90c146bcb4600cbce465d27a73194fc792d51f21b251c192ee949c4"
+  },
+  "chirps/chirps-v2.0.2014.04.tif.gz": {
+   "bytes": 4490684,
+   "sha256": "0d7c5c6aa38f6b8f80dac631a4c8fef5acd889aac5c59aee89c5739dbf451d6c"
+  },
+  "chirps/chirps-v2.0.2014.05.tif.gz": {
+   "bytes": 4501327,
+   "sha256": "73cc71b83eff0be79c9ef4d2264f8a5174bdf1c1abecefe5a02a11c095bb4960"
+  },
+  "chirps/chirps-v2.0.2014.06.tif.gz": {
+   "bytes": 4529497,
+   "sha256": "181cec66b0d92b82ee2ef793d65b94219104449f724061c7df8bd6e0578c8bb7"
+  },
+  "chirps/chirps-v2.0.2014.07.tif.gz": {
+   "bytes": 4557309,
+   "sha256": "122c7cfb5b4b912936f5240903f0efe120107395676e7d80649f0bc4fed88514"
+  },
+  "chirps/chirps-v2.0.2014.08.tif.gz": {
+   "bytes": 4545375,
+   "sha256": "f10e2c3ffd7ba0dcbd437eaf00235645411e6440dba4a922c8d46b836991dbc2"
+  },
+  "chirps/chirps-v2.0.2014.09.tif.gz": {
+   "bytes": 4539490,
+   "sha256": "edeec16f5408294d86fb4a23049f1ea3dd08979f7d0d0af8fcdc1f50ee66b383"
+  },
+  "chirps/chirps-v2.0.2014.10.tif.gz": {
+   "bytes": 4487774,
+   "sha256": "75d1fe5f280aee70e58ee4834c9833e52fbc067b49714accc569d1f65f1755b3"
+  },
+  "chirps/chirps-v2.0.2014.11.tif.gz": {
+   "bytes": 4514729,
+   "sha256": "df6ddd330ad7377133de3deea7323b777f53b9814c8844f089b2aa08abe29c7d"
+  },
+  "chirps/chirps-v2.0.2014.12.tif.gz": {
+   "bytes": 4525863,
+   "sha256": "842087135f22e363c89b89abd29463799cc682b1dd1b2ce106f5755c57c061c3"
+  },
+  "chirps/chirps-v2.0.2015.01.tif.gz": {
+   "bytes": 4435960,
+   "sha256": "5deda3b98056e294a62f1f86d1a1a9c9207ee1654c7c438ed62975ed879670ac"
+  },
+  "chirps/chirps-v2.0.2015.02.tif.gz": {
+   "bytes": 4527628,
+   "sha256": "fd7f2a4257dcc6f7994854e8750682953e510368d9a0d3cb5770ea53ba2579b9"
+  },
+  "chirps/chirps-v2.0.2015.03.tif.gz": {
+   "bytes": 4500120,
+   "sha256": "534932784aadb5e217051818f59219cc386cf577cc270ce771411c5d33f05fba"
+  },
+  "chirps/chirps-v2.0.2015.04.tif.gz": {
+   "bytes": 4480522,
+   "sha256": "8b0a30d61b9fb26a5ffe9cd94e0ec4fff04cee434e131072ba563e18d2dd7e35"
+  },
+  "chirps/chirps-v2.0.2015.05.tif.gz": {
+   "bytes": 4499383,
+   "sha256": "1ae88ee23db2376dc37512ff486dec8707dfec30c2bff85230c1449227e385db"
+  },
+  "chirps/chirps-v2.0.2015.06.tif.gz": {
+   "bytes": 4529024,
+   "sha256": "0cc02054ce3332fbdf41ac84d8670ffb6780f569b6991bab16d3f094377275ec"
+  },
+  "chirps/chirps-v2.0.2015.07.tif.gz": {
+   "bytes": 4566686,
+   "sha256": "820a659c06473ee10662e7bf860a84899fab50687e6c2fc13a6aa1b3d6515b06"
+  },
+  "chirps/chirps-v2.0.2015.08.tif.gz": {
+   "bytes": 4558106,
+   "sha256": "ec1a687458229ca8041f1c07ca1630fdd5be3d739090e3eb5bad40febce639a6"
+  },
+  "chirps/chirps-v2.0.2015.09.tif.gz": {
+   "bytes": 4549800,
+   "sha256": "62545c974772c445ad430eaebda382753e1b15674899449041ef450834d84a89"
+  },
+  "chirps/chirps-v2.0.2015.10.tif.gz": {
+   "bytes": 4499675,
+   "sha256": "33986d42c9389a9612fc367f71d39c9b21070da469c40ba0f7013f71d3c30b3c"
+  },
+  "chirps/chirps-v2.0.2015.11.tif.gz": {
+   "bytes": 4505857,
+   "sha256": "975e77fae3355c659de500ca3ccf4d40d5bfa9acc1a7a31da8e5f18cd0da8f46"
+  },
+  "chirps/chirps-v2.0.2015.12.tif.gz": {
+   "bytes": 4522999,
+   "sha256": "604481f048db87ab99246810444137bd49c442f74ea7ad407239b9085585e84a"
+  },
+  "chirps/chirps-v2.0.2016.01.tif.gz": {
+   "bytes": 4421082,
+   "sha256": "ba400d5b8642f141b3e4bf50f3878b2ed431564d4de4348a0d3ed221c105cdd3"
+  },
+  "chirps/chirps-v2.0.2016.02.tif.gz": {
+   "bytes": 4513108,
+   "sha256": "710adbc8d189294fabb948277de4fd24d97f0b1636b85fc92bc1afac1953d935"
+  },
+  "chirps/chirps-v2.0.2016.03.tif.gz": {
+   "bytes": 4505710,
+   "sha256": "72a96270e19e1d68326a0178bb5cfe6ebba3933c15543177e2f31a9b03c8e4c3"
+  },
+  "chirps/chirps-v2.0.2016.04.tif.gz": {
+   "bytes": 4490550,
+   "sha256": "fa3c57ee84df1d87f26797d499f9e7ba7500198185b83a2c1209cd6aea1ca277"
+  },
+  "chirps/chirps-v2.0.2016.05.tif.gz": {
+   "bytes": 4502762,
+   "sha256": "423c53ddfc1c5f4d55bb94ec1f78ada616bfce665a4bd1dba4808075b590731c"
+  },
+  "chirps/chirps-v2.0.2016.06.tif.gz": {
+   "bytes": 4529353,
+   "sha256": "dbaffc711f7d98731e2e9e5bc2961867a8c7caeb6d27bb7279c20041e2713ddd"
+  },
+  "chirps/chirps-v2.0.2016.07.tif.gz": {
+   "bytes": 4557771,
+   "sha256": "b56b05edf45f76a6351e48e92603f58cd632ec299dfb10cfc8f95c44bb7e9df0"
+  },
+  "chirps/chirps-v2.0.2016.08.tif.gz": {
+   "bytes": 4551341,
+   "sha256": "57ceef8141829032bf165c5be1efa029ad2cd60ce510ca429d37706be2b20e1a"
+  },
+  "chirps/chirps-v2.0.2016.09.tif.gz": {
+   "bytes": 4547136,
+   "sha256": "43fdd13a2e9983c4040884e4c03f37bf8024382f355730350d8704b504f7bd22"
+  },
+  "chirps/chirps-v2.0.2016.10.tif.gz": {
+   "bytes": 4507453,
+   "sha256": "0b564aec436236a0553a0fdf692bfbb0490161805ea779b11f2a7aa61cb5003b"
+  },
+  "chirps/chirps-v2.0.2016.11.tif.gz": {
+   "bytes": 4520176,
+   "sha256": "e6f249720702e43955878bebb8c907ffbf1095440c90cfda47cf08caf6d594d7"
+  },
+  "chirps/chirps-v2.0.2016.12.tif.gz": {
+   "bytes": 4529161,
+   "sha256": "d390cbbe7131bcdf13b9fa402342518956a18e940f2501dea4023eda080ee5a2"
+  },
+  "chirps/chirps-v2.0.2017.01.tif.gz": {
+   "bytes": 4434347,
+   "sha256": "177ad6b00a0cd20f54387bb13110329103c2170765f3104400ccf1931866a0cf"
+  },
+  "chirps/chirps-v2.0.2017.02.tif.gz": {
+   "bytes": 4525563,
+   "sha256": "dc956e8de90ad7265023f2ad45e9be42fa59c71071e5dbc6330dba498cd09c77"
+  },
+  "chirps/chirps-v2.0.2017.03.tif.gz": {
+   "bytes": 4513244,
+   "sha256": "d5cdf863fc8d3caf65d0ccae9f73b4fe663779802089d8b1e5a6220666aff0c7"
+  },
+  "chirps/chirps-v2.0.2017.04.tif.gz": {
+   "bytes": 4489204,
+   "sha256": "d4e39c8033fc1032d4728caa4cf3c16b8204b919d3b01bb5010374cda13a84d6"
+  },
+  "chirps/chirps-v2.0.2017.05.tif.gz": {
+   "bytes": 4510453,
+   "sha256": "c7e5f850233edb571b880953359a90892825b2723dfdebf293acc4e2222f175b"
+  },
+  "chirps/chirps-v2.0.2017.06.tif.gz": {
+   "bytes": 4538043,
+   "sha256": "414580b9c3e81b518a0bcb89c9b9ca7a05bc19e34b5b07815baf2bcb73eb3627"
+  },
+  "chirps/chirps-v2.0.2017.07.tif.gz": {
+   "bytes": 4552930,
+   "sha256": "7ec3bb7ebdb05f761b85733a079b507ba3eb7782e54ebfd979f73bdd5684461b"
+  },
+  "chirps/chirps-v2.0.2017.08.tif.gz": {
+   "bytes": 4549695,
+   "sha256": "cf784138f1bdcbd9061edb3d19e6fe979600f32a9cfd41dd6bece4e684373e40"
+  },
+  "chirps/chirps-v2.0.2017.09.tif.gz": {
+   "bytes": 4536112,
+   "sha256": "b67a0bf5cbde99a62070ac718b50b96b2c6209c5ba7066b2023708ead4550b53"
+  },
+  "chirps/chirps-v2.0.2017.10.tif.gz": {
+   "bytes": 4499099,
+   "sha256": "836b3fd7e3479dbb55cd2fd864fa8974a0a8f7794c707298be78ebd9425d2704"
+  },
+  "chirps/chirps-v2.0.2017.11.tif.gz": {
+   "bytes": 4506570,
+   "sha256": "15d50f1e802f2a020af6a1aac670ecc0e35931c141bc6438d94f87678a5ca927"
+  },
+  "chirps/chirps-v2.0.2017.12.tif.gz": {
+   "bytes": 4521193,
+   "sha256": "6c51d1810b022eac6f95cbf1a2c6629683d1b4f4c35212db26ef82234271375a"
+  },
+  "chirps/chirps-v2.0.2018.01.tif.gz": {
+   "bytes": 4431184,
+   "sha256": "320a305513f29ee2b4b2fd4e623f6b8de42a5f7bac7ee53078efaf5f8231204f"
+  },
+  "chirps/chirps-v2.0.2018.02.tif.gz": {
+   "bytes": 4532179,
+   "sha256": "9709ce4cf2718e0ddcdcc93942d4bcda68d65720e3ded2484a1cee23692c94ad"
+  },
+  "chirps/chirps-v2.0.2018.03.tif.gz": {
+   "bytes": 4494826,
+   "sha256": "15a9582ddb29edaf337ece3da6634c9290a93e5d44d33100f1a20b975d2fb451"
+  },
+  "chirps/chirps-v2.0.2018.04.tif.gz": {
+   "bytes": 4490743,
+   "sha256": "eb9695326eeef975b1f668e2a6cab564d7a7fedad2aac89b7fedd5c1ef16b524"
+  },
+  "chirps/chirps-v2.0.2018.05.tif.gz": {
+   "bytes": 4500903,
+   "sha256": "ec5b93db177b1b04c73ae6c9c6446fd174576d4eff00cb287b0866ccb77d5847"
+  },
+  "chirps/chirps-v2.0.2018.06.tif.gz": {
+   "bytes": 4527794,
+   "sha256": "8f597717ddd36636f40b66b9635722e7a57cbbfa4baecc43ebeddb36308e3ae1"
+  },
+  "chirps/chirps-v2.0.2018.07.tif.gz": {
+   "bytes": 4556828,
+   "sha256": "0f8019ad542862f4e09877df1c8969d3d9f52ea0c06cc0e668de1385d6f130db"
+  },
+  "chirps/chirps-v2.0.2018.08.tif.gz": {
+   "bytes": 4552507,
+   "sha256": "85e47719694c1d527081a08a201c0dff050e5b5d8b1e2bbc706c5f4010713cf8"
+  },
+  "chirps/chirps-v2.0.2018.09.tif.gz": {
+   "bytes": 4545456,
+   "sha256": "bf7ac97c31abd01f4eaa9279294e8b20b57b47155f39b944fd752c4f31794e38"
+  },
+  "chirps/chirps-v2.0.2018.10.tif.gz": {
+   "bytes": 4506394,
+   "sha256": "d7115c5e1768cf417b709d8ad95dd47f993d455e73caf2c6d37a72c1a944e657"
+  },
+  "chirps/chirps-v2.0.2018.11.tif.gz": {
+   "bytes": 4528002,
+   "sha256": "104bdaa854be9ada4f2fb64fddc4813742d7f6ade562ac26c979a6c005e5a05c"
+  },
+  "chirps/chirps-v2.0.2018.12.tif.gz": {
+   "bytes": 4518463,
+   "sha256": "8c89e3e3ade37333bdd013bfab2ced0c4ac671fb7de21e75710fa26e0f7eb5c9"
+  },
+  "chirps/chirps-v2.0.2019.01.tif.gz": {
+   "bytes": 4448538,
+   "sha256": "3e6c4bb775249ad5b317d1318fb183e880b473f09ffa4aabae422a50ca63a1db"
+  },
+  "chirps/chirps-v2.0.2019.02.tif.gz": {
+   "bytes": 4524001,
+   "sha256": "ede47458be61b7df7bab3063bd4a2d99b77b7fb3f99ed9e1c9b41eb4ab2712bf"
+  },
+  "chirps/chirps-v2.0.2019.03.tif.gz": {
+   "bytes": 4516839,
+   "sha256": "3d0756427517ab3910a692eca0c2399cfd8c5d52e2523626de52f8280b4bd9f4"
+  },
+  "chirps/chirps-v2.0.2019.04.tif.gz": {
+   "bytes": 4496569,
+   "sha256": "99584d5ad97780c99a7df30e0ad8884efbbc750d3599efd31c1f9c35babadcdb"
+  },
+  "chirps/chirps-v2.0.2019.05.tif.gz": {
+   "bytes": 4499196,
+   "sha256": "1ccd679f1c7201611ebdd1ff3528f5e15c6c669fc1a634dac84cdfd68e8bbc22"
+  },
+  "chirps/chirps-v2.0.2019.06.tif.gz": {
+   "bytes": 4529446,
+   "sha256": "a456e81c7ac8ca1fc4758af94ccfc2e50832b13cda1e2b006bf7607cee0f6516"
+  },
+  "chirps/chirps-v2.0.2019.07.tif.gz": {
+   "bytes": 4554706,
+   "sha256": "b9a2d785516d1a4ccb6443973f97e75b8f631c35492881b270fdbca82405ce7f"
+  },
+  "chirps/chirps-v2.0.2019.08.tif.gz": {
+   "bytes": 4549417,
+   "sha256": "25fcc035e779fbb7d3c5b55e29a6c93b3bc59cc92021dbb9b76a6ea7e214b362"
+  },
+  "chirps/chirps-v2.0.2019.09.tif.gz": {
+   "bytes": 4535921,
+   "sha256": "9b7f52bdb3f7134f8f06a69c87675cdf0d2ac01a6ebfd156cf2bdc5174e82b7e"
+  },
+  "chirps/chirps-v2.0.2019.10.tif.gz": {
+   "bytes": 4483318,
+   "sha256": "0bbd22cc45b4ad33c9f0295d9259377a9529fd548cc3fcbfdba252c074a5dd54"
+  },
+  "chirps/chirps-v2.0.2019.11.tif.gz": {
+   "bytes": 4513131,
+   "sha256": "8eb64900dbb68481c27aebc1192204be82b06347777fa65c0e7bd3f9c632e9fd"
+  },
+  "chirps/chirps-v2.0.2019.12.tif.gz": {
+   "bytes": 4515934,
+   "sha256": "fbb67443ac958f76b9d7c7996930fbc63dc4ac734d51eecfba49bfb27c0ab1dd"
+  },
+  "chirps/chirps-v2.0.2020.01.tif.gz": {
+   "bytes": 4426149,
+   "sha256": "fab55243a6ce589eb9ff1e4a11b3316c73dece4f448326dcef8e58fd4adca9af"
+  },
+  "chirps/chirps-v2.0.2020.02.tif.gz": {
+   "bytes": 4514817,
+   "sha256": "0a8ba071265cb454858ce3751161b58b23c01ddec6742198dcd1163a05fd2c61"
+  },
+  "chirps/chirps-v2.0.2020.03.tif.gz": {
+   "bytes": 4499342,
+   "sha256": "1ae54fef7677606ad0dee6a8558fd932f24c704595af65512efc0fba156cfd26"
+  },
+  "chirps/chirps-v2.0.2020.04.tif.gz": {
+   "bytes": 4493648,
+   "sha256": "25f351404479fa2844cebc1e9460d5efbc857152c607869d3b5de5e3c82b5fe0"
+  },
+  "chirps/chirps-v2.0.2020.05.tif.gz": {
+   "bytes": 4503735,
+   "sha256": "3da6a7a69d72c7dc97f63ee147dd9dc46a8e2bbe092439d77063b37932500a1a"
+  },
+  "chirps/chirps-v2.0.2020.06.tif.gz": {
+   "bytes": 4532256,
+   "sha256": "21cd2a0097ff1b17c9369121a6f94dc8dbb1054d31147d3c28a6642231ae8564"
+  },
+  "chirps/chirps-v2.0.2020.07.tif.gz": {
+   "bytes": 4554174,
+   "sha256": "b5709554a6804573811499197e9b271f056f796d4d29a8b594e01e447c6f0ad8"
+  },
+  "chirps/chirps-v2.0.2020.08.tif.gz": {
+   "bytes": 4548349,
+   "sha256": "bd21c7a77554adf575dd0355c7b5155e7e8d07c39352f02dac4c7b0aaf9084e6"
+  },
+  "chirps/chirps-v2.0.2020.09.tif.gz": {
+   "bytes": 4537266,
+   "sha256": "1ff9cbbc5db2425786ace5d5a4c3faa28c1f6b3fcf766817e366f601fb278123"
+  },
+  "chirps/chirps-v2.0.2020.10.tif.gz": {
+   "bytes": 4503542,
+   "sha256": "c17162462d715f03f8c6f71c0e453afed295b10346a3b7eb83d725d04ba65402"
+  },
+  "chirps/chirps-v2.0.2020.11.tif.gz": {
+   "bytes": 4514085,
+   "sha256": "58544e8bfb41ad943e68801c43bda2906ba46a5451a2d162b9a3ecf9b74651e8"
+  },
+  "chirps/chirps-v2.0.2020.12.tif.gz": {
+   "bytes": 4533431,
+   "sha256": "b98ad0cdacf32f497bdea6331efde17556e4057b20bc570cf56fd5bbb6e0f42b"
+  },
+  "chirps/chirps-v2.0.2021.01.tif.gz": {
+   "bytes": 4433306,
+   "sha256": "1af2f78624ef088a90e7e000895a5de4bbab0ea3741d8bde810f5045b2a2036d"
+  },
+  "chirps/chirps-v2.0.2021.02.tif.gz": {
+   "bytes": 4525382,
+   "sha256": "354ca1aec2130e17cec671c3a5372c44cbcc492faa69039a4b418fb8b4f65ca6"
+  },
+  "chirps/chirps-v2.0.2021.03.tif.gz": {
+   "bytes": 4498744,
+   "sha256": "cfd25c302cf3db0e85be7f5649fb9cc5e1177bc3eadd335a91d151c34db718ab"
+  },
+  "chirps/chirps-v2.0.2021.04.tif.gz": {
+   "bytes": 4494766,
+   "sha256": "51b39a5dc4464d9eb59d104dbde3de7683ce1e7ec24f53ee0afd4862f3506ec8"
+  },
+  "chirps/chirps-v2.0.2021.05.tif.gz": {
+   "bytes": 4499319,
+   "sha256": "80be36bf3f2f31e7c95c83199c3dd5265834c3c536402898ab92ceb5eb655d06"
+  },
+  "chirps/chirps-v2.0.2021.06.tif.gz": {
+   "bytes": 4533284,
+   "sha256": "b89293974103269f855559e67f1d8a547a757f3394a386d53712a97efa8fd5a1"
+  },
+  "chirps/chirps-v2.0.2021.07.tif.gz": {
+   "bytes": 4555275,
+   "sha256": "1af64e2c7121d37c93d735afb19a599c262ec65554ae434bbe3949859953cb13"
+  },
+  "chirps/chirps-v2.0.2021.08.tif.gz": {
+   "bytes": 4548885,
+   "sha256": "886c11344178c4eabf6b7b93b3199969bedfe1c8e2bfe5993b1a7b75c0ddfdff"
+  },
+  "chirps/chirps-v2.0.2021.09.tif.gz": {
+   "bytes": 4532857,
+   "sha256": "3b267ab8e046f97f1bdb70f68efe777e97ec7a0c4f7be547c252c6adb1d69316"
+  },
+  "chirps/chirps-v2.0.2021.10.tif.gz": {
+   "bytes": 4496763,
+   "sha256": "d4e16c3bb32c300643b76ed27990696a2969623cdbf67dec0b2c7566fdd28038"
+  },
+  "chirps/chirps-v2.0.2021.11.tif.gz": {
+   "bytes": 4518390,
+   "sha256": "b21379263de50ece90d97362c814b3ff2c8d8ee76036ac4d15baaaf1f312bacf"
+  },
+  "chirps/chirps-v2.0.2021.12.tif.gz": {
+   "bytes": 4531651,
+   "sha256": "80b9017642791baa0c26c50f345c2fe9af31b6ceb4281f48f02b8b9b9d0a01b1"
+  },
+  "chirps/chirps-v2.0.2022.01.tif.gz": {
+   "bytes": 4435093,
+   "sha256": "141239905b3215184658b000c57606bcb9011436c9244c8e83969328461a68c6"
+  },
+  "chirps/chirps-v2.0.2022.02.tif.gz": {
+   "bytes": 4516360,
+   "sha256": "ea931a5382d71f7af6cfe3087018ccfc7afc1a051024f770e83c2bd2f70b45da"
+  },
+  "chirps/chirps-v2.0.2022.03.tif.gz": {
+   "bytes": 4498863,
+   "sha256": "ce5ff350554974e4eaa25658ac4e6e7645b37f214816bdd27b28c8b97b1e2acc"
+  },
+  "chirps/chirps-v2.0.2022.04.tif.gz": {
+   "bytes": 4498593,
+   "sha256": "7d89bcffe7502b8260d5a8a9083e1c1ba6e37744644fecd9090e849fb1865720"
+  },
+  "chirps/chirps-v2.0.2022.05.tif.gz": {
+   "bytes": 4499907,
+   "sha256": "076c8fdee03aea014cce521c497f77e7bafc6b4e4cf58e84ab213194e17eb1b2"
+  },
+  "chirps/chirps-v2.0.2022.06.tif.gz": {
+   "bytes": 4535642,
+   "sha256": "873d54ea5edf4f78b1458c0239ca6a2b145101b4fdfacad5647e562cebc1c40b"
+  },
+  "chirps/chirps-v2.0.2022.07.tif.gz": {
+   "bytes": 4554911,
+   "sha256": "10bc557d2f034a20134783ce1cdd1cfab8780bd7492a69b9d33bf98d9fa51193"
+  },
+  "chirps/chirps-v2.0.2022.08.tif.gz": {
+   "bytes": 4542524,
+   "sha256": "2a9cc38925cf8c2f2756ffb78621fb9b9d74bc2a8e4bcb107c14c8e22e2e9a79"
+  },
+  "chirps/chirps-v2.0.2022.09.tif.gz": {
+   "bytes": 4538484,
+   "sha256": "d3fa1505c4e08c54cbbd59185a507cfe9ecb5afbb869dbf3db66815e701ec100"
+  },
+  "chirps/chirps-v2.0.2022.10.tif.gz": {
+   "bytes": 4507545,
+   "sha256": "9f5f40d64988e22cc088ec807eb51e69cb9893850bbc4f3fcea50f5e4c6fd74b"
+  },
+  "chirps/chirps-v2.0.2022.11.tif.gz": {
+   "bytes": 4524719,
+   "sha256": "34d85745b76b39ca0edf398b0abfa76aba5d347948f94088cd3659a9269fcf97"
+  },
+  "chirps/chirps-v2.0.2022.12.tif.gz": {
+   "bytes": 4527156,
+   "sha256": "07f250f410ccd95f11955c7ff54451f675f235eace420defe6e961004f42cf59"
+  },
+  "chirps/chirps-v2.0.2023.01.tif.gz": {
+   "bytes": 4442393,
+   "sha256": "dec6ece0cad6a2b508957bbd60e3b4f8d8f98f1124c642715154452e2de72d4b"
+  },
+  "chirps/chirps-v2.0.2023.02.tif.gz": {
+   "bytes": 4535455,
+   "sha256": "adc22776780e28063ac1e0d175a78e960b854ef4cfc3ac8981f0692a6fbee600"
+  },
+  "chirps/chirps-v2.0.2023.03.tif.gz": {
+   "bytes": 4504161,
+   "sha256": "0ddbc35d3ef6306d25e0b4453a1535d894db42c09ad757609f01dba59e93ae1b"
+  },
+  "chirps/chirps-v2.0.2023.04.tif.gz": {
+   "bytes": 4488512,
+   "sha256": "9136f76068902400cb45f93c5d853847b97354df7b8d2c14c62102a9ce78ea75"
+  },
+  "chirps/chirps-v2.0.2023.05.tif.gz": {
+   "bytes": 4508655,
+   "sha256": "39791731187b19097cda63b90de22b2ebc13f46c6ff67089d1ec3806ab4882e2"
+  },
+  "chirps/chirps-v2.0.2023.06.tif.gz": {
+   "bytes": 4530344,
+   "sha256": "5eaf9e603abcb4a23bfa833e584561061c6341a6ee54eb9a612764465388a759"
+  },
+  "chirps/chirps-v2.0.2023.07.tif.gz": {
+   "bytes": 4560720,
+   "sha256": "9cf5d076e94798e3493c517946f3533af2bf7e83242f90619160fd2ce92b45a5"
+  },
+  "chirps/chirps-v2.0.2023.08.tif.gz": {
+   "bytes": 4550324,
+   "sha256": "ed951f2e17034e81d3fcaa6bf751cbd1a9baeb35c99688decd18504566f80e54"
+  },
+  "chirps/chirps-v2.0.2023.09.tif.gz": {
+   "bytes": 4538062,
+   "sha256": "7c14fa8be28a1c608e64d7d39ca2d2cb444a3db77e4099232c1e28e4c46d5225"
+  },
+  "chirps/chirps-v2.0.2023.10.tif.gz": {
+   "bytes": 4501662,
+   "sha256": "0dd76a3465a9dedb8835428f750693249e4c870ba5102189ee5aac1902d95aa4"
+  },
+  "chirps/chirps-v2.0.2023.11.tif.gz": {
+   "bytes": 4510969,
+   "sha256": "b7f45b9dbb3cc80a3a79ea2a0d7b43aa31579c2560b79d20c4e2dd42a1707544"
+  },
+  "chirps/chirps-v2.0.2023.12.tif.gz": {
+   "bytes": 4518648,
+   "sha256": "28b978357406f884beff613f824e0d3415af6fc0ec4146cb02bcdb0509b4bcb0"
+  },
+  "cimmyt_sasas_sudan_sorghum_2024_25.pdf": {
+   "bytes": 3022460,
+   "sha256": "bce6f3bdb1292721551d71d17dfbf03a369a5a4579b75f869fbd05e96dddbe2f"
+  },
+  "harveststat/CHANGELOG.md": {
+   "bytes": 13128,
+   "sha256": "ad21f228188aff94306e9f9c9bff53fac5562acc9d87b2be495083fe6eafad74"
+  },
+  "harveststat/hvstat_africa_boundary_v1.2.gpkg": {
+   "bytes": 8486912,
+   "sha256": "259e152dcae5b8629b2b76f789abb114219e07347a1dc1efaf8185281f7d028e"
+  },
+  "harveststat/hvstat_africa_data_v1.2.csv": {
+   "bytes": 25312039,
+   "sha256": "f659e121e315b9d8656699e4b16421ed3b313e4c8d09d15199452000836dbef9"
+  },
+  "harveststat/README.md": {
+   "bytes": 7043,
+   "sha256": "d6dc9a64cd0f20c955f7f4f8e0305a27661fa98870fa4010700f58a543fe2d20"
+  },
+  "ofra/OFRA_RespFunc_Dataset_Updated_Aug_2023.xlsx": {
+   "bytes": 5044018,
+   "sha256": "79a8fdecf0cbf519f6440af9c76c2cd37d840c0e26c17faabe2f88e34b1d04ce"
+  }
+ }
+}

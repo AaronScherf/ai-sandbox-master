@@ -1,0 +1,4 @@
+crop,target,n,slope_from_others,oos_R2,within_target_R2
+Sorghum,Somalia,419,0.07,0.024,0.189
+Sorghum,Sudan,241,0.07,0.015,0.152
+Maize,Somalia,464,0.08,0.024,0.126

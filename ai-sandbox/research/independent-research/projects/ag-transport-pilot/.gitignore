@@ -1,0 +1,5 @@
+# Raw source downloads stay out of Git (ACLED terms forbid redistribution; the rest is large or re-downloadable).
+# Record versions and checksums in data/manifest.json instead.
+data/raw/
+data/interim/
+__pycache__/

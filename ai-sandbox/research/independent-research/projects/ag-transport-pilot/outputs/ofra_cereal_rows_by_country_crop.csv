@@ -1,0 +1,42 @@
+poly_country,crop,rows,units
+Benin,Maize,19,4
+Benin,Sorghum,8,1
+Burkina Faso,Maize,70,1
+Burkina Faso,Millet,26,3
+Burkina Faso,Sorghum,51,4
+Cameroon,Maize,2,2
+"Congo, The Democratic Republic of the",Maize,2,1
+"Congo, The Democratic Republic of the",Sorghum,2,1
+Ethiopia,Maize,90,14
+Ethiopia,Millet,8,3
+Ethiopia,Sorghum,121,15
+Ghana,Maize,105,6
+Ghana,Sorghum,1,1
+Kenya,Maize,577,22
+Kenya,Millet,36,5
+Kenya,Sorghum,39,6
+Malawi,Maize,119,21
+Malawi,Millet,1,1
+Mali,Maize,56,3
+Mali,Millet,12,1
+Mali,Sorghum,46,4
+Mozambique,Maize,72,6
+Mozambique,Sorghum,32,3
+Niger,Maize,33,4
+Niger,Millet,242,12
+Niger,Sorghum,77,6
+Nigeria,Maize,146,13
+Nigeria,Millet,4,2
+Nigeria,Sorghum,53,4
+Rwanda,Maize,56,15
+Rwanda,Sorghum,17,7
+"Tanzania, United Republic of",Maize,319,11
+"Tanzania, United Republic of",Sorghum,27,5
+Togo,Maize,17,5
+Uganda,Maize,172,9
+Uganda,Millet,85,4
+Uganda,Sorghum,44,4
+Zambia,Maize,101,15
+Zimbabwe,Maize,30,3
+Zimbabwe,Millet,1,1
+Zimbabwe,Sorghum,3,2

@@ -1,0 +1,43 @@
+country,crop,n,slope,R2
+Zimbabwe,Sorghum,104,1.44,0.33
+South Africa,Sorghum,77,0.97,0.31
+Zimbabwe,Maize,104,1.23,0.3
+Mali,Maize,74,1.24,0.2
+Mauritania,Sorghum,42,1.02,0.19
+Somalia,Sorghum,419,1.05,0.19
+South Africa,Maize,117,0.35,0.19
+"Tanzania, United Republic of",Sorghum,115,0.43,0.19
+Togo,Sorghum,64,0.51,0.15
+Sudan,Sorghum,241,1.39,0.15
+Niger,Sorghum,481,-0.49,0.14
+Senegal,Sorghum,227,0.6,0.14
+Somalia,Maize,464,0.76,0.13
+Angola,Sorghum,54,1.16,0.11
+Malawi,Maize,351,0.76,0.11
+Niger,Maize,415,-0.21,0.1
+Benin,Maize,1006,-0.55,0.09
+Senegal,Maize,232,0.41,0.09
+"Tanzania, United Republic of",Maize,125,0.34,0.07
+Zambia,Maize,517,0.58,0.07
+Kenya,Maize,657,0.4,0.07
+Burundi,Maize,80,-0.31,0.07
+Ethiopia,Maize,645,0.39,0.06
+Angola,Maize,126,0.57,0.05
+Zambia,Sorghum,272,1.11,0.05
+Benin,Sorghum,532,0.37,0.04
+Lesotho,Sorghum,109,1.12,0.04
+Burkina Faso,Maize,610,0.46,0.04
+Chad,Sorghum,136,-0.06,0.03
+Lesotho,Maize,113,0.43,0.03
+Malawi,Sorghum,199,0.31,0.03
+Burkina Faso,Sorghum,614,0.37,0.02
+Ethiopia,Sorghum,539,0.23,0.02
+Nigeria,Maize,476,0.48,0.02
+Mali,Sorghum,88,-0.2,0.01
+Ghana,Maize,97,0.21,0.01
+Mozambique,Sorghum,93,0.29,0.01
+Chad,Maize,128,0.03,0.0
+Mozambique,Maize,93,-0.1,0.0
+Kenya,Sorghum,437,0.18,0.0
+Nigeria,Sorghum,274,0.06,0.0
+Togo,Maize,126,0.06,0.0

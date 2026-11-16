@@ -1,0 +1,29 @@
+country,unit_crop_years,with_rain,share
+Angola,211,184,0.87
+Benin,1600,1544,0.96
+Burkina Faso,1224,1224,1.0
+Burundi,128,128,1.0
+Central African Republic,48,48,1.0
+Chad,268,268,1.0
+"Congo, The Democratic Republic of the",80,80,1.0
+Ethiopia,1218,1218,1.0
+Ghana,169,169,1.0
+Kenya,1098,1098,1.0
+Lesotho,241,222,0.92
+Madagascar,22,0,0.0
+Malawi,614,551,0.9
+Mali,165,165,1.0
+Mauritania,94,80,0.85
+Mozambique,201,186,0.93
+Niger,901,901,1.0
+Nigeria,759,759,1.0
+Rwanda,162,125,0.77
+Senegal,472,472,1.0
+Somalia,948,889,0.94
+South Africa,210,194,0.92
+South Sudan,2,1,0.5
+Sudan,247,241,0.98
+"Tanzania, United Republic of",300,253,0.84
+Togo,296,296,1.0
+Zambia,997,864,0.87
+Zimbabwe,224,208,0.93
