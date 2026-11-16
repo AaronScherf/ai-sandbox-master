@@ -1,0 +1,258 @@
+<title>Citation Review Queue</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Layout: one reading column; each card sets the note's citation beside the registry record, decision bar underneath. */
+:root {
+  --bg: #f3f5f7; --surface: #ffffff; --ink: #18212b; --muted: #5a6573; --line: #d9dee4;
+  --accent: #1d5a85; --accent-fg: #ffffff; --accent-soft: #e3edf5;
+  --ok: #1f7a4d; --ok-soft: #e1f2e8; --bad: #a83a2c; --bad-soft: #f8e4e1;
+  --warn: #946200; --warn-soft: #fbf0d6; --info: #4a5a9c; --info-soft: #e7e9f6; --grey-soft: #eceff2;
+  --f-display: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12171d; --surface: #1a2129; --ink: #e4e9ef; --muted: #9aa5b2; --line: #2d3742;
+  --accent: #6fb0e0; --accent-fg: #0d1620; --accent-soft: #1d3346;
+  --ok: #6fcf9a; --ok-soft: #173326; --bad: #f08b7d; --bad-soft: #3a1f1b;
+  --warn: #e5b85a; --warn-soft: #362b12; --info: #a4b0ec; --info-soft: #242a45; --grey-soft: #242c35; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12171d; --surface: #1a2129; --ink: #e4e9ef; --muted: #9aa5b2; --line: #2d3742;
+  --accent: #6fb0e0; --accent-fg: #0d1620; --accent-soft: #1d3346;
+  --ok: #6fcf9a; --ok-soft: #173326; --bad: #f08b7d; --bad-soft: #3a1f1b;
+  --warn: #e5b85a; --warn-soft: #362b12; --info: #a4b0ec; --info-soft: #242a45; --grey-soft: #242c35; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px; }
+.wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 22px; }
+header { display: grid; gap: 10px; }
+h1 { font: 600 1.9rem/1.15 var(--f-display); margin: 0; text-wrap: balance; }
+.lede { margin: 0; color: var(--muted); max-width: 68ch; }
+.bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.progress { display: flex; align-items: center; gap: 10px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.meter { width: 160px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .25s; }
+.tabs { display: flex; gap: 4px; background: var(--grey-soft); padding: 3px; border-radius: 8px; }
+.tabs button { border: 0; background: none; font: 500 13px var(--f-body); color: var(--muted); padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+.tabs button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+.notice { padding: 10px 14px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-size: 14px; }
+.group { display: grid; gap: 12px; }
+.group h2 { font: 600 1.05rem var(--f-display); margin: 8px 0 0; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.group h2 small { font: 400 12px var(--f-mono); color: var(--muted); overflow-wrap: anywhere; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; display: grid; }
+.card.decided { opacity: .78; }
+.head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.chip { font: 600 11px var(--f-body); letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+.t-REVIEW, .t-AMBIGUOUS { background: var(--warn-soft); color: var(--warn); }
+.t-PLAUSIBLE { background: var(--info-soft); color: var(--info); }
+.t-UNCHECKED, .t-UNRESOLVED { background: var(--grey-soft); color: var(--muted); }
+.doi { font: 13px var(--f-mono); color: var(--accent); overflow-wrap: anywhere; }
+.reason { font-size: 13px; color: var(--muted); flex: 1 1 220px; min-width: 0; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; }
+.col { padding: 14px 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.col + .col { border-left: 1px solid var(--line); }
+.label { font: 600 11px var(--f-body); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.mention { display: grid; gap: 4px; }
+.ln { font: 12px var(--f-mono); color: var(--muted); }
+.cited { font-weight: 500; overflow-wrap: anywhere; }
+.context { font-size: 13.5px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 10px; overflow-wrap: anywhere; }
+.rtitle { font: 600 1.02rem/1.35 var(--f-display); }
+.rmeta { font-size: 14px; color: var(--muted); }
+.decide { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); background: var(--bg); border-radius: 0 0 10px 10px; }
+.decide button { font: 500 13.5px var(--f-body); padding: 7px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.decide button:hover:not(:disabled) { border-color: var(--accent); }
+.decide button:disabled { cursor: default; opacity: .55; }
+.decide button.on.accept { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); opacity: 1; }
+.decide button.on.wrong_work { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); opacity: 1; }
+.decide button.on.not_citation { background: var(--grey-soft); color: var(--ink); border-color: var(--muted); opacity: 1; }
+.decide button.on.defer { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); opacity: 1; }
+.decide .clear { border: 0; background: none; color: var(--accent); text-decoration: underline; padding: 7px 4px; }
+.decide .status { margin-left: auto; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.empty { padding: 28px; text-align: center; color: var(--muted); background: var(--surface); border: 1px dashed var(--line); border-radius: 10px; }
+footer { display: grid; gap: 10px; font-size: 13.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+footer dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
+footer dt { font-weight: 600; color: var(--ink); }
+footer dd { margin: 0; }
+code { font: 12.5px var(--f-mono); background: var(--grey-soft); padding: 1px 5px; border-radius: 4px; }
+@media (max-width: 640px) {
+  .cols { grid-template-columns: 1fr; }
+  .col + .col { border-left: 0; border-top: 1px solid var(--line); }
+  .decide .status { margin-left: 0; width: 100%; }
+  footer dl { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .meter i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Citation Review Queue</h1>
+    <p class="lede">Each card is one DOI in one research note that the reference checker could not confirm on its own. Compare how the note cites it with what the registry holds, then decide. Same work carries over to the same citation in other notes; wrong work stays with this note.</p>
+    <div class="bar">
+      <div class="progress"><div class="meter"><i id="meter"></i></div><span id="count">Loading the queue…</span></div>
+      <div class="tabs" role="group" aria-label="Show">
+        <button id="tab-open" data-filter="open" aria-pressed="true">Undecided</button>
+        <button id="tab-done" data-filter="done" aria-pressed="false">Decided</button>
+        <button id="tab-all" data-filter="all" aria-pressed="false">All</button>
+      </div>
+    </div>
+    <div id="notice" class="notice" hidden></div>
+  </header>
+  <main id="list" class="group"><div class="empty">Loading review items. They appear here once the queue answers.</div></main>
+  <footer>
+    <dl>
+      <dt>Same work</dt><dd>The DOI is the paper the note means. Dismisses this citation text for this DOI in every note.</dd>
+      <dt>Wrong paper</dt><dd>The DOI points at a different work. Recorded as a defect in this note only; the note needs a fix.</dd>
+      <dt>Not a citation</dt><dd>The checker picked up something that is not a reference. Logged as a parser mistake.</dd>
+      <dt>Can't tell</dt><dd>Stays in the queue for a later pass.</dd>
+    </dl>
+    <p>Decisions are saved here as you click. Claude then applies them to the local ledger with <code>python -m tools.reference_review apply</code>; nothing in the notes is edited.</p>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const ACTIONS = [
+    { key: "accept", label: "Same work", action: "accept", chosen: null },
+    { key: "wrong_work", label: "Wrong paper", action: "decline", chosen: "wrong_work" },
+    { key: "not_citation", label: "Not a citation", action: "decline", chosen: "not_citation" },
+    { key: "defer", label: "Can't tell", action: "defer", chosen: null },
+  ];
+  const keyOf = (rec) => rec ? (rec.action === "decline" ? rec.chosen : rec.action) : null;
+  const TIER_NOTE = { PLAUSIBLE: "No title in the citation", REVIEW: "Title or year disagrees", AMBIGUOUS: "Authors only partly agree", UNCHECKED: "Checker could not judge", UNRESOLVED: "Checker could not judge" };
+
+  let db = null, items = [], decisions = new Map(), filter = "open", readOnly = false;
+  const saving = new Set();
+  const $ = (id) => document.getElementById(id);
+
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function notice(msg) { const n = $("notice"); n.textContent = msg || ""; n.hidden = !msg; }
+
+  try { const f = localStorage.getItem("crq-filter"); if (f) filter = f; } catch (e) {}
+  document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => {
+    filter = b.dataset.filter;
+    try { localStorage.setItem("crq-filter", filter); } catch (e) {}
+    render();
+  }));
+
+  async function decide(item, a) {
+    if (!db || readOnly || saving.has(item.item_id)) return;
+    saving.add(item.item_id); render();
+    const ref = db.collection("decisions").doc(item.item_id);
+    try {
+      if (a === null) await ref.delete();
+      else await ref.set({ item_id: item.item_id, type: "reference_check", action: a.action, chosen: a.chosen, ts: Date.now() });
+      notice("");
+    } catch (e) {
+      if (e && e.code === "invalid_argument") { readOnly = true; notice("You can view this queue but not record decisions."); }
+      else notice("That decision was not saved (" + ((e && e.code) || "error") + "). Try again.");
+    } finally { saving.delete(item.item_id); render(); }
+  }
+
+  function card(item) {
+    const rec = decisions.get(item.item_id);
+    const current = keyOf(rec);
+    const c = el("article", "card" + (rec && rec.action !== "defer" ? " decided" : ""));
+    const head = el("div", "head");
+    head.append(el("span", "chip t-" + item.tier, item.tier));
+    const a = el("a", "doi", item.doi);
+    a.href = "https://doi.org/" + item.doi; a.target = "_blank"; a.rel = "noopener";
+    head.append(a, el("span", "reason", (TIER_NOTE[item.tier] || "") + (item.reason ? " · " + item.reason : "")));
+    c.append(head);
+
+    const cols = el("div", "cols");
+    const left = el("div", "col");
+    left.append(el("div", "label", "As cited in the note"));
+    (item.mentions || []).forEach((m) => {
+      const box = el("div", "mention");
+      box.append(el("span", "ln", m.line ? "Line " + m.line : "Line unknown"), el("div", "cited", m.cited_text));
+      if (m.context && m.context !== m.cited_text) box.append(el("div", "context", m.context));
+      left.append(box);
+    });
+    const right = el("div", "col");
+    const r = item.registry || {};
+    right.append(el("div", "label", "Registry record"));
+    right.append(el("div", "rtitle", r.title || "No title registered"));
+    const authors = (r.authors || []).join(", ");
+    right.append(el("div", "rmeta", [authors, r.year, r.venue].filter(Boolean).join(" · ") || "No author, year or venue registered"));
+    cols.append(left, right);
+    c.append(cols);
+
+    const bar = el("div", "decide");
+    const busy = saving.has(item.item_id);
+    ACTIONS.forEach((act) => {
+      const on = current === act.key;
+      const b = el("button", act.key + (on ? " on" : ""), (on ? "✓ " : "") + act.label);
+      b.type = "button"; b.disabled = busy || readOnly || !db;
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.addEventListener("click", () => decide(item, on ? null : act));
+      bar.append(b);
+    });
+    if (rec && !readOnly) {
+      const clr = el("button", "clear", "Clear");
+      clr.type = "button"; clr.disabled = busy;
+      clr.addEventListener("click", () => decide(item, null));
+      bar.append(clr);
+    }
+    bar.append(el("span", "status", busy ? "Saving…" : rec ? "Saved " + new Date(rec.ts).toLocaleString() : "Undecided"));
+    c.append(bar);
+    return c;
+  }
+
+  function render() {
+    document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.filter === filter ? "true" : "false"));
+    const done = items.filter((i) => { const d = decisions.get(i.item_id); return d && d.action !== "defer"; }).length;
+    $("count").textContent = items.length ? done + " of " + items.length + " decided" : "No items yet";
+    $("meter").style.width = items.length ? (100 * done / items.length) + "%" : "0";
+
+    const shown = items.filter((i) => {
+      const d = decisions.get(i.item_id); const decided = d && d.action !== "defer";
+      return filter === "all" || (filter === "open" ? !decided : decided);
+    });
+    const list = $("list");
+    list.replaceChildren();
+    if (!items.length) {
+      list.append(el("div", "empty", "The queue is empty. Claude adds items here after a reference check finds DOIs that need a human decision."));
+      return;
+    }
+    if (!shown.length) {
+      list.append(el("div", "empty", filter === "open" ? "Every item has a decision. Ask Claude to apply them to the ledger." : "No decided items yet."));
+      return;
+    }
+    const groups = new Map();
+    shown.forEach((i) => { if (!groups.has(i.note)) groups.set(i.note, []); groups.get(i.note).push(i); });
+    [...groups.keys()].sort().forEach((note) => {
+      const g = groups.get(note);
+      const sec = el("section", "group");
+      const h = el("h2", null, g[0].note_name || note);
+      h.append(el("small", null, g.length + (g.length === 1 ? " item" : " items")));
+      sec.append(h);
+      g.sort((a, b) => ((a.mentions[0] || {}).line || 0) - ((b.mentions[0] || {}).line || 0)).forEach((i) => sec.append(card(i)));
+      list.append(sec);
+    });
+  }
+
+  (async () => {
+    db = window.claude ? await window.claude.use("db") : null;
+    if (!db) { notice("The saved queue can't be opened in this view. Open the page on claude.ai while signed in."); $("count").textContent = "Unavailable"; render(); return; }
+    let gotItems = false;
+    const slow = setTimeout(() => { if (!gotItems) notice("The queue can't be reached yet; it may be out of date."); }, 10000);
+    db.collection("items").onSnapshot((snap) => {
+      items = snap.docs.map((d) => d.data()).filter(Boolean);
+      if (!snap.metadata.fromCache) { gotItems = true; clearTimeout(slow); notice(""); }
+      render();
+    }, (e) => { clearTimeout(slow); notice("Could not read the queue (" + ((e && e.code) || "error") + ")."); });
+    db.collection("decisions").onSnapshot((snap) => {
+      decisions = new Map(snap.docs.map((d) => [d.id, d.data()]));
+      render();
+    }, (e) => notice("Could not read saved decisions (" + ((e && e.code) || "error") + ")."));
+  })();
+})();
+</script>
