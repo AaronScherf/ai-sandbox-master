@@ -14,15 +14,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.indexer.review_envelope import ReviewItem, _digest
-from tools.reference_checker import RegistryClient, check_note, normalized
+from tools.reference_checker import RegistryClient, TIER_RANK, check_note, normalized
 
 
 DEFAULT_STORE = Path(__file__).resolve().parents[1] / ".reference_checker_review"
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[3]
 FILES = {"review": "review.json", "dismissals": "dismissals.json", "defects": "defects.json",
          "false_positives": "false_positives.json"}
-TIER_RANK = {"CONFIRMED": 0, "PLAUSIBLE": 1, "UNCHECKED": 2, "UNRESOLVED": 3,
-             "REVIEW": 4, "AMBIGUOUS": 4, "NOT_FOUND": 5, "WRONG_WORK": 6}
 REVIEW_TIERS = {"REVIEW", "AMBIGUOUS", "PLAUSIBLE", "UNCHECKED", "UNRESOLVED"}
 DEFECT_TIERS = {"WRONG_WORK", "NOT_FOUND"}
 
@@ -139,7 +137,7 @@ def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, st
             groups.setdefault(doi.lower(), []).append(row)
     items, defects = [], []
     for doi, mentions in groups.items():
-        worst = max(mentions, key=lambda row: TIER_RANK.get(row.get("tier"), 3))
+        worst = max(mentions, key=lambda row: TIER_RANK.get(row.get("tier"), TIER_RANK["UNRESOLVED"]))
         tier = worst.get("tier", "UNRESOLVED")
         cited = [{"line": row.get("line"), "cited_text": row["citation"]} for row in mentions]
         if tier in DEFECT_TIERS:

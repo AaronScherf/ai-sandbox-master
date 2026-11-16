@@ -15,11 +15,13 @@ Identity-to-tier mapping:
 - SAME_WORK is CONFIRMED when an explicit title scores >= 0.92 and the cited
   year is within one year of any registered year, or when its title scores
   >= 0.5 and the cited year matches a registered year exactly.
-- SAME_WORK with no explicit title is PLAUSIBLE; all other SAME_WORK is REVIEW.
+- SAME_WORK with no explicit title is PLAUSIBLE until the AUTHOR_YEAR rule's
+  exact author/year and complete same-team guard are implemented. AUTHOR_YEAR
+  will be a separate automatic-pass tier for those title-less rows.
 - AMBIGUOUS maps to REVIEW.
 - WRONG_WORK, NOT_FOUND, UNCHECKED, and UNRESOLVED retain their identity as
   their tier.
-- DOI aggregation ranks CONFIRMED < PLAUSIBLE < UNCHECKED < UNRESOLVED <
+- DOI aggregation ranks CONFIRMED < AUTHOR_YEAR < PLAUSIBLE < UNCHECKED < UNRESOLVED <
   REVIEW (= AMBIGUOUS) < NOT_FOUND < WRONG_WORK; WRONG_WORK is highest risk.
 
 The legacy classification field remains for one release. Its mapping is
@@ -45,6 +47,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+
+TIER_RANK = {"CONFIRMED": 0, "AUTHOR_YEAR": 1, "PLAUSIBLE": 2, "UNCHECKED": 3,
+             "UNRESOLVED": 4, "REVIEW": 5, "AMBIGUOUS": 5, "NOT_FOUND": 6,
+             "WRONG_WORK": 7}
 
 USER_AGENT = "ReferenceChecker/1.0 (bibliographic metadata validation)"
 DOI = re.compile(r"10\.\d{4,9}/[^\s\]\[{}\"']+", re.I)
@@ -754,8 +760,6 @@ def identity_counts(rows: list[dict]) -> dict:
     doi_rows = {}
     # Larger ranks are riskier; keep this explicit so duplicate DOI rows retain
     # the most concerning tier, with WRONG_WORK as the highest-risk outcome.
-    tier_rank = {"CONFIRMED": 0, "PLAUSIBLE": 1, "UNCHECKED": 2, "UNRESOLVED": 3,
-                 "REVIEW": 4, "AMBIGUOUS": 4, "NOT_FOUND": 5, "WRONG_WORK": 6}
     doi_tiers = {}
     for row in rows:
         if str(row.get("identifier", "")).lower().startswith("10."):
@@ -764,7 +768,9 @@ def identity_counts(rows: list[dict]) -> dict:
             if current is None or rank.get(row.get("identity"), 0) > rank.get(current, 0):
                 doi_rows[key] = row.get("identity", "UNRESOLVED")
             tier = row.get("tier", row.get("identity", "UNRESOLVED"))
-            if key not in doi_tiers or tier_rank.get(tier, 5) > tier_rank.get(doi_tiers[key], 5):
+            if (key not in doi_tiers or
+                    TIER_RANK.get(tier, TIER_RANK["NOT_FOUND"]) >
+                    TIER_RANK.get(doi_tiers[key], TIER_RANK["NOT_FOUND"])):
                 doi_tiers[key] = tier
     def tally(values):
         counts = {}

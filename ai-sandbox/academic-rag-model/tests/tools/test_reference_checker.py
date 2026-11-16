@@ -229,6 +229,24 @@ def test_identity_counts_aggregate_worst_tier_per_distinct_doi():
     assert counts["tier_distinct_dois"] == {"REVIEW": 1, "WRONG_WORK": 1, "PLAUSIBLE": 1}
 
 
+def test_author_year_rank_is_shared_and_aggregates_between_confirmed_and_plausible():
+    from tools import reference_review
+    from tools.reference_checker import TIER_RANK, identity_counts
+
+    assert reference_review.TIER_RANK is TIER_RANK
+    assert TIER_RANK["CONFIRMED"] < TIER_RANK["AUTHOR_YEAR"] < TIER_RANK["PLAUSIBLE"]
+    assert TIER_RANK["PLAUSIBLE"] < TIER_RANK["UNCHECKED"] < TIER_RANK["UNRESOLVED"]
+    assert TIER_RANK["REVIEW"] == TIER_RANK["AMBIGUOUS"]
+    assert TIER_RANK["REVIEW"] < TIER_RANK["NOT_FOUND"] < TIER_RANK["WRONG_WORK"]
+    rows = [
+        {"identity": "SAME_WORK", "tier": "CONFIRMED", "identifier": "10.5555/shared"},
+        {"identity": "SAME_WORK", "tier": "AUTHOR_YEAR", "identifier": "10.5555/shared"},
+        {"identity": "SAME_WORK", "tier": "PLAUSIBLE", "identifier": "10.5555/shared"},
+        {"identity": "SAME_WORK", "tier": "AUTHOR_YEAR", "identifier": "10.5555/other"},
+    ]
+    assert identity_counts(rows)["tier_distinct_dois"] == {"PLAUSIBLE": 1, "AUTHOR_YEAR": 1}
+
+
 def test_identity_counts_detect_dois_without_a_kind_field():
     from tools.reference_checker import identity_counts
     counts = identity_counts([{"identity": "SAME_WORK", "tier": "CONFIRMED", "identifier": "10.5555/no-kind"}])
