@@ -1,0 +1,3 @@
+crop,sites,mean_gain_kg,sd_site_means,mu,signal_sd,lengthscale,noise_sd,signal_share,leave_country_out_skill_vs_mean,neg_loglik
+sorghum,92,476,551,493,429,0.16,358,0.59,0.018,625.1
+maize,271,795,704,796,472,0.2,524,0.45,0.018,1909.2

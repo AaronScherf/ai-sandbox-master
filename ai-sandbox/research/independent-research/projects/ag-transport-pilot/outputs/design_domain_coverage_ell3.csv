@@ -1,0 +1,5 @@
+crop,country,domain_cells,median_nn_dist_to_OFRA,median_nn_dist_OFRA_to_OFRA,share_cells_farther_than_90pct_of_OFRA_nn
+sorghum,Sudan,553,1.44,0.36,0.88
+sorghum,South Sudan,843,1.2,0.36,0.6
+maize,Sudan,553,2.02,0.55,0.99
+maize,South Sudan,843,1.1,0.55,0.66
