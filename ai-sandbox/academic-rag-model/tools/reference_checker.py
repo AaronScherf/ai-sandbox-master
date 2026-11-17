@@ -17,9 +17,10 @@ Identity-to-tier mapping:
 - SAME_WORK is CONFIRMED when an explicit title scores >= 0.92 and the cited
   year is within one year of any registered year, or when its title scores
   >= 0.5 and the cited year matches a registered year exactly.
-- SAME_WORK with no explicit title is PLAUSIBLE until the AUTHOR_YEAR rule's
-  exact author/year and complete same-team guard are implemented. AUTHOR_YEAR
-  will be a separate automatic-pass tier for those title-less rows.
+- SAME_WORK with no title in the citation or linked reference list is
+  AUTHOR_YEAR only when every cited surname is registered, the cited year
+  matches exactly, Crossref registered the DOI, and a complete same-team
+  search finds no sibling. Otherwise it is PLAUSIBLE.
 - AMBIGUOUS maps to REVIEW.
 - WRONG_WORK, NOT_FOUND, UNCHECKED, and UNRESOLVED retain their identity as
   their tier.
@@ -532,8 +533,7 @@ def same_team_guard(doi: str, record: dict, year: int, client: RegistryClient) -
         url = base + urllib.parse.urlencode(params)
         try:
             answer = client.get(url)
-        except (LookupError, urllib.error.HTTPError, urllib.error.URLError,
-                TimeoutError, ValueError, TypeError) as error:
+        except Exception as error:  # any failed search is an unresolved guard, never an automatic pass
             return SameTeamGuardResult(False, siblings, sibling_count,
                                        f"lookup unavailable: {error}")
         data = answer.get("data") if isinstance(answer, dict) else None
@@ -767,7 +767,60 @@ def _identity_tier(identity: str, citation: str, record: dict | None = None) -> 
     return "REVIEW"
 
 
-def check(row: dict, client: RegistryClient) -> dict:
+def _cited_surnames(citation: str) -> tuple[list[str], bool]:
+    """Read the cited surname list before the first year, ignoring initials."""
+    year = YEAR.search(citation)
+    if not year:
+        return [], False
+    prefix = citation[:year.start()].rstrip(" \t([,")
+    et_al = bool(re.search(r"\bet\s+al\.?\s*,?\s*$", prefix, re.I))
+    prefix = re.sub(r"\bet\s+al\.?\s*,?\s*$", "", prefix, flags=re.I)
+    names = []
+    for part in re.split(r"\s*(?:,|&|\band\b)\s*", prefix):
+        surname = _family_last_token(part)
+        if surname and len(surname) > 1:
+            names.append(surname)
+    return (names[:1] if et_al else names), et_al
+
+
+def _apply_author_year(result: dict, citation: str, registry: str, record: dict, client: RegistryClient) -> None:
+    """Promote only fully checked title-less SAME_WORK rows; mutate the row."""
+    if result["tier"] != "PLAUSIBLE" or result["identity"] != "SAME_WORK" or citation_fields(citation)["title"]:
+        return
+    cited, et_al = _cited_surnames(citation)
+    registered = [_family_last_token(author) for author in record.get("authors") or []]
+    if not cited or not registered or not set(cited) <= set(registered):
+        result["reason"] += "; cited surnames not all registered"
+        return
+    if et_al and cited[0] != registered[0]:
+        result["reason"] += "; et al. first author differs from registry"
+        return
+    year = citation_fields(citation)["year"]
+    try:
+        registered_years = [int(value) for value in (record.get("years") or [record.get("year")]) if value]
+    except (TypeError, ValueError):
+        registered_years = []
+    if year is None or year not in registered_years:
+        result["reason"] += "; cited year does not exactly match registry"
+        return
+    if registry != "Crossref":
+        result["reason"] += "; same-team guard requires Crossref"
+        return
+    guard = same_team_guard(result["identifier"], record, year, client)
+    if guard.siblings:
+        result["siblings"] = guard.siblings
+    if not guard.complete:
+        result["reason"] += "; same-team guard incomplete: " + guard.reason
+    elif guard.sibling_count:
+        work_label = "work" if guard.sibling_count == 1 else "works"
+        result["reason"] += (f"; same team: {guard.sibling_count} other {work_label} "
+                             f"{year - 1} to {year + 1}")
+    else:
+        result["tier"] = "AUTHOR_YEAR"
+        result["reason"] += "; author/year agreement; same-team guard found no sibling"
+
+
+def check(row: dict, client: RegistryClient, *, author_year: bool = True) -> dict:
     citation, ident, kind = clean_citation(row["citation"]), row["identifier"], row["kind"]
     result = {"citation": citation, "identifier": ident, "registry_answer": None,
               "classification": "UNRESOLVED", "identity": "UNRESOLVED", "tier": "UNRESOLVED",
@@ -807,6 +860,8 @@ def check(row: dict, client: RegistryClient) -> dict:
     result["classification"] = ("MISMATCH" if result["identity"] == "WRONG_WORK" else
                                 "MATCH" if result["identity"] == "SAME_WORK" and result["text_fidelity"] == ["OK"] else
                                 "PARTIAL")
+    if author_year:
+        _apply_author_year(result, citation, registry, record, client)
     return result
 
 
@@ -849,7 +904,7 @@ def check_note(text: str, client: RegistryClient, rows: list[dict] | None = None
     )]
     results = []
     for row in source_rows:
-        original = check(row, client)
+        original = check(row, client, author_year=False)
         if "line" in row:
             original["line"] = row["line"]
         original["evidence"] = "title_in_citation" if citation_fields(row["citation"])["title"] else ""
@@ -858,6 +913,9 @@ def check_note(text: str, client: RegistryClient, rows: list[dict] | None = None
             continue
         mention = _citation_key(row["citation"])
         if not mention:
+            answer = original.get("registry_answer") or {}
+            _apply_author_year(original, row["citation"], answer.get("registry", ""),
+                               answer.get("record") or {}, client)
             results.append(original)
             continue
         titled = [entry for entry in entries if entry.get("title")]
@@ -882,10 +940,13 @@ def check_note(text: str, client: RegistryClient, rows: list[dict] | None = None
                 results.append(original)
                 continue
         if chosen is None:
+            answer = original.get("registry_answer") or {}
+            _apply_author_year(original, row["citation"], answer.get("registry", ""),
+                               answer.get("record") or {}, client)
             results.append(original)
             continue
         linked_citation = row["citation"].rstrip(" .") + ". " + chosen["title"]
-        linked = check({**row, "citation": linked_citation}, client)
+        linked = check({**row, "citation": linked_citation}, client, author_year=False)
         linked["citation"] = original["citation"]
         if "line" in row:
             linked["line"] = row["line"]
