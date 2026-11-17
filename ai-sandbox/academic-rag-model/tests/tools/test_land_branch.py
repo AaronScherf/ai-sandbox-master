@@ -188,12 +188,28 @@ class LandBranchTests(unittest.TestCase):
         # This fixture has no tests/ directory, so the real chunk list is empty.
         self.assertEqual(result.check_targets, [])
 
-    def test_check_does_not_skip_non_markdown_outside_project(self):
+    def test_check_skips_tests_for_outside_project_data(self):
         write_and_commit(self.wt, {"other/data.json": "{}\n"}, "non-project data")
-        result = check(self.wt, subdir="ai-sandbox/academic-rag-model")
-        self.assertEqual(result.checks, "passed")
-        self.assertEqual(result.selection_reason, "non_py_file")
+        with patch("tools.land_branch.run_all") as runner:
+            result = check(self.wt, subdir="ai-sandbox/academic-rag-model")
+        runner.assert_not_called()
+        self.assertEqual(result.checks, "skipped")
+        self.assertEqual(result.selection_reason, "outside_project_only")
         self.assertEqual(result.outside_paths, 1)
+
+    def test_check_skips_tests_for_one_transcribed_pdf(self):
+        # The logged 912.8 s case: hub Markdown plus two regenerated index shards.
+        hub = "ai-sandbox/academic-hub"
+        write_and_commit(self.wt, {
+            f"{hub}/academic_notes/microecon/lecture_notes/processed_outputs/L1.md": "# L1\n",
+            f"{hub}/.index/courses.json": "{}\n",
+            f"{hub}/.index/microecon.json": "[]\n",
+        }, "transcribe one pdf")
+        with patch("tools.land_branch.run_all") as runner:
+            result = check(self.wt, subdir="ai-sandbox/academic-rag-model")
+        runner.assert_not_called()
+        self.assertEqual(result.checks, "skipped")
+        self.assertEqual(result.selection_reason, "outside_project_only")
 
     def test_core_to_agent_rename_runs_full(self):
         (self.wt / "agent").mkdir()
@@ -329,6 +345,49 @@ class RunChecksFullSuiteTests(unittest.TestCase):
     def test_empty_diff_skips(self):
         from tools.land_branch import selection_reason
         self.assertEqual(selection_reason(set(), self.tmp), "doc_only")
+
+    def test_outside_project_selection_rules(self):
+        from tools.land_branch import selection_reason
+        for package in ("agent", "tools"):
+            (self.tmp / "tests" / package).mkdir(parents=True)
+        hub = "ai-sandbox/academic-hub"
+        cases = [
+            (set(), {f"{hub}/.index/courses.json", f"{hub}/.index/microecon.json",
+                     f"{hub}/academic_notes/microecon/x.md"}, "outside_project_only"),
+            (set(), {"ai-sandbox/research/helper.py"}, "outside_project_only"),
+            (set(), {f"{hub}/hub_config.json"}, "allowlist_hit"),
+            (set(), {".gitignore"}, "allowlist_hit"),
+            (set(), {"ai-sandbox/.obsidian/app.json"}, "allowlist_hit"),
+            (set(), {"ai-sandbox/research/independent-research/notes/00_overview-and-strategy/"
+                     "03_novelty-check/Novelty Check - Summary - v3.md"}, "allowlist_hit"),
+            (set(), {".githooks/pre-commit"}, "guard_policy_change"),
+            ({"tools/land_branch.py"}, set(), "guard_policy_change"),
+            ({"tools/guard_binaries_allow.txt"}, set(), "guard_policy_change"),
+            ({"agent/a.py"}, {f"{hub}/.index/courses.json"}, "targeted"),
+            ({"docs/a.md"}, {f"{hub}/.index/courses.json"}, "outside_project_only"),
+        ]
+        for changed, outside, expected in cases:
+            with self.subTest(changed=changed, outside=outside):
+                self.assertEqual(selection_reason(changed, self.tmp, False, outside), expected)
+
+    def test_outside_project_only_skips_without_running_tests(self):
+        with patch("tools.land_branch.run_all") as runner:
+            status, targets, seconds = run_checks(
+                self.tmp, set(), False, outside={"ai-sandbox/academic-hub/.index/courses.json"})
+        runner.assert_not_called()
+        self.assertEqual((status, targets, seconds), ("skipped", [], 0.0))
+
+    def test_allowlist_hit_and_guard_change_run_full_suite(self):
+        (self.tmp / "tests" / "agent").mkdir(parents=True)
+        fake = [ChunkResult(name="agent", returncode=0, seconds=1.0, stdout="ok")]
+        for changed, outside in (
+            (set(), {"ai-sandbox/academic-hub/hub_config.json"}),
+            ({"tools/land_branch.py"}, set()),
+        ):
+            with self.subTest(changed=changed, outside=outside), \
+                    patch("tools.land_branch.run_all", return_value=("passed", fake, 1.0)) as runner:
+                run_checks(self.tmp, changed, False, outside=outside)
+            runner.assert_called_once_with(self.tmp)
 
     def test_full_run_uses_chunked_runner_and_reports_failure(self):
         fake_results = [
@@ -481,6 +540,16 @@ class LandByChangeIdTests(unittest.TestCase):
         write_and_commit(self.wt, {"ai-sandbox/academic-rag-model/agent/a.py": "x = 1\n"}, "branch edit")
         cid = self._approve_project().change_id
         write_and_commit(self.repo, {"ai-sandbox/.obsidian/app.json": "{}\n"}, "vault config")
+        with patch("tools.land_branch.run_checks", return_value=("passed", [], 0.1)) as rerun:
+            result = land(self.wt, cid)
+        rerun.assert_called_once()
+        self.assertTrue(result.retested)
+
+    def test_other_allowlisted_outside_input_on_main_retests_project_check(self):
+        from tools.land_branch import land
+        write_and_commit(self.wt, {"ai-sandbox/academic-rag-model/agent/a.py": "x = 1\n"}, "branch edit")
+        cid = self._approve_project().change_id
+        write_and_commit(self.repo, {"ai-sandbox/academic-hub/hub_config.json": "{}\n"}, "confirm a folder")
         with patch("tools.land_branch.run_checks", return_value=("passed", [], 0.1)) as rerun:
             result = land(self.wt, cid)
         rerun.assert_called_once()

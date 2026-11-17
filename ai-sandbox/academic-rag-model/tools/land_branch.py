@@ -44,7 +44,17 @@ GUARD_POLICY_PATHS = (
     "ai-sandbox/academic-rag-model/tools/land_branch.py",
     ".githooks/pre-commit",
 )
-RETEST_OUTSIDE_PATHS =(".gitignore", "ai-sandbox/.obsidian")
+# Outside-project paths that tests read (grep of tests/, proposal 2026-11-11 rule 6).
+# One list for both the check step and the land-time re-test: a change to any other
+# path outside the project cannot affect a test, so it never selects tests.
+# tests/tools/test_outside_test_inputs.py fails when a test reads a path not listed here.
+OUTSIDE_TEST_INPUTS = (
+    ".gitignore",  # test_lit_gap_report.py
+    "ai-sandbox/.obsidian",  # test_audit_website_sync.py
+    "ai-sandbox/academic-hub/hub_config.json",  # core/env/hub_vocabulary.py default config
+    "ai-sandbox/research/independent-research/notes/00_overview-and-strategy/"
+    "03_novelty-check/Novelty Check - Summary - v3.md",  # test_reference_checker.py
+)
 
 
 class LandingError(RuntimeError):
@@ -206,6 +216,16 @@ def select_test_targets(changed: set[str], project_root: Path) -> list[str]:
     return sorted(t for t in targets if t in dirs or not any(t.startswith(d + "/") for d in dirs))
 
 
+def is_outside_test_input(path: str) -> bool:
+    return any(path == target or path.startswith(target + "/") for target in OUTSIDE_TEST_INPUTS)
+
+
+def _touches_guard_policy(changed: set[str], outside: set[str]) -> bool:
+    prefix = PROJECT_SUBDIR + "/"
+    inside = {p[len(prefix):] for p in GUARD_POLICY_PATHS if p.startswith(prefix)}
+    return bool(changed & inside) or bool(outside & set(GUARD_POLICY_PATHS))
+
+
 def selection_reason(
     changed: set[str], project_root: Path, full: bool = False,
     outside: set[str] | None = None,
@@ -213,12 +233,15 @@ def selection_reason(
     outside = outside or set()
     if full:
         return "explicit_full"
+    if _touches_guard_policy(changed, outside):
+        return "guard_policy_change"
+    # Before doc_only: an allowlisted file can be Markdown (a test reads the Novelty Check note).
+    if any(is_outside_test_input(p) for p in outside):
+        return "allowlist_hit"
     if _is_documentation_only(changed | outside):
         return "doc_only"
-    if any(Path(p).suffix not in (".py", ".md") for p in outside):
-        return "non_py_file"
-    if any(p.endswith(".py") for p in outside):
-        return "unmapped_file"
+    if all(p.endswith(".md") for p in changed):
+        return "outside_project_only"  # only outside data changed; no test can read it
     if any(p.startswith("core/") for p in changed):
         return "core_change"
     if any(Path(p).suffix not in (".py", ".md") for p in changed):
@@ -245,7 +268,7 @@ def run_checks(
 ) -> tuple[str, list[str], float]:
     if reason is None:
         reason = selection_reason(changed, project_root, full, outside)
-    if reason == "doc_only":
+    if reason in ("doc_only", "outside_project_only"):
         return "skipped", [], 0.0
     targets = (["tests/"] if reason not in ("targeted", "targeted_multi", "multi_package")
                else list(selected_targets) if selected_targets is not None
@@ -449,8 +472,7 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
         main_changed = _files_between(worktree, tested_base, main_now)
         code_delta = [p for p in project_relative(main_changed, subdir)
                       if not p.endswith(".md")]
-        code_delta.extend(p for p in main_changed if any(
-            p == target or p.startswith(target + "/") for target in RETEST_OUTSIDE_PATHS))
+        code_delta.extend(p for p in main_changed if is_outside_test_input(p))
         if code_delta and approved["checks"] != "skipped":
             retests += 1
             if retests > MAX_RETEST_ATTEMPTS:
