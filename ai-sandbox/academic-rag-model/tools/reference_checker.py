@@ -6,6 +6,8 @@ JSON input may be a list of citation strings or objects with citation and identi
 The default response cache is gitignored. DOI/arXiv ids go to registries;
 references without an identifier send an extracted title or at most 200
 characters of citation text to Crossref for candidate search. Source files stay local.
+The AUTHOR_YEAR guard sends up to four registered author family names and a
+three-year publication window to Crossref; it sends no note text or abstracts.
 
 Known limitation: when one table reference contains multiple DOIs, each DOI may
 inherit the same citation. This can misclassify a dataset DOI using paper authors;
@@ -34,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import email.utils
 import hashlib
 import html
 import json
@@ -46,6 +49,8 @@ import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 TIER_RANK = {"CONFIRMED": 0, "AUTHOR_YEAR": 1, "PLAUSIBLE": 2, "UNCHECKED": 3,
@@ -423,8 +428,11 @@ class RegistryClient:
                 pass
         if not self.online:
             raise LookupError("not cached")
+        # Crossref's author search is heavier than a DOI lookup. Pace only
+        # these guard queries, including cursor pages and retries.
+        pace = max(self.pace, 1.0) if url.startswith("https://api.crossref.org/works?") and "query.author=" in url else self.pace
         for attempt in range(3):
-            time.sleep(max(0, self.pace - (time.monotonic() - self.last_request)))
+            time.sleep(max(0, pace - (time.monotonic() - self.last_request)))
             self.last_request = time.monotonic()
             try:
                 req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "application/json"})
@@ -437,10 +445,12 @@ class RegistryClient:
                     break
                 if error.code not in (429, 500, 502, 503, 504) or attempt == 2:
                     raise
+                retry_after = _retry_after_seconds(error) if error.code == 429 else 0.0
             except (urllib.error.URLError, TimeoutError):
                 if attempt == 2:
                     raise
-            time.sleep(2 ** attempt)
+                retry_after = 0.0
+            time.sleep(max(2 ** attempt, retry_after))
         temp_path = None
         try:
             self.cache.mkdir(parents=True, exist_ok=True)
@@ -456,6 +466,136 @@ class RegistryClient:
                 except OSError:
                     pass
         return result
+
+
+def _retry_after_seconds(error: urllib.error.HTTPError) -> float:
+    value = error.headers.get("Retry-After") if error.headers else None
+    if not value:
+        return 0.0
+    try:
+        return max(0.0, float(value))
+    except ValueError:
+        try:
+            date = email.utils.parsedate_to_datetime(value)
+            if date.tzinfo is None:
+                date = date.replace(tzinfo=timezone.utc)
+            return max(0.0, (date - datetime.now(timezone.utc)).total_seconds())
+        except (TypeError, ValueError, OverflowError):
+            return 0.0
+
+
+@dataclass(frozen=True)
+class SameTeamGuardResult:
+    complete: bool
+    siblings: list[dict]
+    sibling_count: int
+    reason: str = ""
+
+
+def _family_last_token(name: str) -> str:
+    parts = normalized(name).split()
+    return parts[-1] if parts else ""
+
+
+def _crossref_first_family(item: dict) -> str:
+    authors = item.get("author") or []
+    return (_family_last_token(authors[0].get("family") or "")
+            if isinstance(authors, list) and authors and isinstance(authors[0], dict) else "")
+
+
+def same_team_guard(doi: str, record: dict, year: int, client: RegistryClient) -> SameTeamGuardResult:
+    """Find distinct same-team works near a year; an uncertain scan fails closed.
+
+    At most three 100-row Crossref pages are read. A relevance-ordered page
+    whose last ten entries lack the registered first author ends the scan;
+    otherwise further pages are required while ``total-results`` exceeds the
+    number read. No note text or abstracts are sent or stored here.
+    """
+    authors = [str(a) for a in record.get("authors") or [] if a]
+    title = str(record.get("title") or "")
+    first = _family_last_token(authors[0]) if authors else ""
+    coauthors = {_family_last_token(author) for author in authors[1:]}
+    if not first or not title or not doi:
+        return SameTeamGuardResult(False, [], 0, "missing registered metadata")
+    params = {"query.author": " ".join(authors[:4]),
+              "filter": f"from-pub-date:{year - 1}-01-01,until-pub-date:{year + 1}-12-31",
+              "rows": "100", "select": "DOI,title,author,issued,type", "cursor": "*"}
+    base = "https://api.crossref.org/works?"
+    seen_dois: set[str] = set()
+    seen_cursors: set[str] = set()
+    siblings: list[dict] = []
+    sibling_count = 0
+    read = 0
+    cursor = "*"
+    for page in range(3):
+        params["cursor"] = cursor
+        url = base + urllib.parse.urlencode(params)
+        try:
+            answer = client.get(url)
+        except (LookupError, urllib.error.HTTPError, urllib.error.URLError,
+                TimeoutError, ValueError, TypeError) as error:
+            return SameTeamGuardResult(False, siblings, sibling_count,
+                                       f"lookup unavailable: {error}")
+        data = answer.get("data") if isinstance(answer, dict) else None
+        message = data.get("message") if isinstance(data, dict) else None
+        if not isinstance(answer, dict) or answer.get("status") != 200 or not isinstance(message, dict):
+            return SameTeamGuardResult(False, siblings, sibling_count, "incomplete Crossref answer")
+        items, total = message.get("items"), message.get("total-results")
+        if not isinstance(items, list) or not isinstance(total, int) or total < 0:
+            return SameTeamGuardResult(False, siblings, sibling_count, "incomplete Crossref answer")
+        read += len(items)
+        for item in items:
+            if not isinstance(item, dict):
+                return SameTeamGuardResult(False, siblings, sibling_count, "incomplete Crossref item")
+            candidate_authors = item.get("author") or []
+            if not isinstance(candidate_authors, list):
+                return SameTeamGuardResult(False, siblings, sibling_count, "incomplete Crossref author list")
+            if _crossref_first_family(item) != first:
+                continue
+            if any(not isinstance(author, dict) for author in candidate_authors[1:]):
+                return SameTeamGuardResult(False, siblings, sibling_count, "incomplete Crossref author list")
+            candidate_coauthors = {_family_last_token(a.get("family") or "") for a in candidate_authors[1:]
+                                   if isinstance(a, dict)}
+            if coauthors and not (coauthors & candidate_coauthors):
+                continue
+            candidate_doi = str(item.get("DOI") or "").lower()
+            if not candidate_doi:
+                return SameTeamGuardResult(False, siblings, sibling_count, "candidate DOI missing")
+            if candidate_doi == doi.lower() or candidate_doi in seen_dois:
+                continue
+            seen_dois.add(candidate_doi)
+            if item.get("type") in {"dataset", "peer-review", "component", "grant"}:
+                continue
+            titles = item.get("title") or [""]
+            if not isinstance(titles, list) or not titles or not isinstance(titles[0], str):
+                return SameTeamGuardResult(False, siblings, sibling_count, "incomplete Crossref title")
+            candidate_title = titles[0]
+            if similarity(candidate_title, title) >= 0.5:
+                continue
+            issued = item.get("issued") or {}
+            if not isinstance(issued, dict):
+                return SameTeamGuardResult(False, siblings, sibling_count, "incomplete Crossref date")
+            dates = issued.get("date-parts") or []
+            candidate_year = dates[0][0] if dates and dates[0] else None
+            sibling_count += 1
+            if len(siblings) < 5:
+                siblings.append({"doi": candidate_doi, "title": candidate_title,
+                                 "year": candidate_year, "type": item.get("type")})
+        if total <= read:
+            return SameTeamGuardResult(True, siblings, sibling_count)
+        if len(items) < 100:
+            return SameTeamGuardResult(False, siblings, sibling_count, "incomplete Crossref page")
+        tail = items[-10:]
+        if not any(isinstance(item, dict) and _crossref_first_family(item) == first
+                   for item in tail):
+            return SameTeamGuardResult(True, siblings, sibling_count)
+        next_cursor = message.get("next-cursor")
+        if (not isinstance(next_cursor, str) or not next_cursor or
+                next_cursor == cursor or next_cursor in seen_cursors):
+            return SameTeamGuardResult(False, siblings, sibling_count, "cursor unavailable")
+        seen_cursors.add(cursor)
+        cursor = next_cursor
+    return SameTeamGuardResult(False, siblings, sibling_count, "three-page limit reached")
 
 
 def registry_record(doi: str, client: RegistryClient) -> tuple[str, dict | None, str]:
