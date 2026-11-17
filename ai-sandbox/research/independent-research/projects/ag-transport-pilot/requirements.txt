@@ -7,3 +7,5 @@ requests
 openpyxl
 numpy
 pypdf
+scipy
+earthengine-api

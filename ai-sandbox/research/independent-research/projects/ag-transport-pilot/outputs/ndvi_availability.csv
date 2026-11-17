@@ -1,0 +1,29 @@
+country,unit_crop_years,with_rain,with_ndvi
+Angola,211,184,184
+Benin,1600,1544,1600
+Burkina Faso,1224,1224,1224
+Burundi,128,128,128
+Central African Republic,48,48,48
+Chad,268,268,268
+"Congo, The Democratic Republic of the",80,80,80
+Ethiopia,1218,1218,1218
+Ghana,169,169,169
+Kenya,1098,1098,1098
+Lesotho,241,222,222
+Madagascar,22,0,0
+Malawi,614,551,564
+Mali,165,165,165
+Mauritania,94,80,80
+Mozambique,201,186,186
+Niger,901,901,901
+Nigeria,759,759,759
+Rwanda,162,125,125
+Senegal,472,472,472
+Somalia,948,889,889
+South Africa,210,194,194
+South Sudan,2,1,1
+Sudan,247,241,241
+"Tanzania, United Republic of",300,253,253
+Togo,296,296,296
+Zambia,997,864,864
+Zimbabwe,224,208,208

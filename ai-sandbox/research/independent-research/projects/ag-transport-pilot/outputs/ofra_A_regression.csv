@@ -1,6 +1,6 @@
 ,value
 n,94.0
-intercept,-2.384
-b_log_unit_yield,0.495
-b_log_season_rain,0.472
-R2,0.225
+intercept,-2.583
+b_log_unit_yield,0.418
+b_log_season_rain,0.46
+R2,0.147

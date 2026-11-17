@@ -1,3 +1,3 @@
-crop,unit_years,units,median_ratio,p25,p75,spearman_A_vs_unit_yield
-Maize,60,36,1.93,1.4,2.93,0.32
-Sorghum,34,22,1.65,1.03,2.94,0.41
+crop,unit_years,units,plateau_ratio_median,control_ratio_median,control_ratio_p25,control_ratio_p75,spearman_plateau_vs_unit,spearman_control_vs_unit
+Maize,60,36,1.93,1.43,0.99,2.57,0.32,0.21
+Sorghum,34,22,1.65,1.26,0.94,2.01,0.4,0.47

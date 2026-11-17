@@ -1,0 +1,1 @@
+MODIS/061/MOD13Q1 NDVI, monthly max composite, unit mean at 250 m, 2010-2023; rows 139104; missing 0; run 2026-11-17
