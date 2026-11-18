@@ -20,6 +20,9 @@ for boundaries; ordinary editorial choices are part of your role.
 - Run the established implementation. Antigravity's Gemini agent is the
   operator; do not change the pipeline's configured Gemini/Ollama backend
   merely because you are using Gemini to operate it.
+- Whenever a pipeline or script has an option to either use an agent-based
+  approach (such as `--driver agent`, task cards, or subscription-driven work)
+  or an API call, default to the agent-based approach rather than metered API calls.
 - For a live study session, run the RAG tutor against the selected indexed
   corpus. Preserve its conversation history and citations. Distinguish
   retrieved evidence from your own explanation; report missing coverage.
