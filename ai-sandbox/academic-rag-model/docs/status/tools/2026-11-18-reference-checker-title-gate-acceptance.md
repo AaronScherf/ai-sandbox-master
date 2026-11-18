@@ -1,8 +1,8 @@
 # Reference checker wrong-title and citation-gate acceptance
 
 Date: 2026-11-18. Branch: `codex/reference-checker-title-gate`, based on
-`origin/main` at `866cab75`. This tracks the v12 and v13 handoffs. Only v12's
-first step is implemented so far; later steps remain separate commits.
+`origin/main` at `866cab75`. This tracks the v12 and v13 handoffs; later steps
+remain separate commits.
 
 | Step | Evidence required | State |
 | --- | --- | --- |
@@ -10,7 +10,7 @@ first step is implemented so far; later steps remain separate commits.
 | v12 page button | Button payload and JavaScript syntax check | Done |
 | v12 title search | Recorded Crossref/OpenAlex cases | Done |
 | v12 tier and ledger routing | Shared rank, defects and review selection tests | Done |
-| v12 acceptance | Fresh five-note checker and worktree ledger run | Pending |
+| v12 acceptance | Fresh five-note checker and worktree ledger run | Done |
 | v13 store resolution | Worktree-layout test for main ledger and cache | Pending |
 | v13 gate function | Per-note fixture counts and block/pass tests | Pending |
 | v13 landing wiring | Check and land tests, full suite | Pending |
@@ -99,3 +99,32 @@ TITLE_WRONG defect is retained without a duplicate checker defect.
 The focused checker and ledger suite passed: 110 passed, 1 skipped. The page
 script passed `node --check`. This is recorded-answer and syntax evidence;
 the fresh five-note acceptance run, gate, and full suite remain pending.
+
+## V12 five-note acceptance
+
+I ran the checker on the five named worktree notes with a new, empty registry
+cache. It checked 76 citation rows, made 187 fresh HTTP lookups (all returned
+200), and reached the title search on exactly these three rows:
+
+| Note and line | DOI | Search result |
+| --- | --- | --- |
+| RQ1 Knowledge Audit v4, 122 | `10.1257/pandp.20251021` (Brown et al.) | TITLE_WRONG; no cited-title match in Crossref or OpenAlex; registered title: *Valuing Information as a Philanthropic Funder* |
+| RQ1 Knowledge Audit v4, 166 | `10.1016/j.wace.2018.03.006` (Lopez et al.) | TITLE_WRONG; no cited-title match; registered title: *Bridging forecast verification and humanitarian decisions: A valuation approach for setting up action-oriented early warnings* |
+| RQ3 Transfer v5, 137 | `10.1093/restud/rdz021` (Rosenzweig and Udry) | TITLE_WRONG; no cited-title match; registered title: *External Validity in a Stochastic World: Evidence from Low-Income Countries* |
+
+Brown's result differs from Aaron's earlier accepted same-work decision. The
+checker now treats its cited title as an unfound title and records a defect;
+this is reported for Claude and Aaron to reconcile, without changing the
+threshold or the note. The title and DOI at each line above were checked
+against the note text. A separate RQ3 DOI (`10.1002/cl2.1075`) remains REVIEW
+for author overlap; it did not reach title search.
+
+I copied the main review, dismissal, and defect files into an ignored
+worktree-local store, then raised the five notes there. The resulting store
+has three defects: the two existing human TITLE_WRONG defects and the new
+Brown checker TITLE_WRONG defect. The review file is empty after refreshing
+these five notes; all ten prior decisions remain in the copied dismissal
+file (eight accepted, two declined). Main's ledger was not changed. This is
+one live registry observation and a worktree-only ledger preview, not a
+published review page or behavior observed over time. The v13 gate and full
+suite have not run yet.
