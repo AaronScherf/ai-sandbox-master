@@ -72,14 +72,30 @@ def test_live_false_pass_cases_now_find_openalex_siblings(name, doi, target, oth
     assert result.siblings[0]["doi"] == other
 
 
+def test_groh_soft_skills_paper_is_distinct_despite_shared_title_boilerplate():
+    doi = "10.1162/rest_a_00584"
+    title = ("Do Wage Subsidies Provide a Stepping-Stone to Employment for Recent College Graduates? "
+             "Evidence from a Randomized Experiment in Jordan")
+    other = "10.1186/s40175-016-0055-9"
+    works = [oa_work(doi, title, 2016, "A1", "A2", "A3", "A4"),
+             oa_work(other, "The impact of soft skills training on female youth employment: "
+                     "evidence from a randomized experiment in Jordan", 2016,
+                     "A1", "A2", "A3", "A4")]
+    result = same_team_guard(doi, {"title": title, "authors": ["Groh", "Krishnan", "McKenzie", "Vishwanath"]},
+                             2016, client(("A1", "A2", "A3", "A4"), works))
+    assert result.complete and result.sibling_count == 1
+    assert result.siblings[0]["doi"] == other
+
+
 def test_maystadt_version_and_missing_third_coauthor_id_do_not_block_pass():
     doi = "10.1093/ajae/aau010"
-    title = "Extreme Weather and Civil War in Somalia"
+    title = "Extreme Weather and Civil War: Does Drought Fuel Conflict in Somalia through Livestock Price Shocks?"
     target = {"status": 200, "data": {"authorships": authors("A1", "A2") +
                                              [{"author": {"id": None}}]}}
     pages = {"*": {"meta": {"count": 2}, "results": [
         oa_work(doi, title, 2014, "A1", "A2"),
-        oa_work("10.2139/ssrn.123", title + ": Evidence", 2013, "A1", "A2")]}}
+        oa_work("10.2139/ssrn.2228878", "Extreme Weather and Civil War in Somalia: "
+                "Does Drought Fuel Conflict through Livestock Price Shocks?", 2013, "A1", "A2")]}}
     result = same_team_guard(doi, {"title": title, "authors": ["Maystadt", "Ecker", "Mabiso"]},
                              2014, RecordedClient(target, pages))
     assert result.complete and result.sibling_count == 0

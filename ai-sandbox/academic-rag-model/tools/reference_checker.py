@@ -59,6 +59,7 @@ from pathlib import Path
 TIER_RANK = {"CONFIRMED": 0, "AUTHOR_YEAR": 1, "PLAUSIBLE": 2, "UNCHECKED": 3,
              "UNRESOLVED": 4, "REVIEW": 5, "AMBIGUOUS": 5, "NOT_FOUND": 6,
              "WRONG_WORK": 7}
+SAME_TEAM_VERSION_TITLE_THRESHOLD = 0.8
 
 USER_AGENT = "ReferenceChecker/1.0 (bibliographic metadata validation)"
 DOI = re.compile(r"10\.\d{4,9}/[^\s\]\[{}\"']+", re.I)
@@ -567,7 +568,7 @@ def _crossref_guard(doi: str, record: dict, year: int, client: RegistryClient) -
             if not isinstance(titles, list) or not titles or not isinstance(titles[0], str):
                 return SameTeamGuardResult(False, siblings, sibling_count, "incomplete Crossref title")
             candidate_title = titles[0]
-            if similarity(candidate_title, title) >= 0.5:
+            if similarity(candidate_title, title) >= SAME_TEAM_VERSION_TITLE_THRESHOLD:
                 continue
             issued = item.get("issued") or {}
             if not isinstance(issued, dict):
@@ -648,7 +649,7 @@ def _openalex_guard(doi: str, record: dict, year: int, client: RegistryClient) -
                 title = item.get("title") or ""
                 if not isinstance(title, str) or not title:
                     return SameTeamGuardResult(False, siblings, count, "incomplete OpenAlex title")
-                if similarity(title, record.get("title") or "") >= 0.5:
+                if similarity(title, record.get("title") or "") >= SAME_TEAM_VERSION_TITLE_THRESHOLD:
                     continue
                 count += 1
                 siblings.append({"doi": candidate_doi, "title": title,

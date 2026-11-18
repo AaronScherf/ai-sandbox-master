@@ -2,6 +2,9 @@
 
 Date: 2026-11-18. Branch: `codex/reference-checker-author-year`.
 This follows the v11 handoff and supersedes the blocked v10 acceptance report.
+Claude subsequently ruled that a work is another version only when its title
+scores at least 0.8 against the registered title. The named threshold now
+applies to both OpenAlex and Crossref sibling checks.
 
 ## Run and queue preview
 
@@ -46,27 +49,26 @@ their cited surnames and year checked before the guard.
 | Allcott (2015) | Review, 23 siblings | Single-author first-ID listing found 23 distinct works; first five stored. |
 | Vivalt & Coville (2023) | Review, 2 siblings | OpenAlex found `10.1016/j.jdeveco.2024.103425`; Crossref also found `10.1596/1813-9450-10994`. |
 | Harari & La Ferrara (2018) | Pass | Complete OpenAlex listing and no sibling from either source. |
-| Groh et al. (2016) | Review, 4 siblings | OpenAlex found four qualifying distinct works, including `10.1186/s40172-015-0022-8`; Crossref added none. |
+| Groh et al. (2016) | Review, 6 siblings | OpenAlex found six qualifying distinct works, including `10.1186/s40175-016-0055-9` and `10.1186/s40172-015-0022-8`; Crossref added none. The first five are stored on the row. |
 | Raleigh, Choi, & Kniveton (2015) | Review, 1 sibling | OpenAlex found `10.1080/03050629.2017.1235271`, issued online in 2016. |
 | Brok et al. (2008) | Review, 3 siblings | OpenAlex found the third sibling missed in the v10 search, `10.1002/14651858.cd005527.pub2`. |
 
 This gives nine passes and seven reviews. Claude's v11 probe expected Groh,
 Raleigh, Brok, Allcott, and Vivalt/Coville in review, and Pearl and Butler to
 pass; all do. Two additional reviews are Bongers (missing OpenAlex first
-author ID) and Egger (two newly found same-team works). Groh's OpenAlex
-listing has eight works, but the implementation counts four siblings rather
-than the probe's six: the title score for the known distinct
-`10.1186/s40175-016-0055-9` is 0.63 against the registered title, so the
-specified `< 0.5` rule excludes it; another version of that work also scores
-0.63. This is a probe/rule discrepancy, not a classification change, because
-four other siblings keep Groh in review. Claude should decide separately if
-the title threshold needs revision; it was not tuned in this run.
+author ID) and Egger (two newly found same-team works). With Claude's 0.8
+version threshold, Groh's title scores of 0.63 and 0.50 count as distinct
+papers, while the Maystadt SSRN version scores 0.89 and is still ignored.
+The five-note preview was rerun from the unchanged main-ledger snapshot after
+this ruling. Only Groh's row changed: its sibling count rose from four to six,
+and `10.1186/s40175-016-0055-9` now appears in the first five displayed.
+The other 15 titleless rows, queue counts, and defects stayed the same.
 
 ## Verification and limits
 
 The focused fixture suite (`test_reference_checker_guard.py`,
 `test_reference_checker_author_year.py`, `test_reference_review.py`, and
-`test_reference_checker.py`) passed with 107 passed and 1 skipped. The new
+`test_reference_checker.py`) passed with 108 passed and 1 skipped before rebase. The new
 fixtures cover the Groh/Raleigh false passes, the Maystadt version, full
 OpenAlex paging, fail-closed cases, both sibling sources, and request pacing.
 This is a successful live run against current registry data. It does not
