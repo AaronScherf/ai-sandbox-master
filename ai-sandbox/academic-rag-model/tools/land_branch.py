@@ -11,9 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import subprocess
 import sys
-import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,7 +30,8 @@ from tools.git_workflow import (
     run_git,
 )
 from tools import guard_binaries
-from tools.run_tests_chunked import ChunkResult, chunk_failed, run_all
+from tools.impact_selection import select_tests
+from tools.run_tests_chunked import ChunkResult, chunk_failed, run_all, run_selected
 
 PROJECT_SUBDIR = "ai-sandbox/academic-rag-model"
 # Live tests read these outside-project paths: test_lit_gap_report.py reads
@@ -193,27 +192,9 @@ def _is_documentation_only(changed: set[str]) -> bool:
 
 
 def select_test_targets(changed: set[str], project_root: Path) -> list[str]:
-    """Map changed .py files to test directories. Empty means no code changed."""
-    targets: set[str] = set()
-    for path in changed:
-        if not path.endswith(".py"):
-            continue
-        parts = path.split("/")
-        if parts[0] == "tests":
-            name = Path(path).name
-            if name.startswith("test_") and (project_root / path).is_file():
-                targets.add(path)
-            elif len(parts) > 1 and (project_root / "tests" / parts[1]).is_dir():
-                # a non-test file under tests/ (a fixture or helper): run its
-                # directory instead of the bare file, which pytest would
-                # otherwise collect zero tests from and report as a failure.
-                targets.add(f"tests/{parts[1]}")
-            elif (project_root / "tests").is_dir():
-                targets.add("tests/")  # top-level helper (e.g. conftest.py): run everything
-        elif (project_root / "tests" / parts[0]).is_dir():
-            targets.add(f"tests/{parts[0]}")
-    dirs = {t for t in targets if not t.endswith(".py")}
-    return sorted(t for t in targets if t in dirs or not any(t.startswith(d + "/") for d in dirs))
+    """Test files a change can affect (tools.impact_selection). Empty means none, or
+    that impact could not be bounded; selection_reason tells the two apart."""
+    return select_tests(changed, project_root).files
 
 
 def is_outside_test_input(path: str) -> bool:
@@ -242,22 +223,13 @@ def selection_reason(
         return "doc_only"
     if all(p.endswith(".md") for p in changed):
         return "outside_project_only"  # only outside data changed; no test can read it
-    if any(p.startswith("core/") for p in changed):
-        return "core_change"
-    if any(Path(p).suffix not in (".py", ".md") for p in changed):
-        return "non_py_file"
-    if any(p in ("conftest.py", "tests/conftest.py") or
-           (p.startswith("tests/") and p.count("/") == 1 and
-            not Path(p).name.startswith("test_")) for p in changed):
-        return "helper_change"
-    if not select_test_targets(changed, project_root) or any(
-        p.endswith(".py") and p.split("/")[0] != "tests" and
-        not (project_root / "tests" / p.split("/")[0]).is_dir()
-        for p in changed
-    ):
-        return "unmapped_file"
-    packages = {p.split("/")[1] if p.startswith("tests/") and "/" in p[6:]
-                else p.split("/")[0] for p in changed if p.endswith(".py")}
+    selection = select_tests(changed, project_root)
+    if selection.run_all_reason:
+        return selection.run_all_reason  # helper_change, config_change, moved_or_deleted_file, no_tests_for_code
+    if not selection.files:
+        return "data_unreferenced"  # only data no Python file names; no test can read it
+    packages = {p.split("/")[1] if p.startswith("tests/") and p.count("/") > 1 else p.split("/")[0]
+                for p in changed if not p.endswith(".md")}
     return "targeted_multi" if len(packages) > 1 else "targeted"
 
 
@@ -268,11 +240,15 @@ def run_checks(
 ) -> tuple[str, list[str], float]:
     if reason is None:
         reason = selection_reason(changed, project_root, full, outside)
-    if reason in ("doc_only", "outside_project_only"):
+    if reason in ("doc_only", "outside_project_only", "data_unreferenced"):
         return "skipped", [], 0.0
-    targets = (["tests/"] if reason not in ("targeted", "targeted_multi", "multi_package")
-               else list(selected_targets) if selected_targets is not None
-               else select_test_targets(changed, project_root))
+    if reason not in ("targeted", "targeted_multi", "multi_package"):
+        targets = ["tests/"]
+    else:
+        # A re-test reuses the approved files; main may have deleted one since (pytest exit 4).
+        targets = [t for t in (selected_targets or []) if (project_root / t).exists()]
+        if not targets:
+            targets = select_test_targets(changed, project_root)
     if not targets:
         targets = ["tests/"]  # code changed but no mapped tests: run everything
     if targets == ["tests/"]:
@@ -290,25 +266,14 @@ def run_checks(
                 print(f"[FAILED] tests/{r.name}")
                 print(r.stdout[-4000:])
         return status, targets, seconds
-    started = time.monotonic()
-    proc = subprocess.run(
-        [sys.executable, "-m", "pytest", *targets, "-q"],
-        cwd=project_root,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
-    seconds = time.monotonic() - started
+    status, results, seconds = run_selected(project_root, targets)
     if chunk_results is not None:
-        chunk_results.append(ChunkResult(
-            name=", ".join(targets), returncode=proc.returncode,
-            seconds=seconds, stdout="",
-        ))
-    if proc.returncode != 0:
-        print(proc.stdout[-4000:])
-        return "failed", targets, seconds
-    return "passed", targets, seconds
+        chunk_results.extend(results)
+    for r in results:
+        if chunk_failed(r.returncode):
+            print(f"[FAILED] tests/{r.name}")
+            print(r.stdout[-4000:])
+    return status, targets, seconds
 
 
 def check(worktree: Path, subdir: str = PROJECT_SUBDIR, full: bool = False) -> CheckResult:

@@ -19,12 +19,19 @@ on their own. When a task branch is finished, the agent:
    changes only outside `academic-rag-model/` (hub notes, `.index/` JSON,
    research pins; reason `outside_project_only`) unless a path is in
    `OUTSIDE_TEST_INPUTS` in `tools/land_branch.py` (paths tests read; reason
-   `allowlist_hit`). Changes under `core/`, to the landing/guard files
-   (`guard_policy_change`), or with unrecognized in-project file types run the
-   full chunked suite. Other
-   mapped Python changes run their package tests. Pass `--full` to override
-   selection and run the full suite explicitly. Targeted selection runs the
-   changed packages' tests; it does not yet follow imports into other packages.
+   `allowlist_hit`, full suite). Inside the project, a change runs only the test
+   files it can affect (`tools/impact_selection.py`): for Python, the tests that
+   import the changed module directly or through other modules, plus the tests in
+   its mirror folder under `tests/`; for a data file, the tests (and modules'
+   tests) that name its path, its file name or a rarely mentioned folder, plus the
+   nearest mirror test folder; a data file nothing names runs nothing
+   (`data_unreferenced`). Wide selections run in chunks per package. The full
+   chunked suite still runs for `--full`, the landing/guard files
+   (`guard_policy_change`), `conftest.py`/top-level test helpers
+   (`helper_change`), dependency pins and pytest config (`config_change`), a
+   deleted or moved Python file (`moved_or_deleted_file`), and code no test imports
+   or mirrors (`no_tests_for_code`). The analysis is static: an import built at
+   run time is invisible to it, so a periodic full run of `main` is the backstop.
    A rename counts as changes to both its old and new paths.
 2. Commits its finished work to its own task branch if not already committed.
    Local commits to a task branch in its own worktree are pre-authorized and

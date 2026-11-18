@@ -116,6 +116,36 @@ def run_all(
     return status, results, time.monotonic() - total_started
 
 
+MAX_FILES_PER_PROCESS = 60
+
+
+def run_selected(
+    project_root: Path,
+    test_files: list[str],
+    *,
+    runner=subprocess.run,
+    max_files: int = MAX_FILES_PER_PROCESS,
+) -> tuple[str, list[ChunkResult], float]:
+    """Run selected test files, one subprocess per top-level package (and per
+    `max_files` batch within a large package), so a wide selection keeps the memory
+    behaviour of run_all instead of becoming one long-lived pytest process."""
+    groups: dict[str, list[str]] = {}
+    for path in sorted(test_files):
+        parts = path.split("/")
+        groups.setdefault(parts[1] if len(parts) > 2 else "(root)", []).append(path)
+    results: list[ChunkResult] = []
+    total_started = time.monotonic()
+    for name in sorted(groups):
+        files = groups[name]
+        batches = [files[i:i + max_files] for i in range(0, len(files), max_files)]
+        for number, batch in enumerate(batches, 1):
+            label = name if len(batches) == 1 else f"{name} [{number}/{len(batches)}]"
+            cmd = [sys.executable, "-m", "pytest", *batch, "-q", "-m", "not local_llm"]
+            results.append(_run_one(label, cmd, project_root, runner))
+    status = "failed" if any(chunk_failed(r.returncode) for r in results) else "passed"
+    return status, results, time.monotonic() - total_started
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(

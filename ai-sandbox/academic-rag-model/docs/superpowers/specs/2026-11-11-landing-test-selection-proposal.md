@@ -1,6 +1,6 @@
 # Landing test selection: stop running the full suite for changes no test can see
 
-**Status:** proposal for owner review (2026-11-11). Nothing implemented. Implementation would go to Codex per `docs/AGENT_ROUTING.md`.
+**Status:** rules 1, 4, 6 landed 2026-11-18 (`79be34ba`); rules 2 and 3 implemented 2026-11-18 on `claude/test-impact-selection` (see Implementation status). Rule 5's scheduled full run is not built.
 **Code:** `tools/land_branch.py` (`selection_reason`, `run_checks`, `_is_documentation_only`).
 
 ## Problem
@@ -86,3 +86,10 @@ The log shows 12 of 47 checks with overlapping changes and 13 rebases. Test sele
 
 - Unit tests for `selection_reason` with fixtures drawn from the 15 logged cases (an outside-only `.json` change, a `.docx` move, a research-repo pin) asserting `outside_project_only`, and one fixture where a branch edits `tools/guard_binaries.py` and still gets the full suite.
 - Replay the logged `changed_*` fields through the new rules and compare the new selection with the old one.
+
+## Implementation status (2026-11-18)
+
+- **Rules 1, 4, 6:** `outside_project_only`, `allowlist_hit`, `guard_policy_change`, and one `OUTSIDE_TEST_INPUTS` list. Landed.
+- **Rules 2 and 3 (changed from the proposal):** `tools/impact_selection.py` builds a static import graph. A changed `.py` file runs the tests that import it transitively plus its mirror test folder; the `core/`-means-everything rule is gone. The proposal's rule 2 fallback ("a data file in no package runs `tests/tools`") was unsafe: `guide_specs/*.toml` is read by `tests/agent`, so `tests/tools` would have missed it. A data file now selects the Python files that name its path, its file name, or a rarely mentioned folder (at most 8 files mention it), plus the nearest mirror test folder; a data file nothing names runs nothing (`data_unreferenced`). Wide selections run in per-package chunks of at most 60 files (`run_selected`).
+- **Measured on the real tree (366 test files):** `docs/trackers/subproject_registry.json` 3 files, a `guide_specs` TOML 1, `tools/corpus_health/corpus_health.example.json` 7, `agent/study_guide/draft.py` 21, `tools/reference_checker.py` 2, `pipelines/transcribe_notes/transcribe_notes.py` 57, `core/env/hub_vocabulary.py` 165, `core/indexer/index_card.py` 185. Shared `core` modules stay wide because most of the suite imports them.
+- **Known limit:** static analysis misses imports built at run time and tests that run code only through a subprocess without a mirror folder or matching name. Not built yet: the scheduled full run of `main` (rule 5), which is now the backstop for those.

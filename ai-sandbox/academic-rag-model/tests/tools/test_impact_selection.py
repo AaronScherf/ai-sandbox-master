@@ -180,3 +180,49 @@ def test_skips_virtualenv_archive_and_model_directories(tmp_path):
         "tests/core/test_a.py": "from core.a import x\n",
     }, {"core/a.py"})
     assert selection.files == ["tests/core/test_a.py"]
+
+
+def test_a_changed_test_helper_runs_the_tests_in_its_folder(tmp_path):
+    selection = files_for(tmp_path, {
+        "tests/core/fixture.py": "VALUE = 1\n",
+        "tests/core/test_a.py": "import os\n",
+        "tests/agent/test_b.py": "import os\n",
+    }, {"tests/core/fixture.py"})
+    assert selection.files == ["tests/core/test_a.py"]
+    assert selection.run_all_reason is None
+
+
+def test_a_folder_name_many_files_mention_does_not_select_them_all(tmp_path):
+    project = {"docs/trackers/unused.json": "{}\n"}
+    for n in range(12):
+        project[f"tests/core/test_{n}.py"] = "NOTE = 'see docs/trackers for status'\n"
+    assert files_for(tmp_path, project, {"docs/trackers/unused.json"}).files == []
+
+
+def test_a_rarely_mentioned_folder_name_selects_the_tests_that_read_that_folder(tmp_path):
+    selection = files_for(tmp_path, {
+        "agent/concept_graph/sample_data/case.json": "{}\n",
+        "tests/agent/graph/test_reads_folder.py": "SAMPLE = 'sample_data'\n",
+        "tests/agent/graph/test_other.py": "import os\n",
+    }, {"agent/concept_graph/sample_data/case.json"})
+    assert selection.files == ["tests/agent/graph/test_reads_folder.py"]
+
+
+def test_a_data_file_also_runs_its_nearest_mirror_test_folder(tmp_path):
+    selection = files_for(tmp_path, {
+        "tools/corpus_health/example.json": "{}\n",
+        "tests/tools/corpus_health/test_scanner.py": "import os\n",
+        "tests/tools/test_elsewhere.py": "import os\n",
+    }, {"tools/corpus_health/example.json"})
+    assert selection.files == ["tests/tools/corpus_health/test_scanner.py"]
+
+
+def test_edits_between_calls_are_seen(tmp_path):
+    root = make_project(tmp_path, {
+        "core/a.py": "x = 1\n",
+        "tests/core/test_a.py": "from core.a import x\n",
+        "tests/core/test_b.py": "import os\n",
+    })
+    assert select_tests({"core/a.py"}, root).files == ["tests/core/test_a.py"]
+    (root / "tests/core/test_b.py").write_text("from core.a import x  # now imports it\n", encoding="utf-8")
+    assert select_tests({"core/a.py"}, root).files == ["tests/core/test_a.py", "tests/core/test_b.py"]

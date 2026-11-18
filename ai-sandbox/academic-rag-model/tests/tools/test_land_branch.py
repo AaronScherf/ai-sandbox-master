@@ -106,10 +106,11 @@ class LandBranchTests(unittest.TestCase):
 
     def test_test_targets_maps_changed_packages(self):
         (self.repo / "tests" / "core").mkdir(parents=True)
+        (self.repo / "tests" / "core" / "test_a.py").write_text("from core.a import x\n", encoding="utf-8")
         (self.repo / "tests" / "core" / "test_x.py").write_text("", encoding="utf-8")
         self.assertEqual(
             select_test_targets({"core/a.py", "docs/readme.md"}, self.repo),
-            ["tests/core"],
+            ["tests/core/test_a.py"],
         )
 
     def test_project_relative_strips_subproject_prefix(self):
@@ -121,10 +122,10 @@ class LandBranchTests(unittest.TestCase):
 
     def test_check_passes_with_passing_mapped_tests(self):
         write_and_commit(self.wt, {"core/a.py": "x = 2\n"}, "branch edit")
-        write_and_commit(self.wt, {"tests/core/test_ok.py": "def test_ok():\n    assert True\n"}, "add test")
+        write_and_commit(self.wt, {"tests/core/test_ok.py": "from core.a import x\n\ndef test_ok():\n    assert x == 2\n"}, "add test")
         result = check(self.wt, subdir="")
         self.assertEqual(result.checks, "passed")
-        self.assertEqual(result.check_targets, ["tests/core"])
+        self.assertEqual(result.check_targets, ["tests/core/test_ok.py"])
         self.assertEqual(result.branch, "claude/t")
 
     def test_check_fails_with_failing_test(self):
@@ -155,7 +156,7 @@ class LandBranchTests(unittest.TestCase):
         write_and_commit(wt2, {"tests/core/fixture.py": "VALUE = 1\n"}, "add helper fixture")
         result = check(wt2, subdir="")
         self.assertEqual(result.checks, "passed")
-        self.assertEqual(result.check_targets, ["tests/core"])
+        self.assertEqual(result.check_targets, ["tests/core/test_existing.py"])
 
     def test_check_skips_docs_only_branch(self):
         write_and_commit(self.wt, {"docs/note.md": "hi\n"}, "docs only")
@@ -217,7 +218,7 @@ class LandBranchTests(unittest.TestCase):
         git(self.wt, "commit", "-qm", "move core file")
         with patch("tools.land_branch.run_all", return_value=("passed", [], 0.1)) as runner:
             result = check(self.wt, subdir="")
-        self.assertEqual(result.selection_reason, "core_change")
+        self.assertEqual(result.selection_reason, "moved_or_deleted_file")
         runner.assert_called_once()
 
 
@@ -260,7 +261,7 @@ class LandingLogTests(unittest.TestCase):
         self.assertEqual(entry["branch"], "claude/t")
         self.assertIn("rebased", entry)
         self.assertIn("check_seconds", entry)
-        self.assertEqual(entry["selection_reason"], "core_change")
+        self.assertEqual(entry["selection_reason"], "no_tests_for_code")
         self.assertNotIn("full_reason", entry)
         self.assertEqual(entry["changed_packages"], ["core"])
         self.assertEqual(entry["changed_extensions"], [".py"])
@@ -268,14 +269,16 @@ class LandingLogTests(unittest.TestCase):
 
     def test_targeted_check_logs_timing_and_returncode(self):
         (self.repo / "tests" / "agent").mkdir(parents=True)
-        write_and_commit(self.repo, {"tests/agent/test_ok.py": "def test_ok():\n    assert True\n"}, "seed tests")
+        write_and_commit(self.repo, {"tests/agent/test_ok.py": "from agent.a import x\n\ndef test_ok():\n    assert x == 1\n",
+                                     "agent/a.py": "x = 1\n"}, "seed tests")
         git(self.wt, "rebase", "main")
-        write_and_commit(self.wt, {"agent/a.py": "x = 1\n"}, "agent change")
+        write_and_commit(self.wt, {"agent/a.py": "x = 1  # edited\n"}, "agent change")
         result = check(self.wt, subdir="")
         self.assertEqual(result.checks, "passed")
         self.assertEqual(result.selection_reason, "targeted")
+        self.assertEqual(result.check_targets, ["tests/agent/test_ok.py"])
         self.assertEqual(len(result.chunk_timings), 1)
-        self.assertEqual(result.chunk_timings[0]["name"], "tests/agent")
+        self.assertEqual(result.chunk_timings[0]["name"], "agent")
         self.assertEqual(result.chunk_timings[0]["returncode"], 0)
         self.assertGreater(result.chunk_timings[0]["seconds"], 0)
         self.assertEqual(self._entries()[-1]["chunk_timings"], result.chunk_timings)
@@ -317,24 +320,47 @@ class RunChecksFullSuiteTests(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
-    def test_mixed_python_and_json_runs_full_suite(self):
+    def test_python_with_unreferenced_data_runs_only_the_selected_tests(self):
         (self.tmp / "tests" / "agent").mkdir(parents=True)
+        (self.tmp / "agent").mkdir()
+        (self.tmp / "agent" / "a.py").write_text("x = 1\n", encoding="utf-8")
+        (self.tmp / "tests" / "agent" / "test_a.py").write_text("from agent.a import x\n", encoding="utf-8")
         fake = [ChunkResult(name="agent", returncode=0, seconds=1.0, stdout="ok")]
-        with patch("tools.land_branch.run_all", return_value=("passed", fake, 1.0)) as runner:
-            run_checks(self.tmp, {"agent/a.py", "agent/data.json"}, False)
-        runner.assert_called_once_with(self.tmp)
+        with patch("tools.land_branch.run_all") as everything, \
+                patch("tools.land_branch.run_selected", return_value=("passed", fake, 1.0)) as selected:
+            status, targets, _ = run_checks(self.tmp, {"agent/a.py", "agent/data.json"}, False)
+        everything.assert_not_called()
+        selected.assert_called_once()
+        self.assertEqual(selected.call_args.args[1], ["tests/agent/test_a.py"])
+        self.assertEqual((status, targets), ("passed", ["tests/agent/test_a.py"]))
+
+    def test_unreferenced_data_skips_tests(self):
+        with patch("tools.land_branch.run_all") as everything:
+            result = run_checks(self.tmp, {"docs/trackers/unused.json"}, False)
+        everything.assert_not_called()
+        self.assertEqual(result, ("skipped", [], 0.0))
 
     def test_selection_rules(self):
         from tools.land_branch import selection_reason
-        for package in ("agent", "pipelines"):
-            (self.tmp / "tests" / package).mkdir(parents=True)
+        for rel, text in {
+            "core/a.py": "x = 1\n", "agent/a.py": "x = 1\n", "pipelines/b.py": "x = 1\n",
+            "mystery/a.py": "x = 1\n",
+            "tests/core/test_a.py": "from core.a import x\n",
+            "tests/agent/test_a.py": "from agent.a import x\n",
+            "tests/pipelines/test_b.py": "from pipelines.b import x\n",
+        }.items():
+            (self.tmp / rel).parent.mkdir(parents=True, exist_ok=True)
+            (self.tmp / rel).write_text(text, encoding="utf-8")
         cases = [
-            ({"docs/a.md", "core/a.py"}, False, "core_change"),
-            ({"agent/a.py", "agent/data.json"}, False, "non_py_file"),
+            ({"docs/a.md", "core/a.py"}, False, "targeted"),  # core no longer means everything
+            ({"agent/a.py", "agent/data.json"}, False, "targeted"),  # unreferenced data adds nothing
             ({"agent/a.py", "pipelines/b.py"}, False, "targeted_multi"),
-            ({"core/a.py"}, False, "core_change"),
+            ({"core/a.py"}, False, "targeted"),
+            ({"agent/unused.json"}, False, "data_unreferenced"),
             ({"conftest.py"}, False, "helper_change"),
-            ({"mystery/a.py"}, False, "unmapped_file"),
+            ({"requirements.txt"}, False, "config_change"),
+            ({"mystery/a.py"}, False, "no_tests_for_code"),
+            ({"core/gone.py"}, False, "moved_or_deleted_file"),
             ({"docs/a.md"}, False, "doc_only"),
             ({"agent/a.py"}, True, "explicit_full"),
         ]
@@ -348,8 +374,10 @@ class RunChecksFullSuiteTests(unittest.TestCase):
 
     def test_outside_project_selection_rules(self):
         from tools.land_branch import selection_reason
-        for package in ("agent", "tools"):
-            (self.tmp / "tests" / package).mkdir(parents=True)
+        for rel, text in {"agent/a.py": "x = 1\n", "tests/agent/test_a.py": "from agent.a import x\n",
+                          "tests/tools/test_t.py": "import os\n"}.items():
+            (self.tmp / rel).parent.mkdir(parents=True, exist_ok=True)
+            (self.tmp / rel).write_text(text, encoding="utf-8")
         hub = "ai-sandbox/academic-hub"
         cases = [
             (set(), {f"{hub}/.index/courses.json", f"{hub}/.index/microecon.json",

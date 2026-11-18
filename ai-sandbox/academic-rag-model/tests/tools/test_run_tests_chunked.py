@@ -185,3 +185,63 @@ def test_main_returns_nonzero_and_prints_failing_chunk_stdout(monkeypatch, capsy
     captured = capsys.readouterr()
     assert "agent" in captured.out
     assert "boom" in captured.out
+
+
+class _Done:
+    def __init__(self, returncode=0, stdout="ok"):
+        self.returncode = returncode
+        self.stdout = stdout
+
+
+def test_run_selected_runs_one_subprocess_per_package(tmp_path):
+    from tools.run_tests_chunked import run_selected
+    calls = []
+
+    def fake_runner(cmd, **kwargs):
+        calls.append(cmd)
+        return _Done()
+
+    status, results, _ = run_selected(
+        tmp_path,
+        ["tests/core/test_a.py", "tests/agent/x/test_c.py", "tests/core/test_b.py", "tests/test_root.py"],
+        runner=fake_runner,
+    )
+
+    assert status == "passed"
+    assert [r.name for r in results] == ["(root)", "agent", "core"]
+    core = next(c for c in calls if "tests/core/test_a.py" in c)
+    assert core[core.index("tests/core/test_a.py"):core.index("tests/core/test_a.py") + 2] == [
+        "tests/core/test_a.py", "tests/core/test_b.py"]
+    assert all("not local_llm" in c for c in calls)
+
+
+def test_run_selected_splits_a_large_package_into_batches(tmp_path):
+    from tools.run_tests_chunked import run_selected
+    files = [f"tests/core/test_{n:02d}.py" for n in range(5)]
+    calls = []
+
+    def fake_runner(cmd, **kwargs):
+        calls.append([a for a in cmd if a.startswith("tests/")])
+        return _Done()
+
+    _, results, _ = run_selected(tmp_path, files, runner=fake_runner, max_files=2)
+
+    assert calls == [files[0:2], files[2:4], files[4:5]]
+    assert [r.name for r in results] == ["core [1/3]", "core [2/3]", "core [3/3]"]
+
+
+def test_run_selected_reports_failure_but_not_no_tests_collected(tmp_path):
+    from tools.run_tests_chunked import run_selected
+    codes = iter([1, 5])
+    status, results, _ = run_selected(
+        tmp_path, ["tests/agent/test_a.py", "tests/core/test_b.py"],
+        runner=lambda cmd, **kw: _Done(next(codes)))
+    assert status == "failed"
+    assert [r.returncode for r in results] == [1, 5]
+
+
+def test_run_selected_with_nothing_selected_passes_without_running(tmp_path):
+    from tools.run_tests_chunked import run_selected
+    status, results, _ = run_selected(
+        tmp_path, [], runner=lambda cmd, **kw: (_ for _ in ()).throw(AssertionError("ran")))
+    assert (status, results) == ("passed", [])

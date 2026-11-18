@@ -22,6 +22,7 @@ SKIP_DIRS = {".venv", "__pycache__", "archive", "node_modules"}
 CONFIG_NAMES = {"pytest.ini", "pyproject.toml", "tox.ini", "setup.cfg", "setup.py"}
 # Folder names that say nothing about which file a test reads.
 GENERIC_DIRS = {"docs", "data", "tests", "tools", "core", "agent", "pipelines", "assets", "config"}
+RARE_FOLDER_MAX_FILES = 8
 
 
 @dataclass(frozen=True)
@@ -53,10 +54,10 @@ def _is_test_file(rel: str) -> bool:
 
 
 class ImportGraph:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, files: list[Path] | None = None):
         self.rel_by_module: dict[str, str] = {}
         self.text: dict[str, str] = {}
-        for rel in _python_files(root):
+        for rel in (files if files is not None else _python_files(root)):
             module = _module_name(rel)
             self.rel_by_module[module] = rel.as_posix()
             self.text[module] = (root / rel).read_text(encoding="utf-8-sig", errors="replace")
@@ -117,13 +118,28 @@ class ImportGraph:
         return seen
 
 
-def _needles(rel: str) -> set[str]:
+def _data_readers(graph: "ImportGraph", rel: str) -> set[str]:
+    """Python files that name a data file: by path or file name, or by its folder name when
+    few files mention that folder (a name like `trackers` appears everywhere and says nothing)."""
     path = PurePosixPath(rel)
-    needles = {rel, path.name}
+    readers = {m for m, text in graph.text.items() if rel in text or path.name in text}
     parent = path.parent.name
     if parent and parent not in GENERIC_DIRS and len(parent) >= 4:
-        needles.add(parent)
-    return needles
+        mentioning = {m for m, text in graph.text.items() if parent in text}
+        if len(mentioning) <= RARE_FOLDER_MAX_FILES:
+            readers |= mentioning
+    return readers
+
+
+def _data_mirror_tests(rel: str, test_files: list[str]) -> set[str]:
+    """Tests of the nearest folder (at least two levels deep) that mirrors the data file's own."""
+    parts = PurePosixPath(rel).parts[:-1]
+    for depth in range(len(parts), 1, -1):
+        folder = "tests/" + "/".join(parts[:depth]) + "/"
+        found = {t for t in test_files if t.startswith(folder)}
+        if found:
+            return found
+    return set()
 
 
 def _mirror_tests(rel: str, test_files: list[str]) -> set[str]:
@@ -138,6 +154,11 @@ def _mirror_tests(rel: str, test_files: list[str]) -> set[str]:
             and PurePosixPath(t).name.startswith(f"test_{stem}")}
 
 
+def _tests_below(path: PurePosixPath, test_files: list[str]) -> set[str]:
+    folder = path.parent.as_posix() + "/"
+    return {t for t in test_files if t.startswith(folder)}
+
+
 def _run_all_reason(path: str) -> str | None:
     pure = PurePosixPath(path)
     name = pure.name
@@ -150,6 +171,23 @@ def _run_all_reason(path: str) -> str | None:
     return None
 
 
+_GRAPH_CACHE: dict[Path, tuple[tuple, ImportGraph]] = {}
+
+
+def _graph_for(root: Path) -> ImportGraph:
+    """Reading and parsing ~700 files dominates the cost (a check asks twice), so reuse the
+    graph while no Python file's mtime or size has changed."""
+    files = sorted(_python_files(root))
+    stamp = tuple((rel.as_posix(), (root / rel).stat().st_mtime_ns, (root / rel).stat().st_size)
+                  for rel in files)
+    cached = _GRAPH_CACHE.get(root)
+    if cached and cached[0] == stamp:
+        return cached[1]
+    graph = ImportGraph(root, files)
+    _GRAPH_CACHE[root] = (stamp, graph)
+    return graph
+
+
 def select_tests(changed: set[str], project_root: Path) -> Selection:
     changed = {p for p in changed if not p.endswith(".md")}
     if not changed:
@@ -159,12 +197,13 @@ def select_tests(changed: set[str], project_root: Path) -> Selection:
         if reason:
             return Selection([], reason)
 
-    graph = ImportGraph(project_root)
+    graph = _graph_for(project_root)
     test_files = sorted(rel for rel in graph.rel_by_module.values() if _is_test_file(rel))
     module_by_rel = {rel: module for module, rel in graph.rel_by_module.items()}
     seeds: set[str] = set()
     selected: set[str] = {graph.rel_by_module[m] for m in graph.unparsed_tests}
     saw_code = False
+    helpers: list[PurePosixPath] = []
     for path in sorted(changed):
         if path.endswith(".py"):
             saw_code = True
@@ -172,16 +211,23 @@ def select_tests(changed: set[str], project_root: Path) -> Selection:
                 return Selection([], "moved_or_deleted_file")
             seeds.add(module_by_rel[path])
             pure = PurePosixPath(path)
-            if pure.name == "conftest.py":  # fixtures for everything below its folder
-                folder = pure.parent.as_posix() + "/"
-                selected |= {t for t in test_files if t.startswith(folder)}
-            elif not _is_test_file(path):
+            if pure.parts[0] != "tests":
                 selected |= _mirror_tests(path, test_files)
+            elif pure.name == "conftest.py":  # fixtures for everything below its folder
+                selected |= _tests_below(pure, test_files)
+            elif not _is_test_file(path):
+                helpers.append(pure)
         else:
-            needles = _needles(path)
-            seeds |= {m for m, text in graph.text.items() if any(n in text for n in needles)}
+            seeds |= _data_readers(graph, path)
+            selected |= _data_mirror_tests(path, test_files)
     affected = graph.dependents(seeds)
     selected |= {graph.rel_by_module[m] for m in affected if _is_test_file(graph.rel_by_module[m])}
+    for helper in helpers:
+        # A helper some test imports is covered by the closure; one nothing imports
+        # (loaded by path or a plugin hook) falls back to its folder.
+        users = graph.dependents({module_by_rel[helper.as_posix()]})
+        if not any(_is_test_file(graph.rel_by_module[m]) for m in users):
+            selected |= _tests_below(helper, test_files)
     if saw_code and not selected:
         return Selection([], "no_tests_for_code")
     return Selection(sorted(selected))
