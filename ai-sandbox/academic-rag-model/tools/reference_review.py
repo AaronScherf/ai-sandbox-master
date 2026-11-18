@@ -274,9 +274,9 @@ def resolve(item_id: str, *, store: Path = DEFAULT_STORE) -> bool:
 
 
 def reject(item_id: str, reason: str, *, store: Path = DEFAULT_STORE) -> bool:
-    """Decline one note's item as wrong work or an extraction false positive."""
-    if reason not in {"wrong_work", "not_citation"}:
-        raise ValueError("reason must be wrong_work or not_citation")
+    """Decline one note's item without carrying a title decision across notes."""
+    if reason not in {"wrong_work", "wrong_title", "not_citation"}:
+        raise ValueError("reason must be wrong_work, wrong_title or not_citation")
     store = Path(store)
     items, item = _find_open(item_id, store)
     if item is None or item.status not in {"pending", "deferred", "declined"}:
@@ -285,18 +285,21 @@ def reject(item_id: str, reason: str, *, store: Path = DEFAULT_STORE) -> bool:
     mentions = [{"line": m["line"], "cited_text": m["cited_text"]}
                 for m in item.candidates[0]["mentions"]]
     if item.status == "declined":
-        if reason == "wrong_work":
-            return any(d.get("note") == note and d.get("doi") == doi.lower()
-                       and d.get("source") == "human" and d.get("mentions") == mentions
-                       for d in load_defects(store))
-        return any(row.get("item_id") == item_id and row.get("mentions") == mentions
-                   for row in load_false_positives(store))
+        return reject_reason_matches(item, reason, store)
     now = _now()
-    if reason == "wrong_work":
+    if reason in {"wrong_work", "wrong_title"}:
         defects = load_defects(store)
-        entry = {"note": note, "doi": doi.lower(), "tier": "WRONG_WORK",
-                 "reason": "human reviewer: wrong work", "mentions": mentions,
-                 "source": "human"}
+        if reason == "wrong_title":
+            registry_title = str(item.candidates[0].get("registry", {}).get("title") or "").strip()
+            if not registry_title:
+                raise ValueError("wrong_title requires a registered title")
+            entry = {"note": note, "doi": doi.lower(), "tier": "TITLE_WRONG",
+                     "reason": f"human reviewer: DOI correct; title in note wrong; use registered title: {registry_title}",
+                     "mentions": mentions, "source": "human", "registry_title": registry_title}
+        else:
+            entry = {"note": note, "doi": doi.lower(), "tier": "WRONG_WORK",
+                     "reason": "human reviewer: wrong work", "mentions": mentions,
+                     "source": "human"}
         defects = [d for d in defects if not (d.get("note"), d.get("doi"), d.get("source"))
                    == (note, doi.lower(), "human")]
         defects.append(entry)
@@ -312,6 +315,36 @@ def reject(item_id: str, reason: str, *, store: Path = DEFAULT_STORE) -> bool:
         item.status = "declined"
         item.updated = now
         save_review(items, store)
+    return True
+
+
+def relabel_defect(note: str, doi: str, *, store: Path = DEFAULT_STORE) -> bool:
+    """Migrate a reviewed, hand-annotated wrong-title defect once.
+
+    Require the existing human explanation and review candidate so an actual
+    wrong-work decision cannot be silently recast as a title correction.
+    """
+    store = Path(store)
+    doi = doi.lower()
+    defects = load_defects(store)
+    matches = [d for d in defects if d.get("note") == note and d.get("doi") == doi
+               and d.get("source") == "human"]
+    items = [item for item in load_review(store) if item.subject_ids == [note, doi]]
+    if len(matches) != 1 or len(items) != 1 or items[0].status != "declined":
+        return False
+    title = str(items[0].candidates[0].get("registry", {}).get("title") or "").strip()
+    defect = matches[0]
+    if not title:
+        return False
+    if defect.get("tier") == "TITLE_WRONG":
+        return defect.get("registry_title") == title
+    explanation = str(defect.get("reason") or "").lower()
+    if (defect.get("tier") != "WRONG_WORK" or "doi and registry record are correct" not in explanation
+            or title.lower() not in explanation):
+        return False
+    defect["tier"] = "TITLE_WRONG"
+    defect["registry_title"] = title
+    save_defects(defects, store)
     return True
 
 
@@ -341,8 +374,8 @@ def apply_decisions(decisions: list, *, dry_run: bool = False,
                 result.update(outcome="error", detail="malformed decision")
             elif iid in seen:
                 result.update(outcome="stale", detail="duplicate decision in batch")
-            elif action == "decline" and chosen not in {"wrong_work", "not_citation"}:
-                result.update(outcome="error", detail="decline needs chosen: wrong_work or not_citation")
+            elif action == "decline" and chosen not in {"wrong_work", "wrong_title", "not_citation"}:
+                result.update(outcome="error", detail="decline needs chosen: wrong_work, wrong_title or not_citation")
             else:
                 item = next((item for item in load_review(store) if item.item_id == iid), None)
                 if item is None:
@@ -374,9 +407,11 @@ def reject_reason_matches(item: ReviewItem, reason: str, store: Path) -> bool:
     note, doi = item.subject_ids
     mentions = [{"line": m["line"], "cited_text": m["cited_text"]}
                 for m in item.candidates[0]["mentions"]]
-    if reason == "wrong_work":
+    if reason in {"wrong_work", "wrong_title"}:
+        tier = "WRONG_WORK" if reason == "wrong_work" else "TITLE_WRONG"
         return any(d.get("note") == note and d.get("doi") == doi.lower()
-                   and d.get("source") == "human" and d.get("mentions") == mentions
+                   and d.get("source") == "human" and d.get("tier") == tier
+                   and d.get("mentions") == mentions
                    for d in load_defects(store))
     if reason == "not_citation":
         return any(row.get("item_id") == item.item_id and row.get("mentions") == mentions

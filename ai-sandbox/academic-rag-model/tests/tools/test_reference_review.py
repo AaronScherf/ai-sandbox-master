@@ -219,6 +219,55 @@ def test_reject_wrong_work_is_note_local_idempotent_and_invalidated_by_changed_c
     assert ledger.load_defects(store) == []
 
 
+def test_wrong_title_decision_is_note_local_and_apply_is_idempotent(tmp_path):
+    store = tmp_path / "store"
+    title = "The registered title"
+    items = [ledger.make_item(note, "10.1234/a", [{"line": 3, "cited_text": "Smith (2020). Invented title."}],
+                              tier="REVIEW", reason="title differs", evidence="",
+                              record={"title": title, "authors": ["Smith"], "year": 2020})
+             for note in ("research/a.md", "research/b.md")]
+    ledger.save_review(items, store)
+    decision = {"item_id": items[0].item_id, "action": "decline", "chosen": "wrong_title"}
+    assert ledger.apply_decisions([decision], store=store)[0]["outcome"] == "applied"
+    assert ledger.apply_decisions([decision], store=store)[0]["outcome"] == "already_applied"
+    assert not ledger.reject(items[0].item_id, "wrong_work", store=store)
+    assert [item.status for item in ledger.load_review(store)] == ["declined", "pending"]
+    defects = ledger.load_defects(store)
+    assert len(defects) == 1
+    assert defects[0]["tier"] == "TITLE_WRONG"
+    assert defects[0]["registry_title"] == title
+    assert "DOI correct" in defects[0]["reason"] and title in defects[0]["reason"]
+    assert defects[0]["note"] == "research/a.md"
+    assert ledger.load_dismissals(store) == []
+
+
+def test_relabel_defect_requires_hand_annotation_and_is_idempotent(tmp_path):
+    store = tmp_path / "store"
+    title = "The registered title"
+    item = ledger.make_item("research/a.md", "10.1234/a",
+                            [{"line": 3, "cited_text": "Smith (2020). Invented title."}],
+                            tier="REVIEW", reason="title differs", evidence="",
+                            record={"title": title, "authors": ["Smith"], "year": 2020})
+    item.status = "declined"
+    ledger.save_review([item], store)
+    original = {"note": "research/a.md", "doi": "10.1234/a", "tier": "WRONG_WORK",
+                "reason": f"human reviewer: DOI and registry record are correct; use '{title}'",
+                "mentions": [{"line": 3, "cited_text": "Smith (2020). Invented title."}],
+                "source": "human"}
+    ledger.save_defects([original], store)
+    assert ledger.relabel_defect("research/a.md", "10.1234/a", store=store)
+    migrated = ledger.load_defects(store)
+    assert migrated == [{**original, "tier": "TITLE_WRONG", "registry_title": title}]
+    before = (store / "defects.json").read_bytes()
+    assert ledger.relabel_defect("research/a.md", "10.1234/a", store=store)
+    assert (store / "defects.json").read_bytes() == before
+    assert not ledger.reject_reason_matches(item, "wrong_work", store)
+    assert ledger.reject_reason_matches(item, "wrong_title", store)
+    ledger.save_defects([original | {"reason": "human reviewer: wrong work"}], store)
+    assert not ledger.relabel_defect("research/a.md", "10.1234/a", store=store)
+    assert ledger.load_defects(store)[0]["tier"] == "WRONG_WORK"
+
+
 def test_reject_not_citation_records_false_positive_without_confirming(tmp_path):
     store = tmp_path / "store"
     item = ledger.make_item("research/note.md", "10.1234/a",
