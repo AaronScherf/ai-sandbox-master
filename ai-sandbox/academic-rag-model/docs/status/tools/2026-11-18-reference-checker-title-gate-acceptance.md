@@ -7,7 +7,7 @@ first step is implemented so far; later steps remain separate commits.
 | Step | Evidence required | State |
 | --- | --- | --- |
 | v12 wrong-title decision and migration | Fixture decisions; two exact live defects relabeled | Done |
-| v12 page button | Button payload and page test | Pending |
+| v12 page button | Button payload and JavaScript syntax check | Done |
 | v12 title search | Recorded Crossref/OpenAlex cases | Pending |
 | v12 tier and ledger routing | Shared rank, defects and review selection tests | Pending |
 | v12 acceptance | Fresh five-note checker and worktree ledger run | Pending |
@@ -47,3 +47,15 @@ changed no bytes (`defects.json` SHA-256
 The review ledger still contains 10 items. No owner decision was added, and
 no note was edited. The review page, checker title search, gate, five-note
 acceptance, and full suite were not run in this step.
+
+## Page-button step
+
+The review page now offers a fifth action, **Title wrong, DOI right**. Its
+existing decision handler writes `{action: "decline", chosen: "wrong_title"}`
+for the selected item; the active-button style and footer explain that the
+DOI stays and only this note's title needs correction. The extracted script
+passed `node --check`. The focused review-ledger suite passed again:
+19 passed, 0 skipped. This verifies JavaScript syntax and decision acceptance;
+it is not a published-page or interactive browser run. Claude will publish
+the page after landing. The title search, gate, acceptance runs and full suite
+remain pending.

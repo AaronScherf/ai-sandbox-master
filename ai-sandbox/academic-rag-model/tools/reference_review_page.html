@@ -71,6 +71,7 @@ h1 { font: 600 1.9rem/1.15 var(--f-display); margin: 0; text-wrap: balance; }
 .decide button:disabled { cursor: default; opacity: .55; }
 .decide button.on.accept { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); opacity: 1; }
 .decide button.on.wrong_work { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); opacity: 1; }
+.decide button.on.wrong_title { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); opacity: 1; }
 .decide button.on.not_citation { background: var(--grey-soft); color: var(--ink); border-color: var(--muted); opacity: 1; }
 .decide button.on.defer { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); opacity: 1; }
 .decide .clear { border: 0; background: none; color: var(--accent); text-decoration: underline; padding: 7px 4px; }
@@ -94,7 +95,7 @@ code { font: 12.5px var(--f-mono); background: var(--grey-soft); padding: 1px 5p
 <div class="wrap">
   <header>
     <h1>Citation Review Queue</h1>
-    <p class="lede">Each card is one DOI in one research note that the reference checker could not confirm on its own. Citations with no title pass automatically unless the same team published other work within a year; those works are listed so you can check which one the note means. Compare how the note cites it with what the registry holds, then decide. Same work carries over to the same citation in other notes; wrong work stays with this note.</p>
+    <p class="lede">Each card is one DOI in one research note that the reference checker could not confirm on its own. Citations with no title pass automatically unless the same team published other work within a year; those works are listed so you can check which one the note means. Compare how the note cites it with what the registry holds, then decide. Same work carries over to the same citation in other notes; title and paper corrections stay with this note.</p>
     <div class="bar">
       <div class="progress"><div class="meter"><i id="meter"></i></div><span id="count">Loading the queue…</span></div>
       <div class="tabs" role="group" aria-label="Show">
@@ -110,6 +111,7 @@ code { font: 12.5px var(--f-mono); background: var(--grey-soft); padding: 1px 5p
     <dl>
       <dt>Same work</dt><dd>The DOI is the paper the note means, not one of the same team's other works listed on the card. Dismisses this citation text for this DOI in every note.</dd>
       <dt>Wrong paper</dt><dd>The DOI points at a different work. Recorded as a defect in this note only; the note needs a fix.</dd>
+      <dt>Title wrong, DOI right</dt><dd>The DOI points at the intended work, but the note gives it a wrong title. Keep the DOI and correct the title in this note.</dd>
       <dt>Not a citation</dt><dd>The checker picked up something that is not a reference. Logged as a parser mistake.</dd>
       <dt>Can't tell</dt><dd>Stays in the queue for a later pass.</dd>
     </dl>
@@ -122,6 +124,7 @@ code { font: 12.5px var(--f-mono); background: var(--grey-soft); padding: 1px 5p
   const ACTIONS = [
     { key: "accept", label: "Same work", action: "accept", chosen: null },
     { key: "wrong_work", label: "Wrong paper", action: "decline", chosen: "wrong_work" },
+    { key: "wrong_title", label: "Title wrong, DOI right", action: "decline", chosen: "wrong_title" },
     { key: "not_citation", label: "Not a citation", action: "decline", chosen: "not_citation" },
     { key: "defer", label: "Can't tell", action: "defer", chosen: null },
   ];
