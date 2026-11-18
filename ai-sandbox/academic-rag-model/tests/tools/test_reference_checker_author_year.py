@@ -21,10 +21,21 @@ class RecordedClient:
             return {"data": [{"RA": self.registry}]}
         if "query.title=" in url:
             return {"status": 200, "data": {"message": {"items": []}}}
-        if "query.author=" in url:
+        if "api.openalex.org/works/doi:" in url:
+            return {"status": 200, "data": {"authorships": [
+                {"author": {"id": f"https://openalex.org/A{i + 1}"}}
+                for i in range(len(self.authors))]}}
+        if "api.openalex.org/works?" in url:
             self.guard_queries.append(url)
             if self.guard_error:
                 raise self.guard_error
+            target = {"doi": "https://doi.org/" + DOI, "title": "A target study",
+                      "publication_year": self.year, "type": "article",
+                      "authorships": [{"author": {"id": f"https://openalex.org/A{i + 1}"}}
+                                      for i in range(len(self.authors))]}
+            return {"status": 200, "data": {"meta": {"count": 201 if self.incomplete else 1},
+                                              "results": [target]}}
+        if "query.author=" in url:
             items = [{"DOI": DOI, "title": ["A target study"],
                       "author": [{"family": author} for author in self.authors],
                       "issued": {"date-parts": [[self.year]]}, "type": "journal-article"}]

@@ -1,134 +1,130 @@
-"""Recorded Crossref answers for the title-less same-team guard."""
+"""Recorded OpenAlex and Crossref answers for the same-team guard."""
 import json
 import urllib.error
 import urllib.parse
 
+import pytest
+
 from tools.reference_checker import RegistryClient, same_team_guard
 
 
-def work(doi, title, authors, year=2008, kind="journal-article"):
-    return {"DOI": doi, "title": [title], "author": [{"family": name} for name in authors],
-            "issued": {"date-parts": [[year]]}, "type": kind}
+def authors(*ids):
+    return [{"author": {"id": "https://openalex.org/" + value}} for value in ids]
+
+
+def oa_work(doi, title, year, *ids, kind="article"):
+    return {"doi": "https://doi.org/" + doi, "title": title,
+            "publication_year": year, "type": kind, "authorships": authors(*ids)}
+
+
+def crossref_work(doi, title, names, year):
+    return {"DOI": doi, "title": [title], "author": [{"family": name} for name in names],
+            "issued": {"date-parts": [[year]]}, "type": "journal-article"}
 
 
 class RecordedClient:
-    def __init__(self, pages):
-        self.pages = pages
+    def __init__(self, target, pages, crossref=None):
+        self.target, self.pages, self.crossref = target, pages, crossref or []
         self.urls = []
 
     def get(self, url):
         self.urls.append(url)
-        cursor = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)["cursor"][0]
-        value = self.pages[cursor]
-        if isinstance(value, Exception):
-            raise value
-        return {"status": 200, "data": {"message": value}}
+        if "/works/doi:" in url:
+            return self.target if isinstance(self.target, dict) else self.target
+        if "api.openalex.org/works?" in url:
+            cursor = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)["cursor"][0]
+            value = self.pages[cursor]
+            if isinstance(value, Exception):
+                raise value
+            return {"status": 200, "data": value}
+        if "api.crossref.org/works?" in url:
+            if isinstance(self.crossref, Exception):
+                raise self.crossref
+            return {"status": 200, "data": {"message": {
+                "total-results": len(self.crossref), "items": self.crossref}}}
+        raise AssertionError(url)
 
 
-def page(items, total=None, next_cursor=None):
-    return {"items": items, "total-results": len(items) if total is None else total,
-            "next-cursor": next_cursor}
+def client(ids, works, *, total=None, crossref=None, target_status=200):
+    target = {"status": target_status, "data": {"authorships": authors(*ids)}}
+    return RecordedClient(target, {"*": {"meta": {"count": len(works) if total is None else total},
+                                           "results": works}}, crossref)
 
 
-def test_guard_query_shape_and_brok_same_team_sibling():
-    record = {"title": "Trial sequential analysis", "authors": ["Brok", "Thorlund", "Wetterslev", "Gluud", "Extra"]}
-    sibling = work("10.1000/other", "A different clinical review", ["Brok", "Thorlund"], 2009)
-    client = RecordedClient({"*": page([
-        work("10.1093/ije/dyn188", "Trial sequential analysis", record["authors"]), sibling])})
-    result = same_team_guard("10.1093/ije/dyn188", record, 2008, client)
+@pytest.mark.parametrize("name,doi,target,other,other_title,team,year", [
+    ("Groh", "10.1162/rest_a_00584",
+     "Do Wage Subsidies Provide a Stepping-Stone to Employment for Recent College Graduates? Evidence from a Randomized Experiment in Jordan",
+     "10.1186/s40172-015-0022-8",
+     "Testing the importance of search frictions and matching through a randomized experiment in Jordan",
+     ("A1", "A2", "A3", "A4"), 2016),
+    ("Raleigh", "10.1016/j.gloenvcha.2015.03.005",
+     "The devil is in the details: An investigation of the relationships between conflict, food price and climate across Africa",
+     "10.1080/03050629.2017.1235271",
+     "Conflict Dynamics and Feedback: Explaining Change in Violence against Civilians within Conflicts",
+     ("A1", "A2"), 2015),
+])
+def test_live_false_pass_cases_now_find_openalex_siblings(name, doi, target, other, other_title, team, year):
+    works = [oa_work(doi, target, year, *team),
+             oa_work(other, other_title, year + 1, *team)]
+    result = same_team_guard(doi, {"title": target, "authors": [name, "Coauthor"]},
+                             year, client(team, works))
     assert result.complete and result.sibling_count == 1
-    assert result.siblings == [{"doi": "10.1000/other", "title": "A different clinical review",
-                                "year": 2009, "type": "journal-article"}]
-    params = urllib.parse.parse_qs(urllib.parse.urlsplit(client.urls[0]).query)
-    assert params == {"query.author": ["Brok Thorlund Wetterslev Gluud"],
-                      "filter": ["from-pub-date:2007-01-01,until-pub-date:2009-12-31"],
-                      "rows": ["100"], "select": ["DOI,title,author,issued,type"], "cursor": ["*"]}
+    assert result.siblings[0]["doi"] == other
 
 
-def test_guard_ignores_same_project_versions_unrelated_people_and_excluded_types():
-    record = {"title": "Extreme Weather and Civil War in Somalia", "authors": ["Maystadt", "Ecker"]}
-    client = RecordedClient({"*": page([
-        work("10.1000/preprint", "Extreme Weather and Civil War in Somalia: Evidence", ["Maystadt", "Ecker"]),
-        work("10.1000/other-hjort", "Unrelated paper", ["Maystadt", "Someone"]),
-        work("10.1000/data", "Different data", ["Maystadt", "Ecker"], kind="dataset"),
-    ])})
-    result = same_team_guard("10.1093/ajae/aau010", record, 2014, client)
-    assert result.complete and result.sibling_count == 0 and result.siblings == []
-
-
-def test_guard_single_author_other_work_is_sibling_and_caps_display_at_five():
-    record = {"title": "The target study", "authors": ["Allcott"]}
-    candidates = [work(f"10.1000/other-{i}", f"Distinct work {i}", ["Allcott"], 2015)
-                  for i in range(7)]
-    result = same_team_guard("10.1000/target", record, 2015,
-                             RecordedClient({"*": page(candidates)}))
-    assert result.complete and result.sibling_count == 7
-    assert len(result.siblings) == 5
-
-
-def test_guard_ignores_hjort_surname_noise_without_shared_coauthor():
-    record = {"title": "The target study", "authors": ["Hjort", "Miller"]}
-    unrelated = work("10.1000/other", "A different study", ["Hjort", "Someone Else"], 2021)
-    result = same_team_guard("10.1000/target", record, 2021,
-                             RecordedClient({"*": page([unrelated])}))
+def test_maystadt_version_and_missing_third_coauthor_id_do_not_block_pass():
+    doi = "10.1093/ajae/aau010"
+    title = "Extreme Weather and Civil War in Somalia"
+    target = {"status": 200, "data": {"authorships": authors("A1", "A2") +
+                                             [{"author": {"id": None}}]}}
+    pages = {"*": {"meta": {"count": 2}, "results": [
+        oa_work(doi, title, 2014, "A1", "A2"),
+        oa_work("10.2139/ssrn.123", title + ": Evidence", 2013, "A1", "A2")]}}
+    result = same_team_guard(doi, {"title": title, "authors": ["Maystadt", "Ecker", "Mabiso"]},
+                             2014, RecordedClient(target, pages))
     assert result.complete and result.sibling_count == 0
 
 
-def test_guard_pages_when_first_author_continues_near_page_end():
-    record = {"title": "The target study", "authors": ["Brok", "Thorlund"]}
-    fillers = [work(f"10.1000/filler-{i}", "Unrelated", ["Other"], 2008) for i in range(99)]
-    first_page = fillers + [work("10.1000/target", "The target study", ["Brok", "Thorlund"])]
-    client = RecordedClient({"*": page(first_page, total=101, next_cursor="second"),
-                             "second": page([work("10.1000/sibling", "A separate work", ["Brok", "Thorlund"])],
-                                            total=101)})
-    result = same_team_guard("10.1000/target", record, 2008, client)
-    assert result.complete and result.sibling_count == 1
-    assert [urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)["cursor"][0]
-            for url in client.urls] == ["*", "second"]
+def test_openalex_pages_until_meta_count_is_read():
+    doi = "10.1000/target"
+    target = {"status": 200, "data": {"authorships": authors("A1", "A2")}}
+    filler = [oa_work(f"10.1000/filler-{i}", "Unrelated", 2020, "A3") for i in range(199)]
+    pages = {"*": {"meta": {"count": 201, "next_cursor": "second"},
+                   "results": [oa_work(doi, "Target", 2020, "A1", "A2")] + filler},
+             "second": {"meta": {"count": 201}, "results": [
+                 oa_work("10.1000/sibling", "Distinct", 2021, "A1", "A2")]}}
+    recorded = RecordedClient(target, pages)
+    result = same_team_guard(doi, {"title": "Target", "authors": ["Smith", "Jones"]}, 2020, recorded)
+    assert result.complete and result.siblings[0]["doi"] == "10.1000/sibling"
+    assert sum("api.openalex.org/works?" in url for url in recorded.urls) == 2
 
 
-def test_guard_fails_closed_on_page_limit_missing_cursor_and_lookup_error(tmp_path):
-    record = {"title": "The target study", "authors": ["Brok", "Thorlund"]}
-    full = [work(f"10.1000/other-{i}", "Different study", ["Brok", "Thorlund"])
-            for i in range(100)]
-    client = RecordedClient({"*": page(full, total=400, next_cursor="two"),
-                             "two": page(full, total=400, next_cursor="three"),
-                             "three": page(full, total=400, next_cursor="four")})
-    result = same_team_guard("10.1000/target", record, 2008, client)
-    assert not result.complete and result.reason == "three-page limit reached"
-    assert len(client.urls) == 3
-    missing = same_team_guard("10.1000/target", record, 2008,
-                              RecordedClient({"*": page(full, total=101)}))
-    assert not missing.complete and missing.reason == "cursor unavailable"
-    failed = same_team_guard("10.1000/target", record, 2008,
-                             RecordedClient({"*": LookupError("not cached")}))
-    assert not failed.complete and "lookup unavailable" in failed.reason
-    offline = same_team_guard("10.1000/target", record, 2008,
-                              RegistryClient(tmp_path / "cache", online=False))
-    assert not offline.complete and "not cached" in offline.reason
+def test_openalex_missing_doi_first_id_over_limit_and_lookup_error_fail_closed():
+    record = {"title": "Target", "authors": ["Smith", "Jones"]}
+    missing = RecordedClient({"status": 404, "data": None}, {})
+    assert not same_team_guard("10.1000/target", record, 2020, missing).complete
+    no_id = client((), [])
+    assert "first OpenAlex author ID missing" in same_team_guard("10.1000/target", record, 2020, no_id).reason
+    too_many = client(("A1",), [], total=1001)
+    assert "above 1000" in same_team_guard("10.1000/target", record, 2020, too_many).reason
+    failed = RecordedClient({"status": 200, "data": {"authorships": authors("A1")}},
+                            {"*": LookupError("not cached")})
+    assert "not cached" in same_team_guard("10.1000/target", record, 2020, failed).reason
 
 
-def test_guard_stops_after_page_without_first_author_near_end():
-    record = {"title": "The target study", "authors": ["Hjort", "Smith"]}
-    items = [work("10.1000/target", "The target study", ["Hjort", "Smith"])]
-    items += [work(f"10.1000/noise-{i}", "Unrelated study", ["Other", "Smith"])
-              for i in range(99)]
-    client = RecordedClient({"*": page(items, total=200, next_cursor="second")})
-    result = same_team_guard("10.1000/target", record, 2021, client)
-    assert result.complete and result.sibling_count == 0
-    assert len(client.urls) == 1
+def test_crossref_only_sibling_counts_but_incomplete_crossref_does_not_block_pass():
+    doi = "10.1000/target"
+    record = {"title": "Target", "authors": ["Smith", "Jones"]}
+    clean = [oa_work(doi, "Target", 2020, "A1", "A2")]
+    sibling = crossref_work("10.1000/other", "Other project", ["Smith", "Jones"], 2021)
+    found = same_team_guard(doi, record, 2020, client(("A1", "A2"), clean, crossref=[sibling]))
+    assert found.complete and found.sibling_count == 1
+    incomplete = same_team_guard(doi, record, 2020,
+                                 client(("A1", "A2"), clean, crossref=LookupError("not cached")))
+    assert incomplete.complete and incomplete.sibling_count == 0
 
 
-def test_guard_fails_closed_on_malformed_crossref_answer():
-    record = {"title": "The target study", "authors": ["Brok", "Thorlund"]}
-    malformed = work("10.1000/other", "Different study", ["Brok", "Thorlund"])
-    malformed["author"] = "Brok and Thorlund"
-    result = same_team_guard("10.1000/target", record, 2008,
-                             RecordedClient({"*": page([malformed])}))
-    assert not result.complete and "incomplete" in result.reason
-
-
-def test_registry_client_paces_guard_search_and_honors_retry_after(tmp_path, monkeypatch):
+def test_registry_client_paces_openalex_list_and_honors_retry_after(tmp_path, monkeypatch):
     sleeps = []
     requests = []
 
@@ -139,7 +135,7 @@ def test_registry_client_paces_guard_search_and_honors_retry_after(tmp_path, mon
         def __exit__(self, *args):
             pass
         def read(self):
-            return json.dumps({"message": page([])}).encode()
+            return json.dumps({"meta": {"count": 0}, "results": []}).encode()
 
     def fetch(request, timeout):
         requests.append(request.full_url)
@@ -151,7 +147,7 @@ def test_registry_client_paces_guard_search_and_honors_retry_after(tmp_path, mon
     monkeypatch.setattr("tools.reference_checker.urllib.request.urlopen", fetch)
     monkeypatch.setattr("tools.reference_checker.time.sleep", sleeps.append)
     monkeypatch.setattr("tools.reference_checker.time.monotonic", lambda: 100.0)
-    url = "https://api.crossref.org/works?query.author=Brok&rows=100&cursor=%2A"
+    url = "https://api.openalex.org/works?filter=authorships.author.id:A1&cursor=%2A"
     assert RegistryClient(tmp_path, pace=0.2).get(url)["status"] == 200
     assert len(requests) == 2
     assert any(delay >= 7 for delay in sleeps)

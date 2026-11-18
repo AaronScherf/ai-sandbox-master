@@ -7,7 +7,9 @@ The default response cache is gitignored. DOI/arXiv ids go to registries;
 references without an identifier send an extracted title or at most 200
 characters of citation text to Crossref for candidate search. Source files stay local.
 The AUTHOR_YEAR guard sends up to four registered author family names and a
-three-year publication window to Crossref; it sends no note text or abstracts.
+three-year publication window to Crossref, and the DOI and OpenAlex author IDs
+to OpenAlex; it sends no note text, abstracts, email, or user name. OpenAlex can
+split one person into two author IDs and hide a sibling; Crossref is a second net.
 
 Known limitation: when one table reference contains multiple DOIs, each DOI may
 inherit the same citation. This can misclassify a dataset DOI using paper authors;
@@ -429,9 +431,10 @@ class RegistryClient:
                 pass
         if not self.online:
             raise LookupError("not cached")
-        # Crossref's author search is heavier than a DOI lookup. Pace only
-        # these guard queries, including cursor pages and retries.
-        pace = max(self.pace, 1.0) if url.startswith("https://api.crossref.org/works?") and "query.author=" in url else self.pace
+        # Pace guard list queries, including cursor pages and retries.
+        guard_list = ((url.startswith("https://api.crossref.org/works?") and "query.author=" in url)
+                      or (url.startswith("https://api.openalex.org/works?") and "authorships.author.id" in url))
+        pace = max(self.pace, 1.0) if guard_list else self.pace
         for attempt in range(3):
             time.sleep(max(0, pace - (time.monotonic() - self.last_request)))
             self.last_request = time.monotonic()
@@ -504,14 +507,8 @@ def _crossref_first_family(item: dict) -> str:
             if isinstance(authors, list) and authors and isinstance(authors[0], dict) else "")
 
 
-def same_team_guard(doi: str, record: dict, year: int, client: RegistryClient) -> SameTeamGuardResult:
-    """Find distinct same-team works near a year; an uncertain scan fails closed.
-
-    At most three 100-row Crossref pages are read. A relevance-ordered page
-    whose last ten entries lack the registered first author ends the scan;
-    otherwise further pages are required while ``total-results`` exceeds the
-    number read. No note text or abstracts are sent or stored here.
-    """
+def _crossref_guard(doi: str, record: dict, year: int, client: RegistryClient) -> SameTeamGuardResult:
+    """Collect Crossref siblings from at most three pages; never infer completeness."""
     authors = [str(a) for a in record.get("authors") or [] if a]
     title = str(record.get("title") or "")
     first = _family_last_token(authors[0]) if authors else ""
@@ -578,17 +575,12 @@ def same_team_guard(doi: str, record: dict, year: int, client: RegistryClient) -
             dates = issued.get("date-parts") or []
             candidate_year = dates[0][0] if dates and dates[0] else None
             sibling_count += 1
-            if len(siblings) < 5:
-                siblings.append({"doi": candidate_doi, "title": candidate_title,
-                                 "year": candidate_year, "type": item.get("type")})
+            siblings.append({"doi": candidate_doi, "title": candidate_title,
+                             "year": candidate_year, "type": item.get("type")})
         if total <= read:
             return SameTeamGuardResult(True, siblings, sibling_count)
         if len(items) < 100:
             return SameTeamGuardResult(False, siblings, sibling_count, "incomplete Crossref page")
-        tail = items[-10:]
-        if not any(isinstance(item, dict) and _crossref_first_family(item) == first
-                   for item in tail):
-            return SameTeamGuardResult(True, siblings, sibling_count)
         next_cursor = message.get("next-cursor")
         if (not isinstance(next_cursor, str) or not next_cursor or
                 next_cursor == cursor or next_cursor in seen_cursors):
@@ -596,6 +588,98 @@ def same_team_guard(doi: str, record: dict, year: int, client: RegistryClient) -
         seen_cursors.add(cursor)
         cursor = next_cursor
     return SameTeamGuardResult(False, siblings, sibling_count, "three-page limit reached")
+
+
+def _openalex_id(value: str) -> str:
+    """Canonicalize an OpenAlex author URL or short ID for equality and filters."""
+    return str(value or "").rstrip("/").rsplit("/", 1)[-1].upper()
+
+
+def _openalex_guard(doi: str, record: dict, year: int, client: RegistryClient) -> SameTeamGuardResult:
+    """Read every filtered first-author work; only meta.count proves completeness."""
+    try:
+        target = client.get("https://api.openalex.org/works/doi:" + urllib.parse.quote(doi, safe=""))
+        if target.get("status") != 200 or not isinstance(target.get("data"), dict):
+            return SameTeamGuardResult(False, [], 0, "DOI absent from OpenAlex")
+        authorships = target["data"].get("authorships") or []
+        first = _openalex_id((authorships[0].get("author") or {}).get("id")) if authorships else ""
+        if not first:
+            return SameTeamGuardResult(False, [], 0, "first OpenAlex author ID missing")
+        coauthors = {_openalex_id((a.get("author") or {}).get("id")) for a in authorships[1:]}
+        coauthors.discard("")
+        params = {"filter": f"authorships.author.id:{first},publication_year:{year - 1}-{year + 1}",
+                  "per-page": "200", "select": "doi,title,publication_year,type,authorships", "cursor": "*"}
+        seen = set()
+        siblings = []
+        count = pages_read = 0
+        total = None
+        cursor = "*"
+        while True:
+            params["cursor"] = cursor
+            answer = client.get("https://api.openalex.org/works?" + urllib.parse.urlencode(params))
+            data = answer.get("data") if answer.get("status") == 200 else None
+            meta = data.get("meta") if isinstance(data, dict) else None
+            items = data.get("results") if isinstance(data, dict) else None
+            page_total = meta.get("count") if isinstance(meta, dict) else None
+            if not isinstance(items, list) or not isinstance(page_total, int) or page_total < 0:
+                return SameTeamGuardResult(False, siblings, count, "incomplete OpenAlex answer")
+            if page_total > 1000:
+                return SameTeamGuardResult(False, siblings, count, "OpenAlex count above 1000")
+            if total is not None and page_total != total:
+                return SameTeamGuardResult(False, siblings, count, "OpenAlex count changed during paging")
+            total = page_total
+            for item in items:
+                if not isinstance(item, dict):
+                    return SameTeamGuardResult(False, siblings, count, "incomplete OpenAlex work")
+                work_authors = item.get("authorships") or []
+                if not isinstance(work_authors, list):
+                    return SameTeamGuardResult(False, siblings, count, "incomplete OpenAlex authorships")
+                work_ids = [_openalex_id((a.get("author") or {}).get("id")) for a in work_authors]
+                if not work_ids or work_ids[0] != first:
+                    continue
+                if coauthors and not (coauthors & set(work_ids[1:])):
+                    continue
+                candidate_doi = str(item.get("doi") or "").lower().removeprefix("https://doi.org/")
+                if not candidate_doi or candidate_doi == doi.lower() or candidate_doi in seen:
+                    continue
+                seen.add(candidate_doi)
+                if item.get("type") in {"dataset", "erratum", "peer-review", "paratext"}:
+                    continue
+                title = item.get("title") or ""
+                if not isinstance(title, str) or not title:
+                    return SameTeamGuardResult(False, siblings, count, "incomplete OpenAlex title")
+                if similarity(title, record.get("title") or "") >= 0.5:
+                    continue
+                count += 1
+                siblings.append({"doi": candidate_doi, "title": title,
+                                 "year": item.get("publication_year"), "type": item.get("type")})
+            # OpenAlex may include works without DOIs; count raw results instead.
+            pages_read += len(items)
+            if pages_read >= total:
+                return SameTeamGuardResult(True, siblings, count)
+            next_cursor = meta.get("next_cursor")
+            if not items or not isinstance(next_cursor, str) or not next_cursor or next_cursor == cursor:
+                return SameTeamGuardResult(False, siblings, count, "OpenAlex cursor unavailable")
+            cursor = next_cursor
+    except Exception as error:
+        return SameTeamGuardResult(False, [], 0, f"OpenAlex lookup unavailable: {error}")
+
+
+def same_team_guard(doi: str, record: dict, year: int, client: RegistryClient) -> SameTeamGuardResult:
+    """Require complete OpenAlex author-ID scan; Crossref adds sibling evidence."""
+    openalex = _openalex_guard(doi, record, year, client)
+    if not openalex.complete:
+        return openalex
+    crossref = _crossref_guard(doi, record, year, client)
+    siblings = list(openalex.siblings)
+    seen = {item["doi"] for item in siblings}
+    count = openalex.sibling_count
+    for item in crossref.siblings:
+        if item["doi"] not in seen:
+            seen.add(item["doi"])
+            count += 1
+            siblings.append(item)
+    return SameTeamGuardResult(True, siblings[:5], count)
 
 
 def registry_record(doi: str, client: RegistryClient) -> tuple[str, dict | None, str]:

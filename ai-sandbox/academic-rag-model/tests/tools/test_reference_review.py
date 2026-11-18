@@ -262,6 +262,14 @@ def test_author_year_is_not_queued_and_clears_prior_deferred_item(tmp_path):
         def get(self, url):
             if "/doiRA/" in url:
                 return {"data": [{"RA": "Crossref"}]}
+            if "api.openalex.org/works/doi:" in url:
+                return {"status": 200, "data": {"authorships": [
+                    {"author": {"id": "https://openalex.org/A1"}}]}}
+            if "api.openalex.org/works?" in url:
+                items = [{"doi": "https://doi.org/" + doi, "title": "Sample paper",
+                          "authorships": [{"author": {"id": "https://openalex.org/A1"}}],
+                          "publication_year": 2020, "type": "article"}]
+                return {"status": 200, "data": {"meta": {"count": len(items)}, "results": items}}
             if "query.author=" in url:
                 items = [{"DOI": doi, "title": ["Sample paper"],
                           "author": [{"family": "Smith"}],
