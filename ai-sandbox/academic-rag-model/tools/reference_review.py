@@ -14,10 +14,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.indexer.review_envelope import ReviewItem, _digest
-from tools.reference_checker import RegistryClient, TIER_RANK, check_note, normalized
+from tools.reference_checker import DEFAULT_CACHE, RegistryClient, TIER_RANK, check_note, normalized, shared_project_root
 
 
-DEFAULT_STORE = Path(__file__).resolve().parents[1] / ".reference_checker_review"
+DEFAULT_STORE = shared_project_root() / ".reference_checker_review"
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[3]
 FILES = {"review": "review.json", "dismissals": "dismissals.json", "defects": "defects.json",
          "false_positives": "false_positives.json"}
@@ -448,7 +448,7 @@ def main(argv: list[str] | None = None) -> int:
     raising = sub.add_parser("raise", help="check notes and update the local review ledger")
     raising.add_argument("notes", nargs="+", type=Path)
     raising.add_argument("--offline", action="store_true", help="read cached registry answers only")
-    raising.add_argument("--cache", type=Path, default=Path(__file__).resolve().parents[1] / ".reference_checker_cache")
+    raising.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
     listing = sub.add_parser("list", help="print stored review items without writing")
     listing.add_argument("--status", choices=("open", "pending", "deferred", "accepted", "declined", "all"),
                          default="open")

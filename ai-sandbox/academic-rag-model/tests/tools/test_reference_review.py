@@ -1,11 +1,37 @@
 """Fixture-only tests for the reference-review ledger foundation."""
 import json
+import subprocess
+from pathlib import Path
 
 import pytest
 
 from core.indexer.review_envelope import _digest
 from tools import reference_review as ledger
+from tools import reference_checker as checker
 from tools.reference_checker import check_note
+
+
+def test_default_store_and_cache_resolve_to_main_from_worktree_layout(tmp_path):
+    main = tmp_path / "main"
+    main.mkdir()
+
+    def git(cwd, *args):
+        return subprocess.run(["git", *args], cwd=cwd, capture_output=True,
+                              text=True, check=True).stdout.strip()
+
+    git(main, "init", "-b", "main")
+    (main / "seed.txt").write_text("seed", encoding="utf-8")
+    git(main, "add", "seed.txt")
+    git(main, "-c", "user.name=Test", "-c", "user.email=test@example.com",
+        "commit", "-m", "seed")
+    worktree = tmp_path / "worktree"
+    git(main, "worktree", "add", "-b", "codex/test", str(worktree))
+    project = Path("ai-sandbox/academic-rag-model")
+    (worktree / project).mkdir(parents=True)
+
+    assert checker.shared_project_root(worktree / project) == main / project
+    assert checker.DEFAULT_CACHE == ledger.DEFAULT_STORE.parent / ".reference_checker_cache"
+    assert ledger.DEFAULT_STORE == checker.shared_project_root() / ".reference_checker_review"
 
 
 def test_stable_per_note_doi_id_and_cross_note_dismissal_key():

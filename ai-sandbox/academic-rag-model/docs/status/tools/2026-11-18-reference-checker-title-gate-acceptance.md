@@ -11,7 +11,7 @@ remain separate commits.
 | v12 title search | Recorded Crossref/OpenAlex cases | Done |
 | v12 tier and ledger routing | Shared rank, defects and review selection tests | Done |
 | v12 acceptance | Fresh five-note checker and worktree ledger run | Done |
-| v13 store resolution | Worktree-layout test for main ledger and cache | Pending |
+| v13 store resolution | Worktree-layout test for main ledger and cache | Done |
 | v13 gate function | Per-note fixture counts and block/pass tests | Pending |
 | v13 landing wiring | Check and land tests, full suite | Pending |
 | v13 routing instruction | Documentation review | Pending |
@@ -128,3 +128,13 @@ file (eight accepted, two declined). Main's ledger was not changed. This is
 one live registry observation and a worktree-only ledger preview, not a
 published review page or behavior observed over time. The v13 gate and full
 suite have not run yet.
+
+## V13 shared store and cache
+
+The default review ledger and registry cache now resolve through Git's common
+directory to the main checkout's project directory. An explicit store or cache
+still permits isolated tests and worktree previews. A test created a real Git
+repository and linked worktree and verified that the helper points back to
+the main project directory; the module defaults were also checked. The
+focused review suite passed: 21 passed, 0 skipped. This is layout and fixture
+evidence; the gate and full suite were not run in this step.

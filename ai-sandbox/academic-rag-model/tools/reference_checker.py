@@ -62,6 +62,16 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+from tools.git_workflow import git_common_dir
+
+
+def shared_project_root(cwd: Path | None = None) -> Path:
+    """Find the main checkout's project through the repository's common git dir."""
+    return git_common_dir(cwd or Path(__file__).resolve().parents[1]).parent / "ai-sandbox/academic-rag-model"
+
+
+DEFAULT_CACHE = shared_project_root() / ".reference_checker_cache"
+
 TIER_RANK = {"CONFIRMED": 0, "AUTHOR_YEAR": 1, "PLAUSIBLE": 2, "UNCHECKED": 3,
              "UNRESOLVED": 4, "REVIEW": 5, "AMBIGUOUS": 5, "TITLE_WRONG": 6,
              "NOT_FOUND": 7, "WRONG_WORK": 8}
@@ -1188,7 +1198,7 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path)
     parser.add_argument("--format", choices=("json", "markdown"), default="markdown")
-    parser.add_argument("--cache", type=Path, default=Path(__file__).resolve().parents[1] / ".reference_checker_cache")
+    parser.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
     parser.add_argument("--offline", action="store_true", help="use cached answers only")
     parser.add_argument("--refresh", action="store_true", help="refresh cached registry answers")
     parser.add_argument("--pace", type=float, default=0.2, help="minimum seconds between requests")
