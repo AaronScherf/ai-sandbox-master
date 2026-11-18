@@ -8,7 +8,7 @@ first step is implemented so far; later steps remain separate commits.
 | --- | --- | --- |
 | v12 wrong-title decision and migration | Fixture decisions; two exact live defects relabeled | Done |
 | v12 page button | Button payload and JavaScript syntax check | Done |
-| v12 title search | Recorded Crossref/OpenAlex cases | Pending |
+| v12 title search | Recorded Crossref/OpenAlex cases | Done |
 | v12 tier and ledger routing | Shared rank, defects and review selection tests | Pending |
 | v12 acceptance | Fresh five-note checker and worktree ledger run | Pending |
 | v13 store resolution | Worktree-layout test for main ledger and cache | Pending |
@@ -59,3 +59,27 @@ passed `node --check`. The focused review-ledger suite passed again:
 it is not a published-page or interactive browser run. Claude will publish
 the page after landing. The title search, gate, acceptance runs and full suite
 remain pending.
+
+## Title-search step
+
+Eligible SAME_WORK rows now query Crossref and OpenAlex for a cited title
+scoring below 0.5 against the DOI's registered title. The cited title is
+capped at 200 characters; Crossref also receives cited surnames. Both calls
+use `RegistryClient` caching, retry and pacing. A title scoring at least
+0.92 in either source is attached as `cited_title_found` with DOI, title,
+year and source. Two complete searches with no hit add `TITLE_NOT_FOUND` and
+the registered title. A failed or malformed search leaves the row in REVIEW
+with "title search unavailable". TITLE_WRONG tiering and ledger routing
+remain for the next step.
+
+Recorded-answer tests cover the Rosenzweig/Udry and Lopez empty results, the
+NBER Crossref hit, an OpenAlex-only hit, lookup failure in either source, and
+skipping high-scoring and titleless rows. The focused checker and ledger
+suite passed: 109 passed, 1 skipped. This is fixture evidence; no live
+registry lookup or five-note acceptance was run.
+
+The NBER title "External Validity in a Stochastic World" scores about 0.69
+against the REStud registered title. The v12 `< 0.5` trigger therefore does
+not search that citation in the full checker, although the search helper
+finds the recorded NBER result. A separate ruling would be required to
+change the trigger; this step keeps the specified threshold.

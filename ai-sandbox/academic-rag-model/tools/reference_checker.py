@@ -10,6 +10,9 @@ The AUTHOR_YEAR guard sends up to four registered author family names and a
 three-year publication window to Crossref, and the DOI and OpenAlex author IDs
 to OpenAlex; it sends no note text, abstracts, email, or user name. OpenAlex can
 split one person into two author IDs and hide a sibling; Crossref is a second net.
+For a low-scoring cited title, the checker sends at most 200 characters of the
+cited title to Crossref and OpenAlex, plus cited surnames to Crossref. No note
+body or personal identifier is sent with that search.
 
 Known limitation: when one table reference contains multiple DOIs, each DOI may
 inherit the same citation. This can misclassify a dataset DOI using paper authors;
@@ -434,7 +437,8 @@ class RegistryClient:
             raise LookupError("not cached")
         # Pace guard list queries, including cursor pages and retries.
         guard_list = ((url.startswith("https://api.crossref.org/works?") and "query.author=" in url)
-                      or (url.startswith("https://api.openalex.org/works?") and "authorships.author.id" in url))
+                      or (url.startswith("https://api.openalex.org/works?")
+                          and ("authorships.author.id" in url or "search=" in url)))
         pace = max(self.pace, 1.0) if guard_list else self.pace
         for attempt in range(3):
             time.sleep(max(0, pace - (time.monotonic() - self.last_request)))
@@ -852,7 +856,7 @@ def _identity_tier(identity: str, citation: str, record: dict | None = None) -> 
     return "REVIEW"
 
 
-def _cited_surnames(citation: str) -> tuple[list[str], bool]:
+def _cited_surnames(citation: str, *, first_for_et_al: bool = True) -> tuple[list[str], bool]:
     """Read the cited surname list before the first year, ignoring initials."""
     year = YEAR.search(citation)
     if not year:
@@ -865,7 +869,89 @@ def _cited_surnames(citation: str) -> tuple[list[str], bool]:
         surname = _family_last_token(part)
         if surname and len(surname) > 1:
             names.append(surname)
-    return (names[:1] if et_al else names), et_al
+    return (names[:1] if et_al and first_for_et_al else names), et_al
+
+
+def search_cited_title(citation: str, client: RegistryClient) -> tuple[dict | None, bool]:
+    """Find a cited title in either registry; return (best hit, both searches usable).
+
+    A hit is evidence for human review, not proof that the cited DOI is wrong.
+    If either lookup fails and neither finds a title, the caller must fail closed.
+    """
+    title = citation_fields(citation)["title"]
+    surnames, _ = _cited_surnames(citation, first_for_et_al=False)
+    if not title:
+        return None, False
+    query_title = title[:200]
+    requests = [
+        ("Crossref", "https://api.crossref.org/works?" + urllib.parse.urlencode({
+            "query.bibliographic": query_title, "query.author": " ".join(surnames),
+            "rows": "5", "select": "DOI,title,author,issued"})),
+        ("OpenAlex", "https://api.openalex.org/works?" + urllib.parse.urlencode({
+            "search": query_title, "per-page": "5",
+            "select": "doi,title,publication_year,authorships"})),
+    ]
+    found = []
+    complete = True
+    for source, url in requests:
+        try:
+            answer = client.get(url)
+            if not isinstance(answer, dict) or answer.get("status") != 200:
+                raise LookupError(f"{source} title search did not succeed")
+            data = answer.get("data")
+            if source == "Crossref":
+                message = data.get("message") if isinstance(data, dict) else None
+                items = message.get("items") if isinstance(message, dict) else None
+            else:
+                items = data.get("results") if isinstance(data, dict) else None
+            if not isinstance(items, list):
+                raise ValueError(f"{source} title search answer incomplete")
+            for item in items:
+                if not isinstance(item, dict):
+                    raise ValueError(f"{source} title search item incomplete")
+                raw_title = item.get("title")
+                if source == "Crossref" and raw_title is not None and not isinstance(raw_title, list):
+                    raise ValueError(f"{source} title search title malformed")
+                candidate_title = ((raw_title or [""])[0] if source == "Crossref"
+                                   else raw_title or "")
+                if not isinstance(candidate_title, str):
+                    raise ValueError(f"{source} title search title malformed")
+                score = similarity(title, candidate_title)
+                if score < 0.92:
+                    continue
+                dates = (item.get("issued") or {}).get("date-parts") or [] if source == "Crossref" else []
+                year = dates[0][0] if dates and dates[0] else None
+                doi = item.get("DOI") if source == "Crossref" else item.get("doi")
+                found.append((score, {"doi": clean_identifier(str(doi or "")),
+                                      "title": candidate_title,
+                                      "year": year if source == "Crossref" else item.get("publication_year"),
+                                      "source": source}))
+        except Exception:  # a missing or malformed answer cannot prove title absence
+            complete = False
+    return (max(found, key=lambda pair: pair[0])[1] if found else None), complete
+
+
+def _apply_title_search(result: dict, citation: str, record: dict, client: RegistryClient) -> None:
+    """Attach cited-title search evidence without changing the review tier yet."""
+    if result["identity"] != "SAME_WORK":
+        return
+    title = citation_fields(citation)["title"]
+    if not title:
+        return
+    registered = [record.get("title") or ""]
+    if record.get("subtitle"):
+        registered.append(registered[0] + ": " + record["subtitle"])
+    if max((similarity(title, value) for value in registered if value), default=0.0) >= 0.5:
+        return
+    hit, complete = search_cited_title(citation, client)
+    if hit:
+        result["cited_title_found"] = hit
+    elif not complete:
+        result["reason"] += "; title search unavailable"
+    else:
+        result["text_fidelity"].append("TITLE_NOT_FOUND")
+        result["registry_title"] = record.get("title") or ""
+        result["reason"] += "; cited title not found in Crossref or OpenAlex; DOI and authors match; use the registered title"
 
 
 def _apply_author_year(result: dict, citation: str, registry: str, record: dict, client: RegistryClient) -> None:
@@ -941,6 +1027,7 @@ def check(row: dict, client: RegistryClient, *, author_year: bool = True) -> dic
         result["reason"] = status
         return result
     result["identity"], result["text_fidelity"], result["reason"] = compare(citation, record)
+    _apply_title_search(result, citation, record, client)
     result["tier"] = _identity_tier(result["identity"], citation, record)
     result["classification"] = ("MISMATCH" if result["identity"] == "WRONG_WORK" else
                                 "MATCH" if result["identity"] == "SAME_WORK" and result["text_fidelity"] == ["OK"] else
