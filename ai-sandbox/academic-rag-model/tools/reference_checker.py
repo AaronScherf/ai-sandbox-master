@@ -26,11 +26,14 @@ Identity-to-tier mapping:
   AUTHOR_YEAR only when every cited surname is registered, the cited year
   matches exactly, Crossref registered the DOI, and a complete same-team
   search finds no sibling. Otherwise it is PLAUSIBLE.
+- SAME_WORK with a cited title scoring below 0.5 is TITLE_WRONG only after
+  successful Crossref and OpenAlex searches find no matching cited title;
+  a found title or unavailable search remains REVIEW.
 - AMBIGUOUS maps to REVIEW.
 - WRONG_WORK, NOT_FOUND, UNCHECKED, and UNRESOLVED retain their identity as
   their tier.
 - DOI aggregation ranks CONFIRMED < AUTHOR_YEAR < PLAUSIBLE < UNCHECKED < UNRESOLVED <
-  REVIEW (= AMBIGUOUS) < NOT_FOUND < WRONG_WORK; WRONG_WORK is highest risk.
+  REVIEW (= AMBIGUOUS) < TITLE_WRONG < NOT_FOUND < WRONG_WORK.
 
 The legacy classification field remains for one release. Its mapping is
 unchanged: MATCH means SAME_WORK with text_fidelity ["OK"], MISMATCH means
@@ -60,8 +63,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 TIER_RANK = {"CONFIRMED": 0, "AUTHOR_YEAR": 1, "PLAUSIBLE": 2, "UNCHECKED": 3,
-             "UNRESOLVED": 4, "REVIEW": 5, "AMBIGUOUS": 5, "NOT_FOUND": 6,
-             "WRONG_WORK": 7}
+             "UNRESOLVED": 4, "REVIEW": 5, "AMBIGUOUS": 5, "TITLE_WRONG": 6,
+             "NOT_FOUND": 7, "WRONG_WORK": 8}
 SAME_TEAM_VERSION_TITLE_THRESHOLD = 0.8
 
 USER_AGENT = "ReferenceChecker/1.0 (bibliographic metadata validation)"
@@ -951,7 +954,7 @@ def _apply_title_search(result: dict, citation: str, record: dict, client: Regis
     else:
         result["text_fidelity"].append("TITLE_NOT_FOUND")
         result["registry_title"] = record.get("title") or ""
-        result["reason"] += "; cited title not found in Crossref or OpenAlex; DOI and authors match; use the registered title"
+        result["reason"] = "cited title not found in Crossref or OpenAlex; DOI and authors match; use the registered title"
 
 
 def _apply_author_year(result: dict, citation: str, registry: str, record: dict, client: RegistryClient) -> None:
@@ -1029,6 +1032,8 @@ def check(row: dict, client: RegistryClient, *, author_year: bool = True) -> dic
     result["identity"], result["text_fidelity"], result["reason"] = compare(citation, record)
     _apply_title_search(result, citation, record, client)
     result["tier"] = _identity_tier(result["identity"], citation, record)
+    if "TITLE_NOT_FOUND" in result["text_fidelity"]:
+        result["tier"] = "TITLE_WRONG"
     result["classification"] = ("MISMATCH" if result["identity"] == "WRONG_WORK" else
                                 "MATCH" if result["identity"] == "SAME_WORK" and result["text_fidelity"] == ["OK"] else
                                 "PARTIAL")

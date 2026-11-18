@@ -22,7 +22,7 @@ DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[3]
 FILES = {"review": "review.json", "dismissals": "dismissals.json", "defects": "defects.json",
          "false_positives": "false_positives.json"}
 REVIEW_TIERS = {"REVIEW", "AMBIGUOUS", "PLAUSIBLE", "UNCHECKED", "UNRESOLVED"}
-DEFECT_TIERS = {"WRONG_WORK", "NOT_FOUND"}
+DEFECT_TIERS = {"WRONG_WORK", "NOT_FOUND", "TITLE_WRONG"}
 
 
 def item_id(note_rel_path: str, doi: str) -> str:
@@ -37,7 +37,8 @@ def dismissal_key(doi: str, citation: str) -> tuple[str, str]:
 
 def make_item(note_rel_path: str, doi: str, mentions: list[dict], *, tier: str,
               reason: str, evidence: str, record: dict | None = None,
-              siblings: list[dict] | None = None) -> ReviewItem:
+              siblings: list[dict] | None = None,
+              cited_title_found: dict | None = None) -> ReviewItem:
     """Project checker metadata into one shared-envelope review item.
 
     Only explicit fields are copied, so raw registry responses and note bodies
@@ -52,6 +53,9 @@ def make_item(note_rel_path: str, doi: str, mentions: list[dict], *, tier: str,
     if siblings:
         candidate["siblings"] = [{key: sibling.get(key) for key in ("doi", "title", "year", "type")}
                                  for sibling in siblings[:5]]
+    if cited_title_found:
+        candidate["cited_title_found"] = {key: cited_title_found.get(key)
+                                          for key in ("doi", "title", "year", "source")}
     return ReviewItem(
         item_id(note_rel_path, doi), "reference_check", [note_rel_path, doi],
         [candidate],
@@ -147,9 +151,13 @@ def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, st
         tier = worst.get("tier", "UNRESOLVED")
         cited = [{"line": row.get("line"), "cited_text": row["citation"]} for row in mentions]
         if tier in DEFECT_TIERS:
-            defects.append({"note": note_rel_path, "doi": doi, "tier": tier,
-                            "reason": worst.get("reason", ""), "mentions": cited,
-                            "source": "checker"})
+            defect = {"note": note_rel_path, "doi": doi, "tier": tier,
+                      "reason": worst.get("reason", ""), "mentions": cited,
+                      "source": "checker"}
+            if tier == "TITLE_WRONG":
+                defect["registry_title"] = worst.get("registry_title") or (
+                    (worst.get("registry_answer") or {}).get("record") or {}).get("title", "")
+            defects.append(defect)
         elif tier in REVIEW_TIERS and not all(dismissal_key(doi, row["citation"]) in dismissed for row in mentions):
             answer = worst.get("registry_answer") or {}
             siblings = []
@@ -164,7 +172,9 @@ def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, st
                                    reason=("checker could not judge" if tier in {"UNCHECKED", "UNRESOLVED"}
                                            else worst.get("reason", "")),
                                    evidence=worst.get("evidence", ""),
-                                   record=answer.get("record"), siblings=siblings))
+                                   record=answer.get("record"), siblings=siblings,
+                                   cited_title_found=next((row["cited_title_found"] for row in mentions
+                                                           if row.get("cited_title_found")), None)))
     return items, defects
 
 
@@ -201,7 +211,10 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
                 (d.get("source") == "human" and
                  {normalized(m["cited_text"]) for m in d.get("mentions", [])}
                  != current_citations.get(d.get("doi"), set()))))]
-        defects.extend(found_defects)
+        defects.extend(d for d in found_defects if not any(
+            prior.get("source") == "human" and prior.get("note") == d["note"]
+            and prior.get("doi") == d["doi"] and prior.get("tier") == d["tier"]
+            for prior in defects))
         current_ids = {item.item_id for item in current}
         existing = {iid: item for iid, item in existing.items()
                     if item.subject_ids[0] != relative or iid in current_ids}

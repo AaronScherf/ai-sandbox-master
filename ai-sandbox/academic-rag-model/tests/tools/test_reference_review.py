@@ -134,6 +134,21 @@ def test_wrong_work_defect_is_scoped_to_its_note(tmp_path, monkeypatch):
     assert [defect["note"] for defect in ledger.load_defects(store)] == ["a.md"]
 
 
+def test_checker_title_wrong_does_not_duplicate_matching_human_defect(tmp_path, monkeypatch):
+    note = tmp_path / "note.md"
+    note.write_text("note", encoding="utf-8")
+    row = {**_row("10.1234/a", "TITLE_WRONG"), "registry_title": "Sample paper"}
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: [row])
+    store = tmp_path / "store"
+    human = {"note": "note.md", "doi": "10.1234/a", "tier": "TITLE_WRONG",
+             "reason": "human reviewer: DOI correct; use Sample paper",
+             "mentions": [{"line": 2, "cited_text": "Smith (2020)"}],
+             "source": "human", "registry_title": "Sample paper"}
+    ledger.save_defects([human], store)
+    assert ledger.raise_items([note], object(), store=store, repo_root=tmp_path) == []
+    assert ledger.load_defects(store) == [human]
+
+
 def test_checker_preserves_line_through_reference_linking():
     doi = "10.1234/sample"
 

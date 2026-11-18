@@ -3,7 +3,8 @@ import urllib.parse
 
 import pytest
 
-from tools.reference_checker import check, search_cited_title, similarity
+from tools import reference_review as ledger
+from tools.reference_checker import TIER_RANK, check, search_cited_title, similarity
 
 
 RECORDS = {
@@ -52,11 +53,18 @@ def test_low_scoring_invented_titles_have_complete_empty_search(citation, doi):
     client = RecordedClient()
     result = check({"citation": citation, "identifier": doi, "kind": "doi"}, client)
     assert result["identity"] == "SAME_WORK"
-    assert result["tier"] == "REVIEW"  # TITLE_WRONG routing is the next step
+    assert result["tier"] == "TITLE_WRONG"
     assert "TITLE_NOT_FOUND" in result["text_fidelity"]
     assert result["registry_title"] == RECORDS[doi][3]
     assert "cited title not found in Crossref or OpenAlex" in result["reason"]
     assert len(client.search_urls) == 2
+    result["line"] = 9
+    queued, defects = ledger._selected("research/note.md", [result], set())
+    assert queued == []
+    assert len(defects) == 1
+    assert defects[0]["tier"] == "TITLE_WRONG"
+    assert defects[0]["registry_title"] == RECORDS[doi][3]
+    assert TIER_RANK["REVIEW"] < TIER_RANK["TITLE_WRONG"] < TIER_RANK["NOT_FOUND"]
     crossref_query = urllib.parse.parse_qs(urllib.parse.urlsplit(client.search_urls[0]).query)
     assert crossref_query["rows"] == ["5"]
     assert crossref_query["select"] == ["DOI,title,author,issued"]
@@ -64,15 +72,24 @@ def test_low_scoring_invented_titles_have_complete_empty_search(citation, doi):
                                              else ["rosenzweig udry"])
 
 
-def test_recorded_nber_title_is_found_by_search_helper():
-    title = "External Validity in a Stochastic World"
-    client = RecordedClient(crossref=[{"DOI": "10.3386/w22449", "title": [title],
-                                      "issued": {"date-parts": [[2016]]}}])
-    citation = "Rosenzweig & Udry (2016). " + title
-    found, complete = search_cited_title(citation, client)
-    assert complete
-    assert found == {"doi": "10.3386/w22449", "title": title, "year": 2016,
-                     "source": "Crossref"}
+def test_other_low_scoring_aer_work_stays_review_with_found_title():
+    title = "Rainfall Forecasts, Weather, and Wages over the Agricultural Production Cycle"
+    client = RecordedClient(crossref=[{"DOI": "10.1257/aer.104.5.278", "title": [title],
+                                      "issued": {"date-parts": [[2014]]}}])
+    citation = "Rosenzweig & Udry (2014). " + title
+    result = check({"citation": citation, "identifier": "10.1093/restud/rdz021", "kind": "doi"}, client)
+    assert similarity(title, RECORDS["10.1093/restud/rdz021"][3]) < 0.5
+    assert result["identity"] == "SAME_WORK"
+    assert result["tier"] == "REVIEW"
+    assert result["cited_title_found"] == {
+        "doi": "10.1257/aer.104.5.278", "title": title, "year": 2014, "source": "Crossref"}
+    assert "TITLE_NOT_FOUND" not in result["text_fidelity"]
+    assert len(client.search_urls) == 2
+    result["line"] = 4
+    queued, defects = ledger._selected("research/note.md", [result], set())
+    assert defects == []
+    assert len(queued) == 1
+    assert queued[0].candidates[0]["cited_title_found"] == result["cited_title_found"]
 
 
 def test_openalex_alone_can_supply_a_matching_title():

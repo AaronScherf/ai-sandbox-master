@@ -60,6 +60,8 @@ h1 { font: 600 1.9rem/1.15 var(--f-display); margin: 0; text-wrap: balance; }
 .context { font-size: 13.5px; color: var(--muted); border-left: 2px solid var(--line); padding-left: 10px; overflow-wrap: anywhere; }
 .rtitle { font: 600 1.02rem/1.35 var(--f-display); }
 .rmeta { font-size: 14px; color: var(--muted); }
+.found { display: grid; gap: 4px; margin-top: 6px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 13.5px; }
+.found a { color: var(--accent); overflow-wrap: anywhere; }
 .sibs { display: grid; gap: 6px; margin-top: 6px; padding-top: 10px; border-top: 1px dashed var(--line); }
 .sibs ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13.5px; }
 .sibs li a { color: var(--ink); text-decoration-color: var(--line); overflow-wrap: anywhere; }
@@ -190,6 +192,15 @@ code { font: 12.5px var(--f-mono); background: var(--grey-soft); padding: 1px 5p
     right.append(el("div", "rtitle", r.title || "No title registered"));
     const authors = (r.authors || []).join(", ");
     right.append(el("div", "rmeta", [authors, r.year, r.venue].filter(Boolean).join(" · ") || "No author, year or venue registered"));
+    if (item.cited_title_found) {
+      const found = item.cited_title_found;
+      const box = el("div", "found");
+      box.append(el("div", "label", "Cited title found elsewhere — check which work the note means"));
+      const link = el("a", null, found.title || found.doi);
+      link.href = "https://doi.org/" + found.doi; link.target = "_blank"; link.rel = "noopener";
+      box.append(link, el("div", "rmeta", [found.source, found.year, found.doi].filter(Boolean).join(" · ")));
+      right.append(box);
+    }
     if ((item.siblings || []).length) {
       const sibs = el("div", "sibs");
       sibs.append(el("div", "label", "Same team, nearby years: is the note citing one of these instead?"));

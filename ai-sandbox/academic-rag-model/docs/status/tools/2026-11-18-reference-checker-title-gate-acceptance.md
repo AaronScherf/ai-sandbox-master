@@ -9,7 +9,7 @@ first step is implemented so far; later steps remain separate commits.
 | v12 wrong-title decision and migration | Fixture decisions; two exact live defects relabeled | Done |
 | v12 page button | Button payload and JavaScript syntax check | Done |
 | v12 title search | Recorded Crossref/OpenAlex cases | Done |
-| v12 tier and ledger routing | Shared rank, defects and review selection tests | Pending |
+| v12 tier and ledger routing | Shared rank, defects and review selection tests | Done |
 | v12 acceptance | Fresh five-note checker and worktree ledger run | Pending |
 | v13 store resolution | Worktree-layout test for main ledger and cache | Pending |
 | v13 gate function | Per-note fixture counts and block/pass tests | Pending |
@@ -72,14 +72,30 @@ the registered title. A failed or malformed search leaves the row in REVIEW
 with "title search unavailable". TITLE_WRONG tiering and ledger routing
 remain for the next step.
 
-Recorded-answer tests cover the Rosenzweig/Udry and Lopez empty results, the
-NBER Crossref hit, an OpenAlex-only hit, lookup failure in either source, and
+Recorded-answer tests cover the Rosenzweig/Udry and Lopez empty results, an
+alternate-work Crossref hit, an OpenAlex-only hit, lookup failure in either source, and
 skipping high-scoring and titleless rows. The focused checker and ledger
 suite passed: 109 passed, 1 skipped. This is fixture evidence; no live
 registry lookup or five-note acceptance was run.
 
-The NBER title "External Validity in a Stochastic World" scores about 0.69
-against the REStud registered title. The v12 `< 0.5` trigger therefore does
-not search that citation in the full checker, although the search helper
-finds the recorded NBER result. A separate ruling would be required to
-change the trigger; this step keeps the specified threshold.
+Claude ruled that the v12 NBER test was incorrect: its title scores about
+0.69 against the REStud registered title, so it must not trigger this search.
+The `< 0.5` trigger remains. Its replacement fixture cites Rosenzweig and
+Udry's 2014 AER paper, "Rainfall Forecasts, Weather, and Wages over the
+Agricultural Production Cycle" (`10.1257/aer.104.5.278`), against the REStud
+DOI. The title scores about 0.26 and the checker records the AER work as
+`cited_title_found` while keeping the row in REVIEW.
+
+## Tier and ledger-routing step
+
+`TITLE_WRONG` now ranks above REVIEW and below NOT_FOUND in the shared checker
+rank. A complete two-source title search with no match sets the checker tier
+to TITLE_WRONG with `TITLE_NOT_FOUND`, the registered title, and the specified
+reason. The ledger routes it to a checker defect, not the review queue. A
+matching alternate title stays REVIEW; the ledger copies `cited_title_found`
+to its candidate and the review page displays that result. A matching human
+TITLE_WRONG defect is retained without a duplicate checker defect.
+
+The focused checker and ledger suite passed: 110 passed, 1 skipped. The page
+script passed `node --check`. This is recorded-answer and syntax evidence;
+the fresh five-note acceptance run, gate, and full suite remain pending.
