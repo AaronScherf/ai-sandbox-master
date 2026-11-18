@@ -3,3 +3,15 @@
 data/raw/
 data/interim/
 __pycache__/
+# ACLED-derived aggregates (event counts, exposure and risk scores): not published, regenerate with the scripts.
+outputs/anomaly_by_country.csv
+outputs/anomaly_target_vs_other.csv
+outputs/candidate_cells_summary.csv
+outputs/coverage_*.csv
+outputs/design_curves*.csv
+outputs/farming_base_*.csv
+outputs/ofra_acled_exposure_by_country.csv
+outputs/ofra_it_heldout_*.csv
+outputs/rain_regime_summary.csv
+outputs/reporting_coverage_by_exposure_*.csv
+outputs/run_log*.txt
