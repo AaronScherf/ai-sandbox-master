@@ -36,7 +36,8 @@ def dismissal_key(doi: str, citation: str) -> tuple[str, str]:
 
 
 def make_item(note_rel_path: str, doi: str, mentions: list[dict], *, tier: str,
-              reason: str, evidence: str, record: dict | None = None) -> ReviewItem:
+              reason: str, evidence: str, record: dict | None = None,
+              siblings: list[dict] | None = None) -> ReviewItem:
     """Project checker metadata into one shared-envelope review item.
 
     Only explicit fields are copied, so raw registry responses and note bodies
@@ -46,10 +47,14 @@ def make_item(note_rel_path: str, doi: str, mentions: list[dict], *, tier: str,
     summary = {key: record.get(key) for key in ("title", "authors", "year", "venue")}
     cited = [{"line": mention["line"], "cited_text": mention["cited_text"],
               "normalized_citation": normalized(mention["cited_text"])} for mention in mentions]
+    candidate = {"registry": summary, "mentions": cited, "tier": tier,
+                 "reason": reason, "evidence": evidence}
+    if siblings:
+        candidate["siblings"] = [{key: sibling.get(key) for key in ("doi", "title", "year", "type")}
+                                 for sibling in siblings[:5]]
     return ReviewItem(
         item_id(note_rel_path, doi), "reference_check", [note_rel_path, doi],
-        [{"registry": summary, "mentions": cited, "tier": tier,
-          "reason": reason, "evidence": evidence}],
+        [candidate],
     )
 
 
@@ -137,7 +142,8 @@ def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, st
             groups.setdefault(doi.lower(), []).append(row)
     items, defects = [], []
     for doi, mentions in groups.items():
-        worst = max(mentions, key=lambda row: TIER_RANK.get(row.get("tier"), TIER_RANK["UNRESOLVED"]))
+        worst = max(mentions, key=lambda row: (TIER_RANK.get(row.get("tier"), TIER_RANK["UNRESOLVED"]),
+                                               bool(row.get("siblings"))))
         tier = worst.get("tier", "UNRESOLVED")
         cited = [{"line": row.get("line"), "cited_text": row["citation"]} for row in mentions]
         if tier in DEFECT_TIERS:
@@ -146,11 +152,19 @@ def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, st
                             "source": "checker"})
         elif tier in REVIEW_TIERS and not all(dismissal_key(doi, row["citation"]) in dismissed for row in mentions):
             answer = worst.get("registry_answer") or {}
+            siblings = []
+            seen_siblings = set()
+            for row in mentions:
+                for sibling in row.get("siblings") or []:
+                    sibling_doi = str(sibling.get("doi") or "").lower()
+                    if sibling_doi and sibling_doi not in seen_siblings:
+                        seen_siblings.add(sibling_doi)
+                        siblings.append(sibling)
             items.append(make_item(note_rel_path, doi, cited, tier=tier,
                                    reason=("checker could not judge" if tier in {"UNCHECKED", "UNRESOLVED"}
                                            else worst.get("reason", "")),
                                    evidence=worst.get("evidence", ""),
-                                   record=answer.get("record")))
+                                   record=answer.get("record"), siblings=siblings))
     return items, defects
 
 

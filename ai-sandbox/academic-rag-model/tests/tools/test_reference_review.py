@@ -24,13 +24,16 @@ def test_item_projection_round_trip_and_metadata_boundary(tmp_path):
     ], tier="PLAUSIBLE", reason="no title", evidence="", record={
         "title": "Example", "authors": ["García"], "year": 2020, "venue": "Journal",
         "abstract": "private abstract", "raw_response": {"unused": True},
-    })
+    }, siblings=[{"doi": "10.1234/other", "title": "Other work", "year": 2021,
+                  "type": "journal-article", "abstract": "private sibling abstract"}])
     ledger.save_review([item], tmp_path)
     assert ledger.load_review(tmp_path) == [item]
     saved = (tmp_path / "review.json").read_text(encoding="utf-8")
     assert "private" not in saved
     assert item.candidates[0]["mentions"][0]["normalized_citation"] == "garcia 2020"
     assert len(item.candidates[0]["mentions"]) == 2
+    assert item.candidates[0]["siblings"] == [{"doi": "10.1234/other", "title": "Other work",
+                                               "year": 2021, "type": "journal-article"}]
     assert sorted(p.name for p in tmp_path.iterdir()) == ["review.json"]
 
 
@@ -248,6 +251,46 @@ def test_defer_survives_raise_and_invalid_decisions_do_not_write(tmp_path, monke
         ledger.reject(item.item_id, "other", store=store)
     assert (store / "review.json").read_bytes() == before
     assert sorted(p.name for p in store.iterdir()) == ["defects.json", "review.json"]
+
+
+def test_author_year_is_not_queued_and_clears_prior_deferred_item(tmp_path):
+    doi = "10.1234/sample"
+
+    class Client:
+        sibling = True
+
+        def get(self, url):
+            if "/doiRA/" in url:
+                return {"data": [{"RA": "Crossref"}]}
+            if "query.author=" in url:
+                items = [{"DOI": doi, "title": ["Sample paper"],
+                          "author": [{"family": "Smith"}],
+                          "issued": {"date-parts": [[2020]]}, "type": "journal-article"}]
+                if self.sibling:
+                    items.append({"DOI": "10.1234/other", "title": ["Distinct work"],
+                                  "author": [{"family": "Smith"}],
+                                  "issued": {"date-parts": [[2021]]}, "type": "journal-article"})
+                return {"status": 200, "data": {"message": {
+                    "items": items, "total-results": len(items)}}}
+            return {"status": 200, "data": {"message": {
+                "DOI": doi, "title": ["Sample paper"], "author": [{"family": "Smith"}],
+                "published": {"date-parts": [[2020]]}, "container-title": ["Journal"]}}}
+
+    note = tmp_path / "note.md"
+    note.write_text("# References\n* [Smith (2020)](https://doi.org/10.1234/sample)\n", encoding="utf-8")
+    store = tmp_path / "store"
+    client = Client()
+    first = ledger.raise_items([note], client, store=store, repo_root=tmp_path)
+    assert len(first) == 1 and first[0].candidates[0]["tier"] == "PLAUSIBLE"
+    assert first[0].candidates[0]["siblings"] == [{
+        "doi": "10.1234/other", "title": "Distinct work", "year": 2021,
+        "type": "journal-article"}]
+    assert ledger.defer(first[0].item_id, store=store)
+    assert ledger.load_review(store)[0].status == "deferred"
+    client.sibling = False
+    assert ledger.raise_items([note], client, store=store, repo_root=tmp_path) == []
+    assert ledger.load_review(store) == []
+    assert ledger.load_defects(store) == []
 
 
 def test_apply_decisions_reports_unknown_continues_and_is_idempotent(tmp_path):
