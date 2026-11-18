@@ -71,6 +71,11 @@ The focused fixture suite (`test_reference_checker_guard.py`,
 `test_reference_checker.py`) passed with 108 passed and 1 skipped before rebase. The new
 fixtures cover the Groh/Raleigh false passes, the Maystadt version, full
 OpenAlex paging, fail-closed cases, both sibling sources, and request pacing.
+After a clean rebase onto `origin/main`, the full chunked suite passed all
+eight chunks in 1,274.3 seconds (`agent`, `audio_generator`, `core`,
+`discovery`, `pipelines`, `resume_manager`, `tools`, and root tests). A later
+`origin/main` commit changed only an academic-hub lab notebook; the branch was
+rebased again to include it, without changing this package.
 This is a successful live run against current registry data. It does not
 establish future registry stability or correctness of owner decisions. The
-full suite, review page sync, main-ledger re-raise, and landing were not run.
+review page sync, main-ledger re-raise, and landing were not run.
