@@ -30,6 +30,8 @@ from tools.git_workflow import (
     run_git,
 )
 from tools import guard_binaries
+from tools import reference_review
+from tools.reference_checker import DEFAULT_CACHE, RegistryClient
 from tools.impact_selection import select_tests
 from tools.run_tests_chunked import ChunkResult, chunk_failed, run_all, run_selected
 
@@ -101,6 +103,7 @@ class CheckResult:
     guard: str = "passed"  # binary guard over the branch's added/modified paths
     guard_violations: list[str] = field(default_factory=list)
     guard_policy_changed: list[str] = field(default_factory=list)  # branch edits the guard or the landing tool
+    citation_gate: list[dict] = field(default_factory=list)
 
 
 def change_id(worktree: Path) -> str:
@@ -122,6 +125,49 @@ def change_id(worktree: Path) -> str:
 def project_relative(paths: set[str], subdir: str) -> set[str]:
     prefix = subdir.rstrip("/") + "/" if subdir else ""
     return {p[len(prefix):] for p in paths if p.startswith(prefix)}
+
+
+def changed_research_notes(worktree: Path) -> list[str]:
+    """Research Markdown added or edited by this branch, excluding pure renames."""
+    base = run_git(["merge-base", MAIN_BRANCH, "HEAD"], worktree).strip()
+    fields = run_git(["diff", "--name-status", "-z", "-M", base, "HEAD"], worktree).split("\0")
+    notes = []
+    i = 0
+    while i < len(fields) and fields[i]:
+        status = fields[i]
+        i += 1
+        if status.startswith(("R", "C")):
+            i += 1  # source path
+        path = fields[i]
+        i += 1
+        if (status in {"A", "M"} or status.startswith("R") and status != "R100") and (
+                path.startswith("ai-sandbox/research/") and path.lower().endswith(".md")):
+            notes.append(path)
+    return sorted(notes)
+
+
+def run_citation_gate(worktree: Path) -> reference_review.GateResult:
+    paths = changed_research_notes(worktree)
+    if not paths:
+        return reference_review.GateResult([])
+    client = RegistryClient(DEFAULT_CACHE, online=True)
+    result = reference_review.gate([worktree / path for path in paths], client, repo_root=worktree)
+    if result.blocked:
+        details = []
+        for note in result.notes:
+            if not note.blocked:
+                continue
+            action = []
+            if note.defects:
+                action.append("fix the note")
+            if note.open_items:
+                action.append("ask Claude to sync the review page")
+            if note.unresolved:
+                action.append("retry failed registry lookups")
+            details.append(f"{note.note}: defects={note.defects}, open_items={note.open_items}, "
+                           f"unresolved={note.unresolved}, URL-only={note.url_only}; " + ", ".join(action))
+        raise LandingError("citation gate: " + " | ".join(details))
+    return result
 
 
 def is_published(worktree: Path, branch: str) -> bool:
@@ -307,6 +353,7 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
         worktree / subdir, relative, full, outside=outside, chunk_results=chunks,
         reason=reason,
     )
+    gate_result = run_citation_gate(worktree) if checks in ("passed", "skipped") else reference_review.GateResult([])
     age_days = (datetime.now(timezone.utc) - cut_date).total_seconds() / 86400
     return CheckResult(
         branch=branch,
@@ -329,6 +376,7 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
         guard="failed" if guard_violations else "passed",
         guard_violations=guard_violations,
         guard_policy_changed=policy_changed,
+        citation_gate=[asdict(note) for note in gate_result.notes],
     )
 
 
@@ -342,6 +390,13 @@ def print_summary(r: CheckResult) -> None:
     print(f"Branch age:  {r.days_since_cut} days since cut")
     print("Overlaps:    " + (", ".join(r.overlaps) if r.overlaps else "none"))
     print(f"Guard:       {r.guard}")
+    if r.citation_gate:
+        for note in r.citation_gate:
+            print(f"Citation gate: {note['note']}: defects={note['defects']}, "
+                  f"open_items={note['open_items']}, unresolved={note['unresolved']}, "
+                  f"URL-only={note['url_only']}")
+    else:
+        print("Citation gate: no added or modified research notes")
     for violation in r.guard_violations:
         print(f"  {violation}")
     if r.guard_policy_changed:
@@ -463,6 +518,11 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
         overlaps = find_overlaps(worktree, branch_files)
         if overlaps:
             raise LandingError("overlaps with uncommitted or in-progress work: " + ", ".join(overlaps))
+        gate_result = run_citation_gate(worktree)
+        for note in gate_result.notes:
+            print(f"Citation gate: {note.note}: defects={note.defects}, "
+                  f"open_items={note.open_items}, unresolved={note.unresolved}, "
+                  f"URL-only={note.url_only}")
         sha = run_git(["rev-parse", "HEAD"], worktree).strip()
         if not _ff_main(main_path, branch):
             continue
@@ -509,7 +569,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = check(args.worktree.resolve(), full=args.full)
     except (LandingError, GitError) as exc:
-        print(f"NOT LANDABLE: {exc}", file=sys.stderr)
+        prefix = "STOP" if str(exc).startswith("citation gate:") else "NOT LANDABLE"
+        print(f"{prefix}: {exc}", file=sys.stderr)
         return 1
     print_summary(result)
     return 0 if result.checks in ("passed", "skipped") else 1

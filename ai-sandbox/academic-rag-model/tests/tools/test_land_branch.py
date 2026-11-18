@@ -5,6 +5,8 @@ from unittest.mock import patch
 
 from git_fixture import git, make_repo, write_and_commit
 from tools.git_workflow import dirty_files
+from tools import land_branch as lb
+from tools import reference_review
 from tools.land_branch import (
     LandingError,
     check,
@@ -28,6 +30,68 @@ class LandBranchTests(unittest.TestCase):
 
     def tearDown(self):
         self._tmp.cleanup()
+
+    def test_changed_research_note_scope_excludes_delete_and_pure_rename(self):
+        note = "ai-sandbox/research/notes/new.md"
+        write_and_commit(self.wt, {note: "# source\n"}, "add research note")
+        self.assertEqual(lb.changed_research_notes(self.wt), [note])
+        git(self.wt, "mv", note, "ai-sandbox/research/notes/renamed.md")
+        git(self.wt, "commit", "-qm", "rename note")
+        self.assertEqual(lb.changed_research_notes(self.wt), ["ai-sandbox/research/notes/renamed.md"])
+        git(self.wt, "rm", "ai-sandbox/research/notes/renamed.md")
+        git(self.wt, "commit", "-qm", "delete note")
+        self.assertEqual(lb.changed_research_notes(self.wt), [])
+        write_and_commit(self.wt, {"docs/other.md": "# elsewhere\n"}, "outside research")
+        self.assertEqual(lb.changed_research_notes(self.wt), [])
+
+        # A pure rename of a note already on main is not a new citation check.
+        original = "ai-sandbox/research/notes/original.md"
+        write_and_commit(self.repo, {original: "# source\n"}, "main note")
+        lb.rebase_onto_main(self.wt)
+        git(self.wt, "mv", original, "ai-sandbox/research/notes/moved.md")
+        git(self.wt, "commit", "-qm", "pure rename")
+        self.assertEqual(lb.changed_research_notes(self.wt), [])
+
+    def test_code_only_check_does_not_construct_citation_client(self):
+        write_and_commit(self.wt, {"core/new.py": "x = 1\n"}, "code only")
+        with patch("tools.land_branch.RegistryClient") as client, \
+             patch("tools.land_branch.run_checks", return_value=("passed", [], 0.1)):
+            result = check(self.wt, subdir="")
+        client.assert_not_called()
+        self.assertEqual(result.citation_gate, [])
+
+    def test_check_stops_on_recorded_citation_defect(self):
+        note = "ai-sandbox/research/notes/cited.md"
+        write_and_commit(self.wt, {note: "# References\n"}, "research note")
+        real_gate = reference_review.gate
+        store = self.tmp / "review"
+
+        def isolated_gate(paths, client, *, repo_root):
+            return real_gate(paths, client, repo_root=repo_root, store=store)
+
+        row = {"identifier": "10.1234/issue", "citation": "Smith (2020)", "line": 1,
+               "tier": "TITLE_WRONG", "reason": "wrong title", "evidence": "",
+               "registry_answer": {"record": {"title": "Right title"}}}
+        with patch("tools.land_branch.run_checks", return_value=("passed", [], 0.1)), \
+             patch("tools.land_branch.reference_review.gate", side_effect=isolated_gate), \
+             patch("tools.reference_review.check_note", return_value=[row]):
+            with self.assertRaisesRegex(LandingError, "citation gate: .*defects=1.*fix the note"):
+                check(self.wt, subdir="")
+        self.assertEqual(git(self.repo, "rev-parse", "main"), git(self.repo, "rev-parse", "HEAD"))
+
+    def test_land_reruns_citation_gate_before_merge(self):
+        note = "ai-sandbox/research/notes/cited.md"
+        write_and_commit(self.wt, {note: "# References\n"}, "research note")
+        clean = reference_review.GateResult([reference_review.NoteGateResult(note, 0, 0, 0, 1)])
+        defect = reference_review.GateResult([reference_review.NoteGateResult(note, 1, 0, 0, 1)])
+        with patch("tools.land_branch.run_checks", return_value=("passed", [], 0.1)), \
+             patch("tools.land_branch.reference_review.gate", return_value=clean):
+            result = check(self.wt, subdir="")
+        self.assertEqual(result.citation_gate[0]["url_only"], 1)
+        with patch("tools.land_branch.reference_review.gate", return_value=defect):
+            with self.assertRaisesRegex(LandingError, "citation gate: .*defects=1"):
+                lb.land(self.wt, result.change_id, subdir="")
+        self.assertNotEqual(git(self.repo, "rev-parse", "main"), git(self.wt, "rev-parse", "HEAD"))
 
     def test_preflight_refuses_main(self):
         with self.assertRaisesRegex(LandingError, "on main"):

@@ -13,7 +13,7 @@ remain separate commits.
 | v12 acceptance | Fresh five-note checker and worktree ledger run | Done |
 | v13 store resolution | Worktree-layout test for main ledger and cache | Done |
 | v13 gate function | Per-note fixture counts and block/pass tests | Done |
-| v13 landing wiring | Check and land tests, full suite | Pending |
+| v13 landing wiring | Check and land tests | Done; full suite pending |
 | v13 routing instruction | Documentation review | Pending |
 | v13 acceptance | Five-note gate dry run, code-only bypass test | Pending |
 
@@ -150,3 +150,20 @@ tiers, resolve and defer transitions, unavailable lookup paths, URL counting,
 and a retained human defect. The focused review suite passed: 27 passed,
 0 skipped. This is fixture evidence; landing wiring and the full suite remain
 pending.
+
+## V13 landing wiring
+
+`land_branch check` runs the citation gate after passing tests; `land` runs it
+again immediately before the fast-forward. The changed-note selector includes
+added or edited research Markdown and excludes deletions, pure renames, and
+other paths. A block prints `STOP: citation gate:` with per-note counts and
+the relevant fix, review-page, or retry instruction. Passing checks show the
+URL-only count. Code-only branches bypass the client and ledger entirely.
+The landing tool remains a guard-policy path, which selects the full chunked
+suite for this branch.
+
+Focused landing and review tests passed: 100 passed, 24 subtests passed,
+0 skipped. These include a real Git worktree scope test, a recorded defect
+stopping `check`, and a new defect stopping `land` after a clean check. This
+is fixture and Git-layout evidence, not a live landing. The full chunked
+suite and five-note gate dry run remain pending.
