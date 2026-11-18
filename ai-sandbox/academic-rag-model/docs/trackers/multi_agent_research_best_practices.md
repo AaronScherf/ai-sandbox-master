@@ -1,0 +1,40 @@
+﻿# Best Practices for Using Multiple Agents on Research Projects
+
+Working notes for a future blog post. Add new observations as dated or titled bullets; keep these as practical lessons rather than fixed rules. The examples below reflect current experience and can be revised as workflows change.
+
+## Scope and stopping points
+
+- **Set a clear scope before work begins.** Agents can over-engineer small projects or steadily widen the scope in response to feedback and offhand comments. A small fix can turn into a multi-day, multi-agent effort without clear boundaries or stopping points. State the objective, intended scope, and what counts as done. Ask the lead agent to check whether that scope is appropriate: it may identify important cases you missed. If scope should expand, identify and write that into the plan at the beginning to reduce project drift.
+- **Match verification to the task.** Agents often default to extensive tests and edge-case safeguards. That is useful for production software, but can be unnecessary for a small exploratory task. Agree on proportionate verification and stopping criteria up front.
+
+## Git and worktree hygiene
+
+- **Prune task branches after their work is safely landed.** Separate branches and worktrees help agents avoid conflicts, but quick handoffs can leave many tiny branches with little lasting value. Handoff protocols should include removing a branch once its work is merged to main and pushed. Before cleanup, check for uncommitted work so nothing is lost. Regularly land completed work on the agreed main branch so agents know where to find the current version; multi-agent sessions can otherwise inspect the wrong worktree.
+
+## Testing and repository structure
+
+- **Keep landing checks relevant to the changed project.** Large repositories with interlocking projects need broad tests to catch cross-project breakage, but those checks can take a long time when a new subproject is genuinely independent. Rules to skip tests for text-only changes help, yet changes to any code file may still trigger the full suite. Splitting or subdividing the test suite and codebase can let landing checks cover the components relevant to the change.
+
+## Clear communication and durable context
+
+- **Ask for plain-language explanations.** Agents often use software-development terms even for small coding tasks. If you are unfamiliar with terms like “regression test” or Git terminology, it can be easy to approve work that is over-engineered or works against your goals. Ask the agent to explain the proposed change, tradeoffs, and verification in everyday language.
+- **Keep handoffs and decisions in Markdown.** Handoff notes and brief progress updates give new sessions a durable record of decisions, instead of relying on one agent’s memory or context log. Starting fresh sessions periodically can reduce long-context overhead and the risk of usage-window timeouts. As a working rule of thumb, consider a fresh session after roughly a dozen turns, while retaining a short handoff note; the right interval depends on the task and the interface’s context limits.
+- **Name session tabs by project or task.** When multitasking, descriptive tab names reduce the chance of copying a handoff into the wrong conversation, confusing an agent, or having it edit the wrong files. They also prevent wasted tokens spent untangling crossed project context.
+
+## Roles, review, and research quality
+
+- **Assign agents roles that fit their strengths, and review their work accordingly.** Current workflow: Claude leads design and architecture; Codex handles routine programming, Git adjustments, and file-structure changes; Gemini handles large-context reading and writing, web searches, and first-draft reports. Review Gemini’s outputs with another agent because it has been the most prone to hallucinations in this workflow. Treat this division as experience-based and subject to change as models change.
+- **Use deterministic tools to check research claims.** Scripts can verify parts of a research agent’s output more reliably than asking the same model to confirm itself. For example, a reference checker can compare claimed academic citations against a DOI index using explicit matching criteria. This helps address cases where Gemini relies on fuzzy matches from its context or a web search to decide whether a source supports a claim.
+- **Make autonomy expectations explicit for batch work.** Some models ask the user for confirmation too often, such as finishing item 1 of a 10-item batch and asking before starting item 2—even when instructed to continue through the whole task. Clear prompts or protocol rules should say what is authorized, how to handle ordinary uncertainty, and when to stop for user input. Stronger models seem to do this less often, but unnecessary check-ins can make simple batch tasks difficult for weaker models. Goal-pursuit modes may help, but can also be dangerous if they continue past the intended scope.
+- **Use parallel agents for independent work, with a supervisor.** Parallel subagents can speed up simple, independent tasks, but consume more tokens and introduce handoff risk. Split work when tasks are separable and define the interfaces clearly. A weaker agent such as Gemini may struggle to coordinate between subagent handoffs. A runbook can give workers consistent prompts; a lead agent should gate the work and aggregate results rather than trusting subagents to combine everything without supervision.
+- **Add an adversarial review to brainstorming.** Agents can be overly agreeable (“this is the most innovative proposal ever”) or invent supporting references. Ask a reviewer to take a critical role and identify weaknesses, missing evidence, and alternative explanations. A stronger agent can do a final review, but for multi-round brainstorming, add critical passes every few rounds to interrupt a feedback loop that only confirms existing assumptions. Gemini may also draw ideas from other chats despite an instruction to ignore history; when a genuinely fresh perspective matters, use a stronger method of isolating the session from prior chat history.
+
+## Coordinating across projects in one repository
+
+- **Identify the exact project and workspace in every handoff.** Include the repository path, project or package, branch, and worktree path. A monorepo root alone is not enough: agents can otherwise edit the wrong copy or mistake a nested repository for an ordinary folder.
+- **Read the instructions closest to the files being changed.** Repo-wide guidance may not cover a subproject’s commands, test expectations, or constraints. Identify the relevant project guidance before editing, especially when a task crosses project boundaries.
+- **Assign one writer to each worktree and coordinate shared files.** Separate agents can work safely on independent paths, but shared modules, schemas, dependency files, and interfaces need an explicit owner or coordination plan.
+- **Make dependencies between projects visible.** If one task changes an interface another project relies on, specify the order of work and what the second task can assume. Otherwise, parallel work can build against different versions of the same contract.
+- **Make handoffs easy to integrate.** Have each worker report the files changed, the branch and worktree, what they verified, and any unresolved decisions. The integrator can check the actual changes and combine them without reconstructing the session from chat history.
+- **Keep task authority and completion criteria explicit.** A request to assess or recommend work does not automatically authorize implementation. For batch work, spell out what the agent may decide and what requires escalation, so different projects do not end up at inconsistent workflow stages.
+- **Track side effects as well as files.** A script may write to a shared index, corpus, or generated-data directory even when its code change is isolated. State which shared outputs are in scope and who else might write to them.
