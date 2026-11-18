@@ -10,6 +10,7 @@ import json
 import os
 import sys
 import tempfile
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -23,6 +24,28 @@ FILES = {"review": "review.json", "dismissals": "dismissals.json", "defects": "d
          "false_positives": "false_positives.json"}
 REVIEW_TIERS = {"REVIEW", "AMBIGUOUS", "PLAUSIBLE", "UNCHECKED", "UNRESOLVED"}
 DEFECT_TIERS = {"WRONG_WORK", "NOT_FOUND", "TITLE_WRONG"}
+
+
+@dataclass(frozen=True)
+class NoteGateResult:
+    note: str
+    defects: int
+    open_items: int
+    unresolved: int
+    url_only: int
+
+    @property
+    def blocked(self) -> bool:
+        return bool(self.defects or self.open_items or self.unresolved)
+
+
+@dataclass(frozen=True)
+class GateResult:
+    notes: list[NoteGateResult]
+
+    @property
+    def blocked(self) -> bool:
+        return any(note.blocked for note in self.notes)
 
 
 def item_id(note_rel_path: str, doi: str) -> str:
@@ -179,7 +202,8 @@ def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, st
 
 
 def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_STORE,
-                repo_root: Path = DEFAULT_REPO_ROOT) -> list[ReviewItem]:
+                repo_root: Path = DEFAULT_REPO_ROOT,
+                rows_by_note: dict[str, list[dict]] | None = None) -> list[ReviewItem]:
     """Check notes, upsert their open DOI questions, and refresh checker defects.
 
     Only files beneath ``repo_root`` are accepted. Each scanned note replaces
@@ -199,6 +223,8 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
             continue
         scanned.add(relative)
         rows = check_note(absolute.read_text(encoding="utf-8"), client)
+        if rows_by_note is not None:
+            rows_by_note[relative] = rows
         current, found_defects = _selected(relative, rows, dismissed)
         current_citations = {}
         for row in rows:
@@ -236,6 +262,32 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
         save_review(sorted(existing.values(), key=lambda item: item.item_id), store)
         save_defects(sorted(defects, key=lambda d: (d.get("note", ""), d.get("doi", ""), d.get("source", ""))), store)
     return raised
+
+
+def gate(note_paths: list[str | Path], client, *, store: Path = DEFAULT_STORE,
+         repo_root: Path = DEFAULT_REPO_ROOT) -> GateResult:
+    """Refresh scoped notes and report every reason the citation gate may stop."""
+    rows_by_note: dict[str, list[dict]] = {}
+    raise_items(note_paths, client, store=store, repo_root=repo_root,
+                rows_by_note=rows_by_note)
+    defects = load_defects(store)
+    open_items = list_items("open", store=store)
+    notes = []
+    for relative, rows in rows_by_note.items():
+        notes.append(NoteGateResult(
+            note=relative,
+            defects=sum(d.get("note") == relative and d.get("tier") in DEFECT_TIERS
+                        for d in defects),
+            open_items=sum(item.subject_ids[0] == relative for item in open_items),
+            unresolved=sum(str(row.get("identifier") or "").lower().startswith("10.")
+                           and (row.get("tier") == "UNRESOLVED" or
+                                "unavailable" in str(row.get("reason") or "").lower() or
+                                "same-team guard incomplete" in str(row.get("reason") or "").lower())
+                           for row in rows),
+            url_only=sum(str(row.get("identifier") or "").lower().startswith(("http://", "https://"))
+                         for row in rows),
+        ))
+    return GateResult(notes)
 
 
 def _find_open(item_id: str, store: Path) -> tuple[list[ReviewItem], ReviewItem | None]:

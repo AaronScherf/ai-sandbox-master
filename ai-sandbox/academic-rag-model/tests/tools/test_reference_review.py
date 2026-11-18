@@ -88,6 +88,72 @@ def _row(doi, tier, citation="Smith (2020)", line=2):
                 "venue": "Journal", "abstract": "never store this"}}}
 
 
+@pytest.mark.parametrize("tier", ["WRONG_WORK", "NOT_FOUND", "TITLE_WRONG"])
+def test_gate_blocks_checker_defects_by_note(tmp_path, monkeypatch, tier):
+    note = tmp_path / "note.md"
+    note.write_text("# References\n", encoding="utf-8")
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: [_row("10.1234/a", tier)])
+    result = ledger.gate([note], object(), store=tmp_path / "store", repo_root=tmp_path)
+    assert result.blocked
+    assert result.notes == [ledger.NoteGateResult("note.md", 1, 0, 0, 0)]
+
+
+def test_gate_open_item_blocks_until_resolved_and_deferred_still_blocks(tmp_path, monkeypatch):
+    note = tmp_path / "note.md"
+    note.write_text("# References\n", encoding="utf-8")
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: [_row("10.1234/a", "REVIEW")])
+    store = tmp_path / "store"
+    first = ledger.gate([note], object(), store=store, repo_root=tmp_path)
+    assert first.blocked and first.notes[0].open_items == 1
+    item = ledger.list_items(store=store)[0]
+    assert ledger.defer(item.item_id, store=store)
+    deferred = ledger.gate([note], object(), store=store, repo_root=tmp_path)
+    assert deferred.blocked and deferred.notes[0].open_items == 1
+    assert ledger.resolve(item.item_id, store=store)
+    resolved = ledger.gate([note], object(), store=store, repo_root=tmp_path)
+    assert not resolved.blocked and resolved.notes[0].open_items == 0
+
+
+def test_gate_preserves_matching_human_defect_after_acceptance(tmp_path, monkeypatch):
+    note = tmp_path / "note.md"
+    note.write_text("# References\n", encoding="utf-8")
+    row = _row("10.1234/a", "CONFIRMED")
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: [row])
+    store = tmp_path / "store"
+    ledger.save_defects([{"note": "note.md", "doi": "10.1234/a", "tier": "TITLE_WRONG",
+                          "reason": "fix title", "source": "human",
+                          "mentions": [{"line": 2, "cited_text": "Smith (2020)"}]}], store)
+    result = ledger.gate([note], object(), store=store, repo_root=tmp_path)
+    assert result.blocked and result.notes[0].defects == 1
+
+
+def test_gate_fails_closed_on_lookup_and_reports_url_only_rows(tmp_path, monkeypatch):
+    note = tmp_path / "note.md"
+    note.write_text("# References\n", encoding="utf-8")
+    rows = [_row("10.1234/a", "CONFIRMED"), _row("10.1234/b", "AUTHOR_YEAR"),
+            _row("https://example.org/paper", "UNCHECKED")]
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: rows)
+    store = tmp_path / "store"
+    passed = ledger.gate([note], object(), store=store, repo_root=tmp_path)
+    assert not passed.blocked
+    assert passed.notes == [ledger.NoteGateResult("note.md", 0, 0, 0, 1)]
+
+    failure = _row("10.1234/c", "UNRESOLVED")
+    failure["reason"] = "registry lookup unavailable: HTTP 503"
+    rows.append(failure)
+    blocked = ledger.gate([note], object(), store=store, repo_root=tmp_path)
+    assert blocked.blocked and blocked.notes[0].unresolved == 1
+    title_failure = _row("10.1234/d", "REVIEW")
+    title_failure["reason"] = "title search unavailable"
+    rows.append(title_failure)
+    blocked = ledger.gate([note], object(), store=store, repo_root=tmp_path)
+    assert blocked.notes[0].unresolved == 2
+    guard_failure = _row("10.1234/e", "PLAUSIBLE")
+    guard_failure["reason"] = "same-team guard incomplete: Crossref lookup failed"
+    rows.append(guard_failure)
+    assert ledger.gate([note], object(), store=store, repo_root=tmp_path).notes[0].unresolved == 3
+
+
 def test_selection_groups_doi_mentions_uses_worst_tier_and_reports_defects():
     rows = [
         _row("10.1234/a", "CONFIRMED"),

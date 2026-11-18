@@ -12,7 +12,7 @@ remain separate commits.
 | v12 tier and ledger routing | Shared rank, defects and review selection tests | Done |
 | v12 acceptance | Fresh five-note checker and worktree ledger run | Done |
 | v13 store resolution | Worktree-layout test for main ledger and cache | Done |
-| v13 gate function | Per-note fixture counts and block/pass tests | Pending |
+| v13 gate function | Per-note fixture counts and block/pass tests | Done |
 | v13 landing wiring | Check and land tests, full suite | Pending |
 | v13 routing instruction | Documentation review | Pending |
 | v13 acceptance | Five-note gate dry run, code-only bypass test | Pending |
@@ -138,3 +138,15 @@ repository and linked worktree and verified that the helper points back to
 the main project directory; the module defaults were also checked. The
 focused review suite passed: 21 passed, 0 skipped. This is layout and fixture
 evidence; the gate and full suite were not run in this step.
+
+## V13 gate function
+
+`reference_review.gate` now raises each note once and reports per-note defect,
+open-item, unresolved-lookup, and URL-only counts. It blocks on checker or
+human defects, pending or deferred questions, and DOI lookups or title/guard
+queries that could not finish. Accepted questions, CONFIRMED/AUTHOR_YEAR rows,
+and URL-only rows do not block. Recorded-row tests cover all three defect
+tiers, resolve and defer transitions, unavailable lookup paths, URL counting,
+and a retained human defect. The focused review suite passed: 27 passed,
+0 skipped. This is fixture evidence; landing wiring and the full suite remain
+pending.
