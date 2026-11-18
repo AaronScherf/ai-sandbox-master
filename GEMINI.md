@@ -60,6 +60,18 @@ Write and revise project pages and blog
 posts in the user's voice, grounded in their supplied materials and actual
 results. Drafting/editing does not itself authorize publication.
 
+## Citing literature
+
+Identifiers (DOIs, URLs) and bibliographic details come from a registry or a
+source file, never from memory. Before handing off any research note you wrote
+or revised that cites literature, run
+`python -m tools.reference_review raise <note>` from `ai-sandbox/academic-rag-model/`,
+fix every defect it reports (wrong paper, missing DOI, invented title), and
+report its counts, including items left for the user's review. Never add a
+`[source-verified]` or similar tag yourself; only the checker and the user's
+review decide that. The landing check will enforce this for notes under
+`ai-sandbox/research/`.
+
 ## Unexpected results and user corrections
 
 Follow [the bug-report and handoff procedure](docs/BUG_HANDOFF.md) whenever
