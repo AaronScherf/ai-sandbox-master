@@ -149,8 +149,12 @@ def test_gate_fails_closed_on_lookup_and_reports_url_only_rows(tmp_path, monkeyp
     blocked = ledger.gate([note], object(), store=store, repo_root=tmp_path)
     assert blocked.notes[0].unresolved == 2
     guard_failure = _row("10.1234/e", "PLAUSIBLE")
-    guard_failure["reason"] = "same-team guard incomplete: Crossref lookup failed"
+    guard_failure["reason"] = "same-team guard incomplete: Crossref lookup unavailable"
     rows.append(guard_failure)
+    assert ledger.gate([note], object(), store=store, repo_root=tmp_path).notes[0].unresolved == 3
+    metadata_gap = _row("10.1234/f", "PLAUSIBLE")
+    metadata_gap["reason"] = "same-team guard incomplete: first OpenAlex author ID missing"
+    rows.append(metadata_gap)
     assert ledger.gate([note], object(), store=store, repo_root=tmp_path).notes[0].unresolved == 3
 
 

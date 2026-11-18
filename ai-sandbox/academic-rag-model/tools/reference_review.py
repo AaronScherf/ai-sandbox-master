@@ -281,8 +281,7 @@ def gate(note_paths: list[str | Path], client, *, store: Path = DEFAULT_STORE,
             open_items=sum(item.subject_ids[0] == relative for item in open_items),
             unresolved=sum(str(row.get("identifier") or "").lower().startswith("10.")
                            and (row.get("tier") == "UNRESOLVED" or
-                                "unavailable" in str(row.get("reason") or "").lower() or
-                                "same-team guard incomplete" in str(row.get("reason") or "").lower())
+                                "unavailable" in str(row.get("reason") or "").lower())
                            for row in rows),
             url_only=sum(str(row.get("identifier") or "").lower().startswith(("http://", "https://"))
                          for row in rows),

@@ -1,8 +1,8 @@
 # Reference checker wrong-title and citation-gate acceptance
 
 Date: 2026-11-18. Branch: `codex/reference-checker-title-gate`, based on
-`origin/main` at `866cab75`. This tracks the v12 and v13 handoffs; later steps
-remain separate commits.
+`origin/main` at `866cab75`, then rebased after acceptance onto local `main`
+at `b918a585`. This tracks the v12 and v13 handoffs in separate commits.
 
 | Step | Evidence required | State |
 | --- | --- | --- |
@@ -13,9 +13,9 @@ remain separate commits.
 | v12 acceptance | Fresh five-note checker and worktree ledger run | Done |
 | v13 store resolution | Worktree-layout test for main ledger and cache | Done |
 | v13 gate function | Per-note fixture counts and block/pass tests | Done |
-| v13 landing wiring | Check and land tests | Done; full suite pending |
-| v13 routing instruction | Documentation review | Pending |
-| v13 acceptance | Five-note gate dry run, code-only bypass test | Pending |
+| v13 landing wiring | Check and land tests, full suite | Done |
+| v13 routing instruction | Claude adds line after its pending work | Deferred by Claude; dropped from branch |
+| v13 acceptance | Five-note gate dry run, code-only bypass test | Done |
 
 ## First-step evidence
 
@@ -112,10 +112,12 @@ cache. It checked 76 citation rows, made 187 fresh HTTP lookups (all returned
 | RQ1 Knowledge Audit v4, 166 | `10.1016/j.wace.2018.03.006` (Lopez et al.) | TITLE_WRONG; no cited-title match; registered title: *Bridging forecast verification and humanitarian decisions: A valuation approach for setting up action-oriented early warnings* |
 | RQ3 Transfer v5, 137 | `10.1093/restud/rdz021` (Rosenzweig and Udry) | TITLE_WRONG; no cited-title match; registered title: *External Validity in a Stochastic World: Evidence from Low-Income Countries* |
 
-Brown's result differs from Aaron's earlier accepted same-work decision. The
-checker now treats its cited title as an unfound title and records a defect;
-this is reported for Claude and Aaron to reconcile, without changing the
-threshold or the note. The title and DOI at each line above were checked
+Claude ruled that Brown is correctly TITLE_WRONG: the cited title, *Evidence-based
+funding and the value of information: A case study from GiveWell*, is in neither
+Crossref nor OpenAlex, while the DOI registers *Valuing Information as a
+Philanthropic Funder*. Aaron's earlier same-work acceptance covered the DOI
+only. The checker defect remains, without changing the threshold or the note.
+The title and DOI at each line above were checked
 against the note text. A separate RQ3 DOI (`10.1002/cl2.1075`) remains REVIEW
 for author overlap; it did not reach title search.
 
@@ -167,3 +169,40 @@ Focused landing and review tests passed: 100 passed, 24 subtests passed,
 stopping `check`, and a new defect stopping `land` after a clean check. This
 is fixture and Git-layout evidence, not a live landing. The full chunked
 suite and five-note gate dry run remain pending.
+## V13 five-note gate dry run
+
+I copied the main ledger's review, dismissal, and defect files to a new
+ignored worktree store and ran `gate` over the five named notes using the
+cached answers from v12's fresh lookup run. This was a dry run of the gate
+function; the notes were not changed and main's ledger was not written.
+
+| Note | Defects | Open | Unresolved | URL-only | Gate |
+| --- | ---: | ---: | ---: | ---: | --- |
+| RQ1 Knowledge Audit v4 | 2 | 0 | 0 | 4 | STOP: Lopez human defect; Brown checker defect |
+| RQ2 Decision Space v4 | 0 | 0 | 0 | 5 | Pass |
+| RQ3 Transfer v5 | 1 | 0 | 0 | 0 | STOP: Rosenzweig and Udry human defect |
+| Summary v3 | 0 | 0 | 0 | 0 | Pass |
+| Literature Gap Memo v2 | 0 | 0 | 0 | 2 | Pass |
+
+The first gate run counted Summary's missing first OpenAlex author ID as an
+unresolved lookup. The registry lookup itself succeeded; the ID is absent
+from the returned metadata, so the checker leaves the row PLAUSIBLE. I
+corrected the gate to count failed lookups only, retained a fixture for this
+metadata gap, and reran the preview. The focused review suite passed:
+27 passed, 0 skipped. The code-only branch bypass test passed in the landing
+suite. The full chunked suite passed all eight chunks: agent, audio_generator,
+core, discovery, pipelines, resume_manager, tools, and root. The runner took
+2854.4 seconds and reported no failed chunks. Its normal run excludes the
+opt-in `local_llm` tests; it does not print individual pytest pass or skip
+counts for passing chunks.
+
+Claude directed removal of the unpublished routing-doc commit to clear the
+overlap with `claude/spec-a-research-profile`. `GEMINI.md` already carries the
+rule; Claude will add the shared routing line later. The branch does not edit
+`docs/AGENT_ROUTING.md` or `GEMINI.md`.
+
+The worktree remains unlanded.
+Local main's intervening commit changed only the academic-hub to-do tracker;
+it did not overlap this branch's files or the checker tests. The diff-based
+change ID remained stable across that rebase. A formal landing check follows
+this report update.
