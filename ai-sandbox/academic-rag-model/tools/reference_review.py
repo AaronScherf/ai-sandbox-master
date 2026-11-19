@@ -10,6 +10,7 @@ import json
 import os
 import sys
 import tempfile
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,6 +25,11 @@ FILES = {"review": "review.json", "dismissals": "dismissals.json", "defects": "d
          "false_positives": "false_positives.json"}
 REVIEW_TIERS = {"REVIEW", "AMBIGUOUS", "PLAUSIBLE", "UNCHECKED", "UNRESOLVED"}
 DEFECT_TIERS = {"WRONG_WORK", "NOT_FOUND", "TITLE_WRONG"}
+
+
+def _incomplete_lookup(row: dict) -> bool:
+    """A failed lookup cannot replace a prior decision or checker finding."""
+    return row.get("tier") == "UNRESOLVED" or "unavailable" in str(row.get("reason") or "").lower()
 
 
 @dataclass(frozen=True)
@@ -83,6 +89,15 @@ def make_item(note_rel_path: str, doi: str, mentions: list[dict], *, tier: str,
         item_id(note_rel_path, doi), "reference_check", [note_rel_path, doi],
         [candidate],
     )
+
+
+def _accepted_evidence(item: ReviewItem) -> tuple:
+    """Only citation identity and registry metadata can reopen an accepted item."""
+    candidate = item.candidates[0]
+    registry = candidate.get("registry") or {}
+    citations = Counter(m.get("cited_text") for m in candidate.get("mentions", []))
+    return (candidate.get("tier"), citations,
+            tuple((key, registry.get(key)) for key in ("title", "authors", "year", "venue")))
 
 
 def _path(kind: str, store: Path) -> Path:
@@ -203,11 +218,13 @@ def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, st
 
 def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_STORE,
                 repo_root: Path = DEFAULT_REPO_ROOT,
-                rows_by_note: dict[str, list[dict]] | None = None) -> list[ReviewItem]:
+                rows_by_note: dict[str, list[dict]] | None = None,
+                stats: dict[str, int] | None = None) -> list[ReviewItem]:
     """Check notes, upsert their open DOI questions, and refresh checker defects.
 
     Only files beneath ``repo_root`` are accepted. Each scanned note replaces
     its old checker findings; unrelated notes and human defects are retained.
+    An incomplete lookup keeps prior state for the same note and DOI.
     """
     store, repo_root = Path(store), Path(repo_root)
     existing = {item.item_id: item for item in load_review(store)}
@@ -226,13 +243,47 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
         if rows_by_note is not None:
             rows_by_note[relative] = rows
         current, found_defects = _selected(relative, rows, dismissed)
+        # A dismissal suppresses selection of an accepted citation. Compare
+        # fresh evidence with its prior item before deciding whether it reopens.
+        if any(item.status == "accepted" and item.subject_ids[0] == relative
+               for item in existing.values()):
+            all_current, _ = _selected(relative, rows, set())
+            selected_ids = {item.item_id for item in current}
+            current.extend(item for item in all_current
+                           if item.item_id not in selected_ids
+                           and (prior := existing.get(item.item_id)) is not None
+                           and prior.status == "accepted")
+        incomplete_dois = {str(row.get("identifier") or "").lower() for row in rows
+                           if str(row.get("identifier") or "").lower().startswith("10.")
+                           and _incomplete_lookup(row)}
+        current_texts: dict[str, Counter[str]] = {}
+        for row in rows:
+            doi = str(row.get("identifier") or "").lower()
+            if doi.startswith("10."):
+                current_texts.setdefault(doi, Counter())[row["citation"]] += 1
+        kept_items = {doi: existing[item_id(relative, doi)] for doi in incomplete_dois
+                      if item_id(relative, doi) in existing}
+        kept_defects = {id(d) for d in defects if d.get("note") == relative
+                        and d.get("doi") in incomplete_dois
+                        and d.get("source") in {"checker", "human"}
+                        and Counter(m.get("cited_text") for m in d.get("mentions", []))
+                        == current_texts.get(d.get("doi"))}
+        kept_defect_dois = {d["doi"] for d in defects if id(d) in kept_defects
+                            and d["doi"] not in kept_items}
+        protected_dois = set(kept_items) | kept_defect_dois
+        if stats is not None:
+            stats["incomplete_lookup_kept"] = stats.get("incomplete_lookup_kept", 0) + len(protected_dois)
+        current = [item for item in current if item.subject_ids[1] not in protected_dois]
+        current.extend(kept_items.values())
+        found_defects = [d for d in found_defects if d["doi"] not in protected_dois]
         current_citations = {}
         for row in rows:
             doi = str(row.get("identifier") or "").lower()
             if doi.startswith("10."):
                 current_citations.setdefault(doi, set()).add(normalized(row["citation"]))
         defects = [d for d in defects if not (
-            d.get("note") == relative and (
+            d.get("note") == relative and d.get("doi") not in kept_items
+            and id(d) not in kept_defects and (
                 d.get("source") == "checker" or
                 (d.get("source") == "human" and
                  {normalized(m["cited_text"]) for m in d.get("mentions", [])}
@@ -249,7 +300,9 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
             if prior:
                 item.created = prior.created
                 item.updated = prior.updated
-                if prior.candidates == item.candidates:
+                if prior.status == "accepted" and _accepted_evidence(prior) == _accepted_evidence(item):
+                    item.status = "accepted"
+                elif prior.candidates == item.candidates:
                     item.status = prior.status
                 else:
                     item.updated = now
@@ -280,8 +333,7 @@ def gate(note_paths: list[str | Path], client, *, store: Path = DEFAULT_STORE,
                         for d in defects),
             open_items=sum(item.subject_ids[0] == relative for item in open_items),
             unresolved=sum(str(row.get("identifier") or "").lower().startswith("10.")
-                           and (row.get("tier") == "UNRESOLVED" or
-                                "unavailable" in str(row.get("reason") or "").lower())
+                           and _incomplete_lookup(row)
                            for row in rows),
             url_only=sum(str(row.get("identifier") or "").lower().startswith(("http://", "https://"))
                          for row in rows),
@@ -510,10 +562,16 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "raise":
             client = RegistryClient(args.cache, online=not args.offline)
-            items = raise_items(args.notes, client, store=DEFAULT_STORE, repo_root=DEFAULT_REPO_ROOT)
+            stats: dict[str, int] = {}
+            items = raise_items(args.notes, client, store=DEFAULT_STORE,
+                                repo_root=DEFAULT_REPO_ROOT, stats=stats)
             requested = {_note_path(path, DEFAULT_REPO_ROOT)[1] for path in args.notes}
             defects = [d for d in load_defects(DEFAULT_STORE) if d.get("note") in requested]
-            payload = {"items": [item.to_dict() for item in items], "defects": defects}
+            kept = stats.get("incomplete_lookup_kept", 0)
+            if kept:
+                print(f"Incomplete lookups kept prior state: {kept}; retry later", file=sys.stderr)
+            payload = {"items": [item.to_dict() for item in items], "defects": defects,
+                       "incomplete_lookup_kept": kept}
         elif args.command == "list":
             payload = [item.to_dict() for item in list_items(args.status, store=DEFAULT_STORE)]
         else:

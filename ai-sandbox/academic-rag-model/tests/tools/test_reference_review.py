@@ -88,6 +88,237 @@ def _row(doi, tier, citation="Smith (2020)", line=2):
                 "venue": "Journal", "abstract": "never store this"}}}
 
 
+def test_incomplete_title_search_preserves_declined_item_and_human_defect(tmp_path, monkeypatch):
+    note = tmp_path / "note.md"
+    note.write_text("note", encoding="utf-8")
+    citation = "Smith (2020). Invented title."
+    rows = [_row("10.1234/a", "REVIEW", citation)]
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: rows)
+    store = tmp_path / "store"
+    item = ledger.raise_items([note], object(), store=store, repo_root=tmp_path)[0]
+    assert ledger.reject(item.item_id, "wrong_title", store=store)
+    before_item = ledger.load_review(store)[0].to_dict()
+    before_defects = ledger.load_defects(store)
+    rows[0] = {**_row("10.1234/a", "REVIEW", citation),
+               "reason": "author overlap; title search unavailable"}
+
+    stats = {}
+    assert ledger.raise_items([note], object(), store=store, repo_root=tmp_path, stats=stats) == []
+    assert stats == {"incomplete_lookup_kept": 1}
+    assert ledger.load_review(store)[0].to_dict() == before_item
+    assert ledger.load_defects(store) == before_defects
+    assert ledger.list_items("open", store=store) == []
+    result = ledger.gate([note], object(), store=store, repo_root=tmp_path)
+    assert result.notes == [ledger.NoteGateResult("note.md", 1, 0, 1, 0)]
+
+
+def test_incomplete_title_search_keeps_matching_checker_defect_without_new_item(tmp_path, monkeypatch):
+    note = tmp_path / "note.md"
+    note.write_text("note", encoding="utf-8")
+    rows = [_row("10.1234/a", "TITLE_WRONG")]
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: rows)
+    store = tmp_path / "store"
+    ledger.raise_items([note], object(), store=store, repo_root=tmp_path)
+    before = ledger.load_defects(store)
+    assert ledger.load_review(store) == []
+    rows[0] = {**_row("10.1234/a", "REVIEW"), "reason": "title search unavailable"}
+
+    stats = {}
+    assert ledger.raise_items([note], object(), store=store, repo_root=tmp_path, stats=stats) == []
+    assert stats == {"incomplete_lookup_kept": 1}
+    assert ledger.load_defects(store) == before
+    assert ledger.load_review(store) == []
+    assert ledger.gate([note], object(), store=store, repo_root=tmp_path).notes[0].unresolved == 1
+
+    rows[0] = {**_row("10.1234/a", "REVIEW", "Smith (2020). Changed title."),
+               "reason": "title search unavailable"}
+    assert len(ledger.raise_items([note], object(), store=store, repo_root=tmp_path)) == 1
+    assert ledger.load_defects(store) == []
+
+
+def test_incomplete_title_search_keeps_matching_human_defect_without_prior_item(tmp_path, monkeypatch):
+    note = tmp_path / "note.md"
+    note.write_text("note", encoding="utf-8")
+    citation = "Smith (2020). Invented title."
+    store = tmp_path / "store"
+    defect = {"note": "note.md", "doi": "10.1234/a", "tier": "TITLE_WRONG",
+              "reason": "human reviewer: DOI correct; title wrong", "source": "human",
+              "mentions": [{"line": 2, "cited_text": citation}]}
+    ledger.save_defects([defect], store)
+    rows = [{**_row("10.1234/a", "REVIEW", citation),
+             "reason": "title search unavailable"}]
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: rows)
+
+    stats = {}
+    assert ledger.raise_items([note], object(), store=store, repo_root=tmp_path, stats=stats) == []
+    assert stats == {"incomplete_lookup_kept": 1}
+    assert ledger.load_review(store) == []
+    assert ledger.load_defects(store) == [defect]
+    assert ledger.gate([note], object(), store=store, repo_root=tmp_path).notes == [
+        ledger.NoteGateResult("note.md", 1, 0, 1, 0)]
+
+    rows[0] = {**_row("10.1234/a", "REVIEW", citation), "reason": "alternate title found"}
+    complete = ledger.raise_items([note], object(), store=store, repo_root=tmp_path)
+    assert len(complete) == 1 and complete[0].status == "pending"
+    assert ledger.load_defects(store) == [defect]
+
+
+def test_incomplete_title_search_does_not_keep_human_defect_for_changed_mention(tmp_path, monkeypatch):
+    note = tmp_path / "note.md"
+    note.write_text("note", encoding="utf-8")
+    store = tmp_path / "store"
+    ledger.save_defects([{"note": "note.md", "doi": "10.1234/a", "tier": "TITLE_WRONG",
+                          "source": "human", "reason": "old title wrong",
+                          "mentions": [{"line": 2, "cited_text": "Smith (2020). Old title."}]}], store)
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: [
+        {**_row("10.1234/a", "REVIEW", "Smith (2020). Changed title."),
+         "reason": "title search unavailable"}])
+
+    stats = {}
+    opened = ledger.raise_items([note], object(), store=store, repo_root=tmp_path, stats=stats)
+    assert len(opened) == 1 and opened[0].status == "pending"
+    assert ledger.load_defects(store) == []
+    assert stats == {"incomplete_lookup_kept": 0}
+
+
+def test_incomplete_doi_lookup_preserves_accepted_item_and_candidate(tmp_path, monkeypatch):
+    note = tmp_path / "note.md"
+    note.write_text("note", encoding="utf-8")
+    rows = [_row("10.1234/a", "REVIEW")]
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: rows)
+    store = tmp_path / "store"
+    item = ledger.raise_items([note], object(), store=store, repo_root=tmp_path)[0]
+    assert ledger.resolve(item.item_id, store=store)
+    before = ledger.load_review(store)[0].to_dict()
+    rows[0] = {**_row("10.1234/a", "UNRESOLVED"),
+               "reason": "registry lookup unavailable: HTTP 503", "registry_answer": None}
+
+    stats = {}
+    assert ledger.raise_items([note], object(), store=store, repo_root=tmp_path, stats=stats) == []
+    assert stats == {"incomplete_lookup_kept": 1}
+    assert ledger.load_review(store)[0].to_dict() == before
+    assert ledger.list_items("open", store=store) == []
+    assert ledger.gate([note], object(), store=store, repo_root=tmp_path).notes[0].unresolved == 1
+
+
+def test_new_incomplete_lookup_is_pending_and_complete_change_reopens(tmp_path, monkeypatch):
+    note = tmp_path / "note.md"
+    note.write_text("note", encoding="utf-8")
+    rows = [{**_row("10.1234/a", "REVIEW"), "reason": "title search unavailable"}]
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: rows)
+    store = tmp_path / "store"
+    stats = {}
+    first = ledger.raise_items([note], object(), store=store, repo_root=tmp_path, stats=stats)
+    assert len(first) == 1 and first[0].status == "pending"
+    assert stats == {"incomplete_lookup_kept": 0}
+    assert ledger.gate([note], object(), store=store, repo_root=tmp_path).notes[0].unresolved == 1
+
+    rows[0] = _row("10.1234/a", "REVIEW")
+    assert ledger.resolve(first[0].item_id, store=store)
+    rows[0] = _row("10.1234/a", "REVIEW", "Smith (2020). Changed title.")
+    reopened = ledger.raise_items([note], object(), store=store, repo_root=tmp_path)
+    assert len(reopened) == 1 and reopened[0].status == "pending"
+    assert reopened[0].candidates[0]["mentions"][0]["cited_text"] == "Smith (2020). Changed title."
+
+
+@pytest.mark.parametrize(("field", "changed_value"), [
+    ("title", "A different registered title"), ("authors", ["Jones"]),
+    ("year", 2021), ("venue", "Another Journal"),
+])
+def test_complete_registry_change_reopens_accepted_item_with_same_citation(
+        tmp_path, monkeypatch, field, changed_value):
+    note = tmp_path / "note.md"
+    note.write_text("note", encoding="utf-8")
+    rows = [_row("10.1234/a", "REVIEW")]
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: rows)
+    store = tmp_path / "store"
+    item = ledger.raise_items([note], object(), store=store, repo_root=tmp_path)[0]
+    assert ledger.resolve(item.item_id, store=store)
+    assert ledger.load_review(store)[0].status == "accepted"
+
+    changed = _row("10.1234/a", "REVIEW")
+    changed["registry_answer"]["record"][field] = changed_value
+    rows[0] = changed
+    reopened = ledger.raise_items([note], object(), store=store, repo_root=tmp_path)
+    assert len(reopened) == 1 and reopened[0].status == "pending"
+    assert reopened[0].candidates[0]["registry"][field] == changed_value
+
+
+def test_complete_tier_change_reopens_accepted_item(tmp_path, monkeypatch):
+    note = tmp_path / "note.md"
+    note.write_text("note", encoding="utf-8")
+    rows = [_row("10.1234/a", "REVIEW")]
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: rows)
+    store = tmp_path / "store"
+    item = ledger.raise_items([note], object(), store=store, repo_root=tmp_path)[0]
+    assert ledger.resolve(item.item_id, store=store)
+
+    rows[0] = _row("10.1234/a", "PLAUSIBLE")
+    reopened = ledger.raise_items([note], object(), store=store, repo_root=tmp_path)
+    assert len(reopened) == 1 and reopened[0].status == "pending"
+    assert reopened[0].candidates[0]["tier"] == "PLAUSIBLE"
+
+
+@pytest.mark.parametrize("change", ["line", "siblings"])
+def test_accepted_item_ignores_nonmaterial_complete_lookup_change(tmp_path, monkeypatch, change):
+    note = tmp_path / "note.md"
+    note.write_text("note", encoding="utf-8")
+    rows = [_row("10.1234/a", "REVIEW")]
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: rows)
+    store = tmp_path / "store"
+    item = ledger.raise_items([note], object(), store=store, repo_root=tmp_path)[0]
+    assert ledger.resolve(item.item_id, store=store)
+    before = ledger.load_review(store)[0]
+
+    changed = _row("10.1234/a", "REVIEW", line=19 if change == "line" else 2)
+    if change == "siblings":
+        changed["siblings"] = [{"doi": "10.1234/b", "title": "Another work",
+                                "year": 2021, "type": "article"}]
+    rows[0] = changed
+    assert ledger.raise_items([note], object(), store=store, repo_root=tmp_path) == []
+    kept = ledger.load_review(store)[0]
+    assert kept.status == "accepted" and kept.updated == before.updated
+    if change == "line":
+        assert kept.candidates[0]["mentions"][0]["line"] == 19
+    else:
+        assert kept.candidates[0]["siblings"][0]["doi"] == "10.1234/b"
+
+
+def test_raise_cli_reports_incomplete_kept_count_and_retry_advice(tmp_path, monkeypatch, capsys):
+    note = tmp_path / "note.md"
+    note.write_text("note", encoding="utf-8")
+    store = tmp_path / "store"
+    ledger.save_defects([{"note": "note.md", "doi": "10.1234/a", "tier": "TITLE_WRONG",
+                          "reason": "cited title not found", "source": "checker",
+                          "mentions": [{"line": 2, "cited_text": "Smith (2020)"}]}], store)
+    monkeypatch.setattr(ledger, "DEFAULT_STORE", store)
+    monkeypatch.setattr(ledger, "DEFAULT_REPO_ROOT", tmp_path)
+    monkeypatch.setattr(ledger, "RegistryClient", lambda *args, **kwargs: object())
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: [
+        {**_row("10.1234/a", "REVIEW"), "reason": "title search unavailable"}])
+
+    assert ledger.main(["raise", str(note), "--offline", "--cache", str(tmp_path / "cache")]) == 0
+    captured = capsys.readouterr()
+    assert captured.err.strip() == "Incomplete lookups kept prior state: 1; retry later"
+    payload = json.loads(captured.out)
+    assert payload["incomplete_lookup_kept"] == 1
+    assert payload["items"] == [] and len(payload["defects"]) == 1
+
+
+def test_raise_cli_omits_retry_line_when_no_prior_state_is_kept(tmp_path, monkeypatch, capsys):
+    note = tmp_path / "note.md"
+    note.write_text("note", encoding="utf-8")
+    monkeypatch.setattr(ledger, "DEFAULT_STORE", tmp_path / "store")
+    monkeypatch.setattr(ledger, "DEFAULT_REPO_ROOT", tmp_path)
+    monkeypatch.setattr(ledger, "RegistryClient", lambda *args, **kwargs: object())
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: [_row("10.1234/a", "REVIEW")])
+
+    assert ledger.main(["raise", str(note), "--offline", "--cache", str(tmp_path / "cache")]) == 0
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert json.loads(captured.out)["incomplete_lookup_kept"] == 0
+
+
 @pytest.mark.parametrize("tier", ["WRONG_WORK", "NOT_FOUND", "TITLE_WRONG"])
 def test_gate_blocks_checker_defects_by_note(tmp_path, monkeypatch, tier):
     note = tmp_path / "note.md"
