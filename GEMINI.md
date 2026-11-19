@@ -68,9 +68,16 @@ or revised that cites literature, run
 `python -m tools.reference_review raise <note>` from `ai-sandbox/academic-rag-model/`,
 fix every defect it reports (wrong paper, missing DOI, invented title), and
 report its counts, including items left for the user's review. Never add a
-`[source-verified]` or similar tag yourself; only the checker and the user's
-review decide that. The landing check will enforce this for notes under
-`ai-sandbox/research/`.
+`[source-verified]`, `[REGISTRY-MATCHED]` or similar tag yourself; only the
+checker and the user's review decide that. Tags describing what you read
+(`[FULL-TEXT-READ]`, `[ABSTRACT-READ]`) are allowed only for papers you
+actually opened in this session. The landing check enforces this for notes
+under `ai-sandbox/research/`; website pages follow the site repo's GEMINI.md.
+
+Before fetching papers from a DOI list that you or another agent wrote, check
+the list with the reference checker first, so that an invented DOI does not
+download the wrong paper into the corpus. See
+[the checker README](ai-sandbox/academic-rag-model/docs/reference-checker/README.md).
 
 ## Unexpected results and user corrections
 

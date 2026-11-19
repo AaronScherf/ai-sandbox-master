@@ -46,6 +46,16 @@ pipeline operation, documentation review, website writing, and large-context
 reads; Codex handles code maintenance, tests, and Git mechanics; Claude handles
 architecture, technical design tradeoffs, and code/security review.
 
+## Citing literature
+
+Applies to anything Claude writes or revises that cites literature: research notes, handoffs, reviews, website pages. Reference: [reference checker README](ai-sandbox/academic-rag-model/docs/reference-checker/README.md).
+- Take identifiers (DOIs, URLs) and bibliographic details from a registry lookup or a source file, never from memory.
+- Before handing off, run `python -m tools.reference_review raise <note>` from `ai-sandbox/academic-rag-model/`. Fix every defect, and report the counts along with any items left for review.
+- Never write `[source-verified]`, `[REGISTRY-MATCHED]` or a similar tag yourself; only the checker and the user's review decide that.
+- When the queue has open items, sync the review page (`https://claude.ai/artifact/EQM9L22JbowiAGMfx8jUQe`) and apply decisions with `reference_review apply`.
+- A matched DOI says nothing about whether the paper supports the claim. Read the paper before quoting a finding from it.
+- The landing gate enforces this for Markdown under `ai-sandbox/research/`.
+
 ## Bug report intake
 
 Follow [reviewer responsibilities](docs/BUG_HANDOFF.md#reviewer-responsibilities).
