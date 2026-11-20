@@ -126,7 +126,7 @@ style: |
   * Rich passive data repositories lacking counterfactual simulation engines.
 * **Academic Hierarchical Modeling:**
   * [Meager (2019)](https://pubs.aeaweb.org/doi/10.1257/app.20170299) & [Vivalt (2020)](https://academic.oup.com/jeea/article/18/6/2782/5819777): Prove high cross-study effect variance across microcredit and social programs.
-  * [Pritchett & Sandefur (2015)](https://www.aeaweb.org/articles?id=10.1257/aer.p20151069): External trial estimates often yield higher error than local non-experimental data.
+  * [Pritchett & Sandefur (2015)](https://www.aeaweb.org/articles?id=10.1257/aer.p20151016): External trial estimates often yield higher error than local non-experimental data.
   * *Limitation:* Retrospective academic studies on clean survey microdata; inapplicable to rapid, live crisis response.
 
 </div>

@@ -128,7 +128,7 @@ Every component is designed as an **open-source, reproducible, standalone tool**
   * **Academic Hierarchical Modeling & Meta-Analyses:**
     * [Meager (2019, AEJ: Applied)](https://pubs.aeaweb.org/doi/10.1257/app.20170299): Seminal Bayesian hierarchical analysis of seven microcredit RCTs, showing substantial cross-study effect variance.
     * [Vivalt (2020, JEEA)](https://academic.oup.com/jeea/article/18/6/2782/5819777): Proving impact evaluations have high dispersion across 20 intervention domains.
-    * [Pritchett & Sandefur (2015, AER)](https://www.aeaweb.org/articles?id=10.1257/aer.p20151069): Showing that external trial estimates frequently have higher error than non-experimental local data.
+    * [Pritchett & Sandefur (2015, AER)](https://www.aeaweb.org/articles?id=10.1257/aer.p20151016): Showing that external trial estimates frequently have higher error than non-experimental local data.
   * **The Unmet Need:** An automated, end-to-end computational pipeline that connects literature extraction, spatial context fusion, and causal transportability into an active decision-support tool.
 * **Visual Anchor / Placeholder:** A 2×2 positioning matrix: X-axis: *Static / Descriptive $\rightarrow$ Causal / Predictive*; Y-axis: *Slow / Retrospective $\rightarrow$ Rapid / Operational*. Existing solutions cluster in the other three quadrants; our pipeline targets the upper-right quadrant.
 
@@ -221,7 +221,7 @@ Every component is designed as an **open-source, reproducible, standalone tool**
 * **Title:** Causal Transportability in Practice: Satisficing Under Covariate Shift
 * **Core Takeaway:** External validity is difficult even across peaceful settings; in crisis settings, transportability is an exercise in satisficing to estimate impact ranges and non-applicability.
 * **Key Content:**
-  * **The External Validity Dilemma:** Transporting causal findings across contexts is challenging even in peaceful, well-resourced environments ([Pritchett & Sandefur 2015](https://www.aeaweb.org/articles?id=10.1257/aer.p20151069); [Vivalt 2020](https://academic.oup.com/jeea/article/18/6/2782/5819777)). In disasters and armed conflict, it is exponentially harder.
+  * **The External Validity Dilemma:** Transporting causal findings across contexts is challenging even in peaceful, well-resourced environments ([Pritchett & Sandefur 2015](https://www.aeaweb.org/articles?id=10.1257/aer.p20151016); [Vivalt 2020](https://academic.oup.com/jeea/article/18/6/2782/5819777)). In disasters and armed conflict, it is exponentially harder.
   * **Satisficing in the Absence of Primary Data:** When running local RCTs or field surveys is impossible, waiting for perfect evidence is fatal. We must satisfice: generating reliable, empirically bounded impact estimates with valid confidence intervals.
   * **The Standard Covariate Shift Problem:**
     * Holding the intervention functionally constant (e.g., standard unconditional cash transfers).
