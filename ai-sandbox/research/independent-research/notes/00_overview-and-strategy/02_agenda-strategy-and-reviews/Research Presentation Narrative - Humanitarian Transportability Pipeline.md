@@ -43,7 +43,7 @@ When an emergency relief agency (UN OCHA, WFP, Red Cross, or World Bank FCV) is 
 
 ## 3. The 2×2 Mutually Reinforcing Architecture
 
-Every component is designed as an **open-source, reproducible, standalone tool** that is portable to any new geography or shock, anchored by the foundational framework [`reprokit`](../../../projects/reprokit/README.md).
+Every component is designed as an **open-source, reproducible, standalone tool** that is portable to any new geography or shock, anchored by the foundational framework [`reprokit`](https://github.com/AaronScherf/reprokit).
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -136,7 +136,7 @@ Every component is designed as an **open-source, reproducible, standalone tool**
 * **Title:** Foundational Architecture: Standardized, Reproducible Research (`reprokit`)
 * **Core Takeaway:** Projects require clear replication standards, licensing guidelines, taxonomy labels, and agent rules so that research is independently verifiable by humans and scalable by AI agents.
 * **Key Content:**
-  * **Standardizing Open Science & Data Science:** All project lines are orchestrated via [`reprokit`](../../../projects/reprokit/README.md) (v0.4.0 released, open-source).
+  * **Standardizing Open Science & Data Science:** All project lines are orchestrated via [`reprokit`](https://github.com/AaronScherf/reprokit) (v0.4.0 released, open-source).
   * **Core Project Archetypes:**
     * `study`: Computational empirical pipelines with automated hash verification (e.g., panel fusion, RCT replications).
     * `evidence`: Machine-readable evidence maps, search manifests, and literature extraction schemas.
