@@ -22,7 +22,7 @@ from tools.reference_checker import DEFAULT_CACHE, RegistryClient, TIER_RANK, ch
 DEFAULT_STORE = shared_project_root() / ".reference_checker_review"
 DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[3]
 FILES = {"review": "review.json", "dismissals": "dismissals.json", "defects": "defects.json",
-         "false_positives": "false_positives.json"}
+         "false_positives": "false_positives.json", "quoted": "quoted.json"}
 REVIEW_TIERS = {"REVIEW", "AMBIGUOUS", "PLAUSIBLE", "UNCHECKED", "UNRESOLVED"}
 DEFECT_TIERS = {"WRONG_WORK", "NOT_FOUND", "TITLE_WRONG"}
 
@@ -165,6 +165,23 @@ def save_false_positives(entries: list[dict], store: Path = DEFAULT_STORE) -> No
     _save("false_positives", entries, Path(store))
 
 
+def load_quoted(store: Path = DEFAULT_STORE) -> list[dict]:
+    return _load("quoted", Path(store))
+
+
+def save_quoted(entries: list[dict], store: Path = DEFAULT_STORE) -> None:
+    _save("quoted", entries, Path(store))
+
+
+def _citation_texts(mentions: list[dict]) -> list[str]:
+    return sorted(m["cited_text"] for m in mentions)
+
+
+def _quote_matches(entry: dict, note: str, doi: str, mentions: list[dict]) -> bool:
+    return (entry.get("note") == note and entry.get("doi") == doi
+            and entry.get("citation_texts") == _citation_texts(mentions))
+
+
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -175,7 +192,8 @@ def _note_path(path: str | Path, repo_root: Path) -> tuple[Path, str]:
     return resolved, relative.as_posix()
 
 
-def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, str]]) -> tuple[list[ReviewItem], list[dict]]:
+def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, str]],
+              quoted: list[dict] | None = None) -> tuple[list[ReviewItem], list[dict]]:
     """Group DOI mentions and route the worst tier to review or defects."""
     groups: dict[str, list[dict]] = {}
     for row in rows:
@@ -184,10 +202,12 @@ def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, st
             groups.setdefault(doi.lower(), []).append(row)
     items, defects = [], []
     for doi, mentions in groups.items():
+        cited = [{"line": row.get("line"), "cited_text": row["citation"]} for row in mentions]
+        if any(_quote_matches(entry, note_rel_path, doi, cited) for entry in quoted or []):
+            continue
         worst = max(mentions, key=lambda row: (TIER_RANK.get(row.get("tier"), TIER_RANK["UNRESOLVED"]),
                                                bool(row.get("siblings"))))
         tier = worst.get("tier", "UNRESOLVED")
-        cited = [{"line": row.get("line"), "cited_text": row["citation"]} for row in mentions]
         if tier in DEFECT_TIERS:
             defect = {"note": note_rel_path, "doi": doi, "tier": tier,
                       "reason": worst.get("reason", ""), "mentions": cited,
@@ -229,6 +249,7 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
     store, repo_root = Path(store), Path(repo_root)
     existing = {item.item_id: item for item in load_review(store)}
     defects = load_defects(store)
+    quoted = load_quoted(store)
     dismissed = {(entry.get("doi"), entry.get("normalized_citation"))
                  for entry in load_dismissals(store)}
     scanned: set[str] = set()
@@ -242,12 +263,12 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
         rows = check_note(absolute.read_text(encoding="utf-8"), client)
         if rows_by_note is not None:
             rows_by_note[relative] = rows
-        current, found_defects = _selected(relative, rows, dismissed)
+        current, found_defects = _selected(relative, rows, dismissed, quoted)
         # A dismissal suppresses selection of an accepted citation. Compare
         # fresh evidence with its prior item before deciding whether it reopens.
         if any(item.status == "accepted" and item.subject_ids[0] == relative
                for item in existing.values()):
-            all_current, _ = _selected(relative, rows, set())
+            all_current, _ = _selected(relative, rows, set(), quoted)
             selected_ids = {item.item_id for item in current}
             current.extend(item for item in all_current
                            if item.item_id not in selected_ids
@@ -261,6 +282,9 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
             doi = str(row.get("identifier") or "").lower()
             if doi.startswith("10."):
                 current_texts.setdefault(doi, Counter())[row["citation"]] += 1
+        quoted = [entry for entry in quoted if entry.get("note") != relative or
+                  (entry.get("doi") in current_texts and
+                   Counter(entry.get("citation_texts") or []) == current_texts[entry["doi"]])]
         kept_items = {doi: existing[item_id(relative, doi)] for doi in incomplete_dois
                       if item_id(relative, doi) in existing}
         kept_defects = {id(d) for d in defects if d.get("note") == relative
@@ -314,6 +338,8 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
     if scanned:
         save_review(sorted(existing.values(), key=lambda item: item.item_id), store)
         save_defects(sorted(defects, key=lambda d: (d.get("note", ""), d.get("doi", ""), d.get("source", ""))), store)
+        if quoted or _path("quoted", store).exists():
+            save_quoted(quoted, store)
     return raised
 
 
@@ -476,6 +502,49 @@ def defer(item_id: str, *, store: Path = DEFAULT_STORE) -> bool:
     return True
 
 
+def quote_target(decision: dict, store: Path) -> tuple[str, str, list[str]] | None:
+    """Require the page's exact note, DOI, and citation text before exemption."""
+    note, doi = decision.get("note"), decision.get("doi")
+    texts = decision.get("citation_texts")
+    iid = decision.get("item_id")
+    if (not isinstance(note, str) or not isinstance(doi, str) or
+            not isinstance(texts, list) or any(not isinstance(t, str) for t in texts) or
+            iid != item_id(note, doi)):
+        return None
+    for item in load_review(store):
+        if (item.item_id == iid and item.subject_ids == [note, doi] and
+                item.status in {"pending", "deferred"} and
+                _citation_texts(item.candidates[0]["mentions"]) == sorted(texts)):
+            return note, doi, sorted(texts)
+    for defect in load_defects(store):
+        if (defect.get("note") == note and defect.get("doi") == doi and
+                _citation_texts(defect.get("mentions") or []) == sorted(texts)):
+            return note, doi, sorted(texts)
+    return None
+
+
+def quote(decision: dict, *, store: Path = DEFAULT_STORE) -> bool:
+    """Dismiss this citation in this note only; no cross-note dismissal key."""
+    store = Path(store)
+    target = quote_target(decision, store)
+    if target is None:
+        return False
+    note, doi, texts = target
+    entries = load_quoted(store)
+    if not any(e.get("note") == note and e.get("doi") == doi and e.get("citation_texts") == texts
+               for e in entries):
+        entries.append({"note": note, "doi": doi, "citation_texts": texts,
+                        "item_id": decision["item_id"], "decided_at": _now()})
+        save_quoted(entries, store)
+    items = [item for item in load_review(store) if item.item_id != decision["item_id"]]
+    save_review(items, store)
+    defects = [d for d in load_defects(store) if not
+               (d.get("note") == note and d.get("doi") == doi and
+                _citation_texts(d.get("mentions") or []) == texts)]
+    save_defects(defects, store)
+    return True
+
+
 def apply_decisions(decisions: list, *, dry_run: bool = False,
                     store: Path = DEFAULT_STORE) -> list[dict]:
     """Apply hub-review-shaped records; report bad records without stopping the batch."""
@@ -486,12 +555,28 @@ def apply_decisions(decisions: list, *, dry_run: bool = False,
         chosen = decision.get("chosen") if isinstance(decision, dict) else None
         result = {"item_id": iid, "type": "reference_check", "action": action}
         try:
-            if not isinstance(iid, str) or action not in {"accept", "decline", "defer"}:
+            if not isinstance(iid, str) or action not in {"accept", "decline", "defer", "quoted"}:
                 result.update(outcome="error", detail="malformed decision")
             elif iid in seen:
                 result.update(outcome="stale", detail="duplicate decision in batch")
             elif action == "decline" and chosen not in {"wrong_work", "wrong_title", "not_citation"}:
                 result.update(outcome="error", detail="decline needs chosen: wrong_work, wrong_title or not_citation")
+            elif action == "quoted":
+                target = quote_target(decision, Path(store))
+                if target is None:
+                    prior = any(entry.get("item_id") == iid and entry.get("note") == decision.get("note")
+                                and entry.get("doi") == decision.get("doi")
+                                and entry.get("citation_texts") == sorted(decision.get("citation_texts") or [])
+                                for entry in load_quoted(store))
+                    result.update(outcome="already_applied" if prior else "stale",
+                                  detail="quoted" if prior else "quoted target or citation text does not match this note")
+                elif dry_run:
+                    result.update(outcome="would_apply", detail="quoted")
+                else:
+                    result.update(outcome="applied" if quote(decision, store=store) else "stale",
+                                  detail="quoted")
+                if result["outcome"] not in {"error", "stale"}:
+                    seen.add(iid)
             else:
                 item = next((item for item in load_review(store) if item.item_id == iid), None)
                 if item is None:
@@ -545,6 +630,16 @@ def list_items(status: str = "open", *, store: Path = DEFAULT_STORE) -> list[Rev
     return [item for item in items if item.status == status]
 
 
+def list_defect_cards(*, store: Path = DEFAULT_STORE) -> list[dict]:
+    """Public, metadata-only shape for seeding the page's defects collection."""
+    return [{"item_id": item_id(d["note"], d["doi"]), "note": d["note"],
+             "note_name": Path(d["note"]).name, "doi": d["doi"], "tier": d["tier"],
+             "reason": d.get("reason", ""), "mentions": d.get("mentions", []),
+             "citation_texts": _citation_texts(d.get("mentions") or []),
+             "registry": {"title": d.get("registry_title", "")}, "is_defect": True}
+            for d in load_defects(store) if d.get("tier") in DEFECT_TIERS]
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m tools.reference_review")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -553,7 +648,7 @@ def main(argv: list[str] | None = None) -> int:
     raising.add_argument("--offline", action="store_true", help="read cached registry answers only")
     raising.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
     listing = sub.add_parser("list", help="print stored review items without writing")
-    listing.add_argument("--status", choices=("open", "pending", "deferred", "accepted", "declined", "all"),
+    listing.add_argument("--status", choices=("open", "pending", "deferred", "accepted", "declined", "all", "defects"),
                          default="open")
     applying = sub.add_parser("apply", help="apply a JSON list of review decisions")
     applying.add_argument("decisions", type=Path)
@@ -573,7 +668,8 @@ def main(argv: list[str] | None = None) -> int:
             payload = {"items": [item.to_dict() for item in items], "defects": defects,
                        "incomplete_lookup_kept": kept}
         elif args.command == "list":
-            payload = [item.to_dict() for item in list_items(args.status, store=DEFAULT_STORE)]
+            payload = (list_defect_cards(store=DEFAULT_STORE) if args.status == "defects" else
+                       [item.to_dict() for item in list_items(args.status, store=DEFAULT_STORE)])
         else:
             decisions = json.loads(args.decisions.read_text(encoding="utf-8"))
             if not isinstance(decisions, list):

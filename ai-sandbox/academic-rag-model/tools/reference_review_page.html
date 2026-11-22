@@ -72,6 +72,7 @@ h1 { font: 600 1.9rem/1.15 var(--f-display); margin: 0; text-wrap: balance; }
 .decide button:hover:not(:disabled) { border-color: var(--accent); }
 .decide button:disabled { cursor: default; opacity: .55; }
 .decide button.on.accept { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); opacity: 1; }
+.decide button.on.quoted { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); opacity: 1; }
 .decide button.on.wrong_work { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); opacity: 1; }
 .decide button.on.wrong_title { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); opacity: 1; }
 .decide button.on.not_citation { background: var(--grey-soft); color: var(--ink); border-color: var(--muted); opacity: 1; }
@@ -115,6 +116,7 @@ code { font: 12.5px var(--f-mono); background: var(--grey-soft); padding: 1px 5p
       <dt>Wrong paper</dt><dd>The DOI points at a different work. Recorded as a defect in this note only; the note needs a fix.</dd>
       <dt>Title wrong, DOI right</dt><dd>The DOI points at the intended work, but the note gives it a wrong title. Keep the DOI and correct the title in this note.</dd>
       <dt>Not a citation</dt><dd>The checker picked up something that is not a reference. Logged as a parser mistake.</dd>
+      <dt>Quoted on purpose</dt><dd>This exact citation is quoted as evidence in this note. Clears its finding here only; a changed citation needs a new decision.</dd>
       <dt>Can't tell</dt><dd>Stays in the queue for a later pass.</dd>
     </dl>
     <p>Decisions are saved here as you click. Claude then applies them to the local ledger with <code>python -m tools.reference_review apply</code>; nothing in the notes is edited.</p>
@@ -128,12 +130,13 @@ code { font: 12.5px var(--f-mono); background: var(--grey-soft); padding: 1px 5p
     { key: "wrong_work", label: "Wrong paper", action: "decline", chosen: "wrong_work" },
     { key: "wrong_title", label: "Title wrong, DOI right", action: "decline", chosen: "wrong_title" },
     { key: "not_citation", label: "Not a citation", action: "decline", chosen: "not_citation" },
+    { key: "quoted", label: "Quoted on purpose", action: "quoted", chosen: null },
     { key: "defer", label: "Can't tell", action: "defer", chosen: null },
   ];
   const keyOf = (rec) => rec ? (rec.action === "decline" ? rec.chosen : rec.action) : null;
   const TIER_NOTE = { PLAUSIBLE: "No title in the citation", REVIEW: "Title or year disagrees", AMBIGUOUS: "Authors only partly agree", UNCHECKED: "Checker could not judge", UNRESOLVED: "Checker could not judge" };
 
-  let db = null, items = [], decisions = new Map(), filter = "open", readOnly = false;
+  let db = null, items = [], defects = [], decisions = new Map(), filter = "open", readOnly = false;
   const saving = new Set();
   const $ = (id) => document.getElementById(id);
 
@@ -158,7 +161,9 @@ code { font: 12.5px var(--f-mono); background: var(--grey-soft); padding: 1px 5p
     const ref = db.collection("decisions").doc(item.item_id);
     try {
       if (a === null) await ref.delete();
-      else await ref.set({ item_id: item.item_id, type: "reference_check", action: a.action, chosen: a.chosen, ts: Date.now() });
+      else await ref.set({ item_id: item.item_id, type: "reference_check", action: a.action, chosen: a.chosen,
+                           note: item.note, doi: item.doi,
+                           citation_texts: (item.mentions || []).map((m) => m.cited_text).sort(), ts: Date.now() });
       notice("");
     } catch (e) {
       if (e && e.code === "invalid_argument") { readOnly = true; notice("You can view this queue but not record decisions."); }
@@ -221,7 +226,7 @@ code { font: 12.5px var(--f-mono); background: var(--grey-soft); padding: 1px 5p
 
     const bar = el("div", "decide");
     const busy = saving.has(item.item_id);
-    ACTIONS.forEach((act) => {
+    ACTIONS.filter((act) => !item.is_defect || act.key === "quoted").forEach((act) => {
       const on = current === act.key;
       const b = el("button", act.key + (on ? " on" : ""), (on ? "✓ " : "") + act.label);
       b.type = "button"; b.disabled = busy || readOnly || !db;
@@ -242,17 +247,18 @@ code { font: 12.5px var(--f-mono); background: var(--grey-soft); padding: 1px 5p
 
   function render() {
     document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.filter === filter ? "true" : "false"));
-    const done = items.filter((i) => { const d = decisions.get(i.item_id); return d && d.action !== "defer"; }).length;
-    $("count").textContent = items.length ? done + " of " + items.length + " decided" : "No items yet";
-    $("meter").style.width = items.length ? (100 * done / items.length) + "%" : "0";
+    const all = items.concat(defects);
+    const done = all.filter((i) => { const d = decisions.get(i.item_id); return d && d.action !== "defer"; }).length;
+    $("count").textContent = all.length ? done + " of " + all.length + " decided" : "No items yet";
+    $("meter").style.width = all.length ? (100 * done / all.length) + "%" : "0";
 
-    const shown = items.filter((i) => {
+    const shown = all.filter((i) => {
       const d = decisions.get(i.item_id); const decided = d && d.action !== "defer";
       return filter === "all" || (filter === "open" ? !decided : decided);
     });
     const list = $("list");
     list.replaceChildren();
-    if (!items.length) {
+    if (!all.length) {
       list.append(el("div", "empty", "The queue is empty. Claude adds items here after a reference check finds DOIs that need a human decision."));
       return;
     }
@@ -283,6 +289,10 @@ code { font: 12.5px var(--f-mono); background: var(--grey-soft); padding: 1px 5p
       if (!snap.metadata.fromCache) { gotItems = true; clearTimeout(slow); notice(""); }
       render();
     }, (e) => { clearTimeout(slow); notice("Could not read the queue (" + ((e && e.code) || "error") + ")."); });
+    db.collection("defects").onSnapshot((snap) => {
+      defects = snap.docs.map((d) => d.data()).filter(Boolean);
+      render();
+    }, (e) => notice("Could not read defects (" + ((e && e.code) || "error") + ")."));
     db.collection("decisions").onSnapshot((snap) => {
       decisions = new Map(snap.docs.map((d) => [d.id, d.data()]));
       render();

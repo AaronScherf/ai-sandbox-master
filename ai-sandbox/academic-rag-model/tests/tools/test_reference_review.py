@@ -88,6 +88,71 @@ def _row(doi, tier, citation="Smith (2020)", line=2):
                 "venue": "Journal", "abstract": "never store this"}}}
 
 
+def test_quoted_checker_defect_is_note_local_and_changed_text_reopens(tmp_path, monkeypatch):
+    first, second = tmp_path / "first.md", tmp_path / "second.md"
+    first.write_text("citation", encoding="utf-8")
+    second.write_text("citation", encoding="utf-8")
+    doi = "10.1234/example"
+    citation = "Smith (2020). Quoted wrong title"
+    rows = [_row(doi, "TITLE_WRONG", citation)]
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: rows)
+    ledger.raise_items([first, second], None, store=tmp_path / "ledger", repo_root=tmp_path)
+    store = tmp_path / "ledger"
+    decision = {"item_id": ledger.item_id("first.md", doi), "action": "quoted",
+                "note": "first.md", "doi": doi, "citation_texts": [citation]}
+    assert ledger.apply_decisions([decision], store=store)[0]["outcome"] == "applied"
+    assert ledger.apply_decisions([decision], store=store)[0]["outcome"] == "already_applied"
+    assert [(d["note"], d["tier"]) for d in ledger.load_defects(store)] == [
+        ("second.md", "TITLE_WRONG")]
+    assert not ledger.gate([first], None, store=store, repo_root=tmp_path).blocked
+    assert ledger.gate([second], None, store=store, repo_root=tmp_path).blocked
+    ledger.raise_items([first, second], None, store=store, repo_root=tmp_path)
+    assert [d["note"] for d in ledger.load_defects(store)] == ["second.md"]
+    rows[:] = [_row(doi, "TITLE_WRONG", citation + " changed")]
+    ledger.raise_items([first], None, store=store, repo_root=tmp_path)
+    assert sorted(d["note"] for d in ledger.load_defects(store)) == ["first.md", "second.md"]
+    assert ledger.load_quoted(store) == []
+
+
+def test_quoted_item_rejects_another_notes_identity(tmp_path, monkeypatch):
+    note = tmp_path / "first.md"
+    note.write_text("citation", encoding="utf-8")
+    doi = "10.1234/example"
+    citation = "Smith (2020)"
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: [_row(doi, "PLAUSIBLE", citation)])
+    store = tmp_path / "ledger"
+    ledger.raise_items([note], None, store=store, repo_root=tmp_path)
+    wrong = {"item_id": ledger.item_id("first.md", doi), "action": "quoted",
+             "note": "second.md", "doi": doi, "citation_texts": [citation]}
+    assert ledger.apply_decisions([wrong], store=store)[0]["outcome"] == "stale"
+    assert not ledger.load_quoted(store)
+    right = {**wrong, "note": "first.md"}
+    assert ledger.apply_decisions([right], store=store)[0]["outcome"] == "applied"
+    assert ledger.list_items("open", store=store) == []
+    ledger.raise_items([note], None, store=store, repo_root=tmp_path)
+    assert ledger.list_items("open", store=store) == []
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: [
+        _row(doi, "PLAUSIBLE", citation + " changed")])
+    ledger.raise_items([note], None, store=store, repo_root=tmp_path)
+    assert len(ledger.list_items("open", store=store)) == 1
+
+
+def test_defect_cards_expose_note_local_quote_target(tmp_path):
+    ledger.save_defects([{"note": "research/example.md", "doi": "10.1234/example",
+                          "tier": "TITLE_WRONG", "reason": "registered title differs",
+                          "registry_title": "Sample paper", "source": "checker",
+                          "mentions": [{"line": 9, "cited_text": "Smith (2020). Quoted wrong title"}]}],
+                        tmp_path)
+    cards = ledger.list_defect_cards(store=tmp_path)
+    assert cards == [{"item_id": ledger.item_id("research/example.md", "10.1234/example"),
+                      "note": "research/example.md", "note_name": "example.md",
+                      "doi": "10.1234/example", "tier": "TITLE_WRONG",
+                      "reason": "registered title differs", "is_defect": True,
+                      "mentions": [{"line": 9, "cited_text": "Smith (2020). Quoted wrong title"}],
+                      "citation_texts": ["Smith (2020). Quoted wrong title"],
+                      "registry": {"title": "Sample paper"}}]
+
+
 def test_incomplete_title_search_preserves_declined_item_and_human_defect(tmp_path, monkeypatch):
     note = tmp_path / "note.md"
     note.write_text("note", encoding="utf-8")

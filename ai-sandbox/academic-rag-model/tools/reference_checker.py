@@ -82,7 +82,7 @@ DOI = re.compile(r"10\.\d{4,9}/[^\s\]\[{}\"']+", re.I)
 ARXIV = re.compile(r"(?:arxiv(?:\.org/(?:abs|pdf)/|:|\s+))(\d{4}\.\d{4,5}(?:v\d+)?|[a-z.\-]+/\d{7}(?:v\d+)?)", re.I)
 URL = re.compile(r"https?://[^\s\])]+", re.I)
 YEAR = re.compile(r"\b(?:19|20)\d{2}\b")
-LINK = re.compile(r"\[([^]]+)\]\((https?://(?:[^()]|\([^()]*\))*)\)(?=\s|$|[.,;])")
+LINK = re.compile(r"\[([^]]+)\]\((https?://(?:[^()]|\([^()]*\))*)\)(?=\s|$|[.,;:)*])")
 SOURCE_TAG = re.compile(r"\s*\*{0,2}\[(?:VERIFIED|UNVERIFIED|ABSTRACT-ONLY)\]\*{0,2}", re.I)
 
 
@@ -94,11 +94,13 @@ def clean_identifier(value: str) -> str:
     """Keep balanced DOI parentheses, including Wiley SICI, and trim prose punctuation."""
     value = urllib.parse.unquote(html.unescape(value.strip()))
     value = re.sub(r"^https?://(?:dx\.)?doi\.org/", "", value, flags=re.I)
-    while value and value[-1] in ".,;:!?)]>`":
+    while value and value[-1] in ".,;:!?)]>`*_":
         end = value[-1]
         if end == ")" and value.count(")") <= value.count("("):
             break
         if end == ">" and value.count(">") <= value.count("<"):
+            break
+        if end == "]" and value.count("]") <= value.count("["):
             break
         value = value[:-1]
     return value
@@ -206,6 +208,7 @@ def extract(text: str) -> list[dict]:
                     citation = f"{literature_authors} ({literature_year}). {literature_title}"
                 end = links[link_index + 1].start() if link_index + 1 < len(links) else len(line)
                 suffix = line[link.end():end].lstrip(" —–-:")
+                # Only text before the next link may elaborate this DOI.
                 if YEAR.search(suffix) and re.match(r"[A-ZÀ-ÖØ-Þ]", suffix):
                     citation = suffix
                 elif index + 1 < len(lines):
@@ -307,7 +310,8 @@ def citation_fields(citation: str) -> dict:
     # A leading comma or italic span with no sentence break is venue metadata.
     venue_only = bool(re.match(r"^\s*,\s*\*[^*]+\*", tail) or
                        re.match(r"^\s*,\s*[^.?!]+$", tail) or
-                       (re.match(r"^\s*\*[^*]+\*", tail) and not re.search(r"[.?!]\s+", tail)))
+                       (re.match(r"^\s*\*[^*]+\*", tail) and not re.search(r"[.?!]\s+", tail)) or
+                       re.match(r"^\s*vs\b", tail, re.I))
     parts = re.split(r"[.?!]\s+(?=\*?[A-Z])", tail, maxsplit=1)
     title = "" if venue_only else re.split(r"\s+[0-9]+\s*\(", parts[0], maxsplit=1)[0].strip(" *_.,?!\"“”")
     if len(title.split()) < 2:
@@ -769,12 +773,46 @@ def _venue_matches(cited: str, registered: str) -> bool:
     return acronym(cited_words) == acronym(registered_words) or "".join(cited_words) == acronym(registered_words)
 
 
+def _cited_title(citation: str, record: dict) -> str:
+    """Do not mistake a journal-only citation for a paper title."""
+    year = YEAR.search(citation)
+    tail = citation[year.end():] if year else ""
+    # Prose after an author-year mention is not a bibliography title. A
+    # citation title has a separator after the year before its title segment.
+    if not re.match(r"^\s*\)\s*[.,:]\s+|^\s*[.,:]\s+", tail):
+        return ""
+    title = citation_fields(citation)["title"]
+    venue = record.get("venue") or ""
+    if title and venue and similarity(title, venue) >= 0.9:
+        return ""
+    if (title and re.match(r"^\s*[.)]*\s*\*[^*]+\*\s*[.,]?\s*(?:\d|doi\b|https?://|$)", tail, re.I)):
+        return ""
+    return title
+
+
+def _title_score(title: str, record: dict) -> float:
+    registered = record.get("title") or ""
+    titles = [registered]
+    if record.get("subtitle"):
+        titles.append(registered + ": " + record["subtitle"])
+    cited_words = normalized(title).split()
+    for candidate in titles:
+        words = normalized(candidate).split()
+        if len(cited_words) >= 2 and words[:len(cited_words)] == cited_words:
+            return 1.0
+    return max((similarity(title, candidate) for candidate in titles if candidate), default=0.0)
+
+
 def compare(citation: str, record: dict) -> tuple[str, list[str], str]:
     citation = URL.sub("", DOI.sub("", citation))
     fields = citation_fields(citation)
     notes = []
     year_match = re.search(r"\((?:19|20)\d{2}\)", citation)
-    author_prefix = citation[:year_match.start()] if year_match else ""
+    if not year_match and re.match(
+            r"^\s*[A-Z][\w'’-]+(?:\s*(?:&|and)\s*[A-Z][\w'’-]+)?\s*(?:\(|\s+)(?:19|20)\d{2}(?=\b|[,)])",
+            citation):
+        year_match = YEAR.search(citation)
+    author_prefix = citation[:year_match.start()].rstrip(" \t([,") if year_match else ""
     cited_authors = _author_tokens(author_prefix)
     registered_authors = set().union(*(_author_tokens(a) for a in record.get("authors") or [record.get("author", "")]))
     overlap = cited_authors & registered_authors
@@ -797,11 +835,8 @@ def compare(citation: str, record: dict) -> tuple[str, list[str], str]:
         labelled = [f"{value} {key.removeprefix('published-')}" for key, value in sources.items()
                     if key in ("published-print", "published-online")]
         year_detail = f"cited {year}; registry " + (", ".join(labelled) if labelled else ", ".join(map(str, years)))
-    title = fields["title"]
-    registry_titles = [record.get("title") or ""]
-    if record.get("subtitle"):
-        registry_titles.append(registry_titles[0] + ": " + record["subtitle"])
-    score = max(similarity(title, candidate) for candidate in registry_titles) if title else None
+    title = _cited_title(citation, record or {})
+    score = _title_score(title, record) if title else None
     if not title:
         notes.append("NO_TITLE")
     elif score is not None and score < 0.92:
@@ -851,16 +886,12 @@ def _identity_tier(identity: str, citation: str, record: dict | None = None) -> 
         return "REVIEW"
     if identity != "SAME_WORK":
         return identity
-    title = citation_fields(citation)["title"]
+    title = _cited_title(citation, record or {})
     if not title:
         return "PLAUSIBLE"
     fields = citation_fields(citation)
     years = [int(y) for y in ((record or {}).get("years") or [(record or {}).get("year")]) if y]
-    registered_title = (record or {}).get("title") or ""
-    titles = [registered_title]
-    if (record or {}).get("subtitle"):
-        titles.append(registered_title + ": " + record["subtitle"])
-    score = max((similarity(title, candidate) for candidate in titles if candidate), default=0.0)
+    score = _title_score(title, record or {})
     cited_year = fields["year"]
     year_within_tolerance = bool(cited_year and any(abs(cited_year - year) <= 1 for year in years))
     year_matches = bool(cited_year and cited_year in years)
@@ -948,13 +979,10 @@ def _apply_title_search(result: dict, citation: str, record: dict, client: Regis
     """Attach cited-title search evidence without changing the review tier yet."""
     if result["identity"] != "SAME_WORK":
         return
-    title = citation_fields(citation)["title"]
+    title = _cited_title(citation, record)
     if not title:
         return
-    registered = [record.get("title") or ""]
-    if record.get("subtitle"):
-        registered.append(registered[0] + ": " + record["subtitle"])
-    if max((similarity(title, value) for value in registered if value), default=0.0) >= 0.5:
+    if _title_score(title, record) >= 0.5:
         return
     hit, complete = search_cited_title(citation, client)
     if hit:
@@ -969,7 +997,7 @@ def _apply_title_search(result: dict, citation: str, record: dict, client: Regis
 
 def _apply_author_year(result: dict, citation: str, registry: str, record: dict, client: RegistryClient) -> None:
     """Promote only fully checked title-less SAME_WORK rows; mutate the row."""
-    if result["tier"] != "PLAUSIBLE" or result["identity"] != "SAME_WORK" or citation_fields(citation)["title"]:
+    if result["tier"] != "PLAUSIBLE" or result["identity"] != "SAME_WORK" or _cited_title(citation, record):
         return
     cited, et_al = _cited_surnames(citation)
     registered = [_family_last_token(author) for author in record.get("authors") or []]
@@ -1039,6 +1067,7 @@ def check(row: dict, client: RegistryClient, *, author_year: bool = True) -> dic
         result["tier"] = result["identity"]
         result["reason"] = status
         return result
+    result["evidence"] = "title_in_citation" if _cited_title(citation, record) else ""
     result["identity"], result["text_fidelity"], result["reason"] = compare(citation, record)
     _apply_title_search(result, citation, record, client)
     result["tier"] = _identity_tier(result["identity"], citation, record)

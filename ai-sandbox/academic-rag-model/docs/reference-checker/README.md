@@ -29,7 +29,7 @@ All paths are relative to `ai-sandbox/academic-rag-model/`.
 | `tools/land_branch.py` | Calls the gate during `check` and again just before `land`. |
 | `tests/tools/test_reference_checker*.py`, `test_reference_review.py` | Tests on recorded registry answers; none of them use the network. |
 | `.reference_checker_cache/` | Registry response cache (gitignored). |
-| `.reference_checker_review/` | Ledger: `review.json`, `dismissals.json`, `defects.json` (gitignored). |
+| `.reference_checker_review/` | Ledger: `review.json`, `dismissals.json`, `defects.json`, `quoted.json` (gitignored). |
 
 The cache and ledger always live in the main checkout, found through git's common directory, so every worktree shares one set of decisions.
 
@@ -50,6 +50,9 @@ python -m tools.reference_review list --status open
 # Apply decisions exported from the review page
 python -m tools.reference_review apply decisions.json --dry-run
 python -m tools.reference_review apply decisions.json
+
+# Export note-local checker defects as cards for the page's defects collection
+python -m tools.reference_review list --status defects
 ```
 
 `reference_checker` options:
@@ -77,16 +80,17 @@ python -m tools.reference_review apply decisions.json
 ## The review loop
 
 1. `raise` turns every row that needs a person into a ledger item: one per DOI per note, showing all of that DOI's mentions.
-2. An agent seeds the review page's `items` collection from `list --status open`. The page shows the citation beside the registered record, with links to both, any same-team siblings, and any cited title found elsewhere.
-3. The reviewer picks one of five decisions:
+2. An agent seeds the review page's `items` collection from `list --status open`, flattening each item's `subject_ids` and first `candidates` entry into `note`, `doi`, `mentions`, `registry`, `tier` and `reason` as before. It seeds the `defects` collection directly from `list --status defects`. Both collections use each card's `item_id` as its document ID. The page shows citations and available registry evidence. Defect cards offer the quoted decision.
+3. The reviewer picks one of six decisions:
    - **Same work:** dismissed. It carries over to the same citation text in other notes.
    - **Wrong work:** recorded as a WRONG_WORK defect for this note.
    - **Title wrong, DOI right:** recorded as a TITLE_WRONG defect with the registered title.
    - **Not found:** recorded as a NOT_FOUND defect.
    - **Can't tell:** deferred, and stays open.
+   - **Quoted on purpose:** dismisses an item or checker defect only for its current citation text in this note. A changed citation text needs a new decision; the same citation in another note remains reviewable. This decision is available only through the page and `apply`.
 4. The agent reads the page's `decisions` collection and runs `apply`.
 
-Defects clear only when the note's citation text changes. An unchanged citation keeps its defect when the note is raised again.
+Defects clear when the note's citation text changes or a reviewer marks that exact note and citation `quoted`. An unchanged citation otherwise keeps its defect when the note is raised again.
 
 ## The landing gate
 
