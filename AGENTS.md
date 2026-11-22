@@ -24,6 +24,11 @@ would materially expand that scope.
 
 ## Owner decisions and task stages
 
+If the user asks Codex to check back in or report a plan before executing,
+report the planned execution and stop the turn. Do not run tools or commands,
+create a worktree, call an API, or change files for that task until the user
+explicitly authorizes proceeding after the report.
+
 Treat workflow stages literally. A statement that a batch is already approved
 describes existing state; it does not authorize approving additional proposals.
 Verify which items are approved before writing owner decisions, and apply only
