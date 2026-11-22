@@ -776,16 +776,33 @@ def _venue_matches(cited: str, registered: str) -> bool:
 def _cited_title(citation: str, record: dict) -> str:
     """Do not mistake a journal-only citation for a paper title."""
     year = YEAR.search(citation)
-    tail = citation[year.end():] if year else ""
-    # Prose after an author-year mention is not a bibliography title. A
-    # citation title has a separator after the year before its title segment.
-    if not re.match(r"^\s*\)\s*[.,:]\s+|^\s*[.,:]\s+", tail):
+    if not year:
         return ""
-    title = citation_fields(citation)["title"]
+    tail = citation[year.end():]
+    # A venue inside the year parentheses is metadata, e.g. (2019, AEJ: Applied).
+    parenthetical_venue = re.match(r"^\s*,[^)]*\)", tail)
+    if parenthetical_venue:
+        tail = tail[parenthetical_venue.end():]
+    # Closing emphasis belongs to the author-year label, not the title.
+    tail = re.sub(r"^\s*\)\s*[*_]*", "", tail, count=1)
+    tail = re.sub(r"^\s*[.,:;—–-]\s*", "", tail, count=1).lstrip(" \t")
+    first_word = re.match(r"\w+", tail.lstrip("*_"))
+    if not first_word or first_word.group()[0].islower():
+        return ""
+    italic = re.match(r"^([*_])([^*_]+)\1", tail)
+    if italic:
+        title = italic.group(2).strip()
+        remainder = tail[italic.end():]
+    else:
+        title = re.split(r"[.?!]\s+(?=[*_]*[A-Z])", tail, maxsplit=1)[0]
+        remainder = ""
+    title = title.strip(" *_.,?!\"“”")
+    if len(title.split()) < 2:
+        return ""
     venue = record.get("venue") or ""
     if title and venue and similarity(title, venue) >= 0.9:
         return ""
-    if (title and re.match(r"^\s*[.)]*\s*\*[^*]+\*\s*[.,]?\s*(?:\d|doi\b|https?://|$)", tail, re.I)):
+    if italic and re.match(r"^\s*[.,]?\s*(?:\d|doi\b|https?://)", remainder, re.I):
         return ""
     return title
 
@@ -916,13 +933,14 @@ def _cited_surnames(citation: str, *, first_for_et_al: bool = True) -> tuple[lis
     return (names[:1] if et_al and first_for_et_al else names), et_al
 
 
-def search_cited_title(citation: str, client: RegistryClient) -> tuple[dict | None, bool]:
+def search_cited_title(citation: str, client: RegistryClient,
+                       *, title: str | None = None) -> tuple[dict | None, bool]:
     """Find a cited title in either registry; return (best hit, both searches usable).
 
     A hit is evidence for human review, not proof that the cited DOI is wrong.
     If either lookup fails and neither finds a title, the caller must fail closed.
     """
-    title = citation_fields(citation)["title"]
+    title = citation_fields(citation)["title"] if title is None else title
     surnames, _ = _cited_surnames(citation, first_for_et_al=False)
     if not title:
         return None, False
@@ -984,7 +1002,7 @@ def _apply_title_search(result: dict, citation: str, record: dict, client: Regis
         return
     if _title_score(title, record) >= 0.5:
         return
-    hit, complete = search_cited_title(citation, client)
+    hit, complete = search_cited_title(citation, client, title=title)
     if hit:
         result["cited_title_found"] = hit
     elif not complete:

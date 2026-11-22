@@ -10,19 +10,22 @@
 | Trailing Markdown in DOI | Strip trailing Markdown and unmatched closers, retaining balanced parentheses. | Recorded DOI shape; copied-ledger sweep. |
 | Adjacent links | Keep a DOI inside its link, including links followed by a colon or closing parenthesis. | Recorded slide-shaped links; copied-ledger sweep. |
 | Quoted on purpose | Page decision is checked against note, DOI, and exact citation text; ledger suppresses that note only and reopens on changed text. | Recorded ledger tests for defect, second note, changed text, wrong note. |
+| Brown citation shapes | A title after the year is recognized through Markdown emphasis, punctuation, a dash, or plain whitespace. Lowercase prose remains titleless. | Four Brown cases using the recorded Crossref answer, plus colon, semicolon and underscore cases; Egger, venue-only, and HarvestStat regressions. |
 | No note edits; no gate scope or v14/v15 changes | Only checker, ledger, page, tests and checker README changed. | Git diff review. |
 
 ## Copied-ledger sweep
 
 The selection rule in v16 (tracked latest version of every Markdown file under `ai-sandbox/research/` containing a DOI; exclude plans and the unversioned Literature Gap Memo) yields **27 files**. Applying the same rule to the handoff commit `f75c7360` also yields 27, so the handoff's stated 24-file count does not match its selection rule. This run follows the stated rule and records all 27. The main ledger and cache were copied to a temporary directory; all raises wrote to that copy. No review decisions were applied.
 
-**Totals:** 23 defects, 101 open items. No unresolved DOI rows. No title-search-unavailable rows remained in the final pass; the retry set was empty. All nine checker defects named in v16 section 1 are absent. The expected real wrong-link and quoted-review defects remain. The current Correction Log contributes 12 defects, and the manual-download list contributes 43 open items; these are left for human review.
+**Totals after the Brown correction:** 20 defects, 105 open items. No unresolved DOI rows. No title-search-unavailable rows remained; the retry set was empty. All nine checker defects named in v16 section 1 are absent. The expected real wrong-link defects remain. Three prior quoted-review TITLE_WRONG defects now appear as open items under the lowercase-prose rule: one in the Spot Check and two in the Verification Review. They remain gated and available for a `quoted` decision. The current Correction Log contributes 12 defects, and the manual-download list contributes 43 open items; these are left for human review.
+
+The handoff's first 48 open items can be identified in the copied main ledger by their shared creation timestamp. Their tiers were 29 PLAUSIBLE, 11 REVIEW and 8 UNCHECKED. The new sweep has 47 PLAUSIBLE, 7 REVIEW and 51 UNCHECKED: **+18 PLAUSIBLE, -4 REVIEW and +43 UNCHECKED**, a net increase of 57. All 43 additional UNCHECKED items are in `journal-articles/needs_manual_downloads.md`; that file had no item in the first cohort. The tier changes also reflect the latest-version selection and the new title/prose classification, so the net counts are not a one-to-one migration of the first cohort.
 
 | File under `ai-sandbox/research/` | Defects | Open items |
 | --- | ---: | ---: |
 | `independent-research/notes/00_overview-and-strategy/02_agenda-strategy-and-reviews/Humanitarian Development Nexus - Research Focus Analysis.md` | 0 | 1 |
 | `independent-research/notes/00_overview-and-strategy/02_agenda-strategy-and-reviews/Research Presentation Narrative - Humanitarian Transportability Pipeline.md` | 1 | 1 |
-| `independent-research/notes/00_overview-and-strategy/03_novelty-check/Novelty Check - Claude Spot Check - v1.md` | 1 | 1 |
+| `independent-research/notes/00_overview-and-strategy/03_novelty-check/Novelty Check - Claude Spot Check - v1.md` | 0 | 2 |
 | `independent-research/notes/00_overview-and-strategy/03_novelty-check/Novelty Check - Context Distance Cases - v1.md` | 2 | 2 |
 | `independent-research/notes/00_overview-and-strategy/03_novelty-check/Novelty Check - Correction Log - v2.md` | 12 | 6 |
 | `independent-research/notes/00_overview-and-strategy/03_novelty-check/Novelty Check - Fetch List and Priorities - v1.md` | 0 | 26 |
@@ -33,7 +36,7 @@ The selection rule in v16 (tracked latest version of every Markdown file under `
 | `independent-research/notes/00_overview-and-strategy/03_novelty-check/Novelty Check - Summary - v3.md` | 0 | 0 |
 | `independent-research/notes/00_overview-and-strategy/04_documentation-probe-and-sources/Documentation Probe - Kenya Data and Replication Sweep - v1.md` | 0 | 1 |
 | `independent-research/notes/00_overview-and-strategy/05_slides-and-talk/presentation_slides.marp.md` | 1 | 1 |
-| `independent-research/notes/01_compound-shocks-panel/review-gate/Literature Gap Memo - Verification Review.md` | 5 | 1 |
+| `independent-research/notes/01_compound-shocks-panel/review-gate/Literature Gap Memo - Verification Review.md` | 3 | 3 |
 | `independent-research/notes/01_compound-shocks-panel/review-gate/Literature Gap Memo - v2.md` | 0 | 0 |
 | `independent-research/notes/02_literature-and-evidence-map/Literature Pipeline - Early Prototype.md` | 0 | 0 |
 | `independent-research/notes/02_literature-and-evidence-map/Machine-Readable Literature Sources - Evidence Mapping and Trial Eligibility.md` | 0 | 1 |
@@ -42,7 +45,7 @@ The selection rule in v16 (tracked latest version of every Markdown file under `
 | `independent-research/notes/03_rct-transportability/ag-transport-grant-proposal/Project Summary and References - v1.md` | 0 | 1 |
 | `independent-research/notes/03_rct-transportability/ag-transport-grant-proposal/Proposal Draft - v5.md` | 0 | 11 |
 | `independent-research/notes/03_rct-transportability/ag-transport-grant-proposal/Reference Log - Four Searches - v4.md` | 0 | 0 |
-| `independent-research/projects/compound-shocks/literature_review.md` | 0 | 0 |
+| `independent-research/projects/compound-shocks/literature_review.md` | 0 | 1 |
 | `independent-research/projects/data-fusion-toolkit/literature_review.md` | 0 | 0 |
 | `independent-research/projects/systems-dynamics/literature_review.md` | 0 | 0 |
 | `independent-research/projects/transferability/literature_review.md` | 0 | 0 |
@@ -52,6 +55,6 @@ Claude can seed the review page's `items` collection using the existing flatteni
 
 ## Verification state
 
-- Fixture tests: checker and ledger focused suite passed (141 passed, 1 skipped). The full chunked suite passed in 8 chunks (1165.4 seconds).
+- Fixture tests: the Brown correction and checker/ledger focused suite passed (149 passed, 1 skipped). The earlier v16 commit passed the full chunked suite in 8 chunks (1165.4 seconds); that full run predates the Brown correction.
 - Live copied-ledger sweep: completed as above. This is a one-time observation, not longitudinal evidence.
-- Formal landing check: passed nine selected tool test files, reported no overlaps, and found no modified research notes for the citation gate. Landing remains subject to owner approval.
+- Formal landing check: the earlier v16 commit passed nine selected tool test files with no overlaps and no modified research notes for the citation gate. The Brown correction requires a new check and change ID before landing.

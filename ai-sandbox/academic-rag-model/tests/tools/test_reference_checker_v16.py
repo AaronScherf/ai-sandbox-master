@@ -1,5 +1,9 @@
-"""Recorded registry answers for the five v16 citation shapes."""
+"""Recorded registry answers for the v16 citation shapes."""
+import json
 import urllib.parse
+from pathlib import Path
+
+import pytest
 
 from tools.reference_checker import check, clean_identifier, extract
 
@@ -19,6 +23,10 @@ RECORDS = {
     "10.1257/aer.p20151069": ("Bleakley", 2015, "History and the Sizes of Cities",
         "American Economic Review"),
 }
+BROWN_DOI = "10.1257/pandp.20251021"
+MEAGER_DOI = "10.1257/app.20170299"
+RECORDED_ANSWERS = json.loads((Path(__file__).parent / "fixtures" / "reference_checker_v2.json")
+                              .read_text(encoding="utf-8"))
 
 
 class RecordedClient:
@@ -27,16 +35,23 @@ class RecordedClient:
 
     def get(self, url):
         if "/doiRA/" in url:
+            doi = urllib.parse.unquote(url.split("/doiRA/", 1)[1])
+            if doi in {BROWN_DOI, MEAGER_DOI}:
+                return RECORDED_ANSWERS[doi]["agency"]
             return {"data": [{"RA": "Crossref"}]}
         if "/works/" in url and "?" not in url:
             doi = urllib.parse.unquote(url.split("/works/", 1)[1])
+            if doi in {BROWN_DOI, MEAGER_DOI}:
+                answer = RECORDED_ANSWERS[doi]["answer"]
+                return {"status": answer["status"], "data": {"message": answer["data"]}}
             author, year, title, venue = RECORDS[doi]
             return {"status": 200, "data": {"message": {"DOI": doi, "title": [title],
                 "author": [{"family": author}], "issued": {"date-parts": [[year]]},
                 "container-title": [venue]}}}
         if "query.bibliographic=" in url or "api.openalex.org/works?search=" in url:
             self.searches.append(url)
-            return {"data": {"message": {"items": []}}} if "crossref" in url else {"data": {"results": []}}
+            return ({"status": 200, "data": {"message": {"items": []}}} if "crossref" in url else
+                    {"status": 200, "data": {"results": []}})
         raise AssertionError(url)
 
 
@@ -68,9 +83,41 @@ def test_whole_word_short_title_prefix_is_confirmed_without_search():
 def test_comparison_prose_does_not_trigger_title_search():
     client = RecordedClient()
     for citation in ("Egger et al. (2022) vs Kenya HSNP Phase 2 LEWIE (2019)",
-                     "Egger et al. (2022) suggests spillovers from cash transfers"):
+                     "Egger et al. (2022) found spillovers from cash transfers",
+                     "Egger et al. (2022) show spillovers from cash transfers"):
         result = _check(citation, "10.3982/ECTA17945", client)
         assert result["tier"] == "PLAUSIBLE"
+    assert client.searches == []
+
+
+@pytest.mark.parametrize("citation", [
+    "**Brown, Salisbury & Ball (2025)**, *Evidence-based funding and the value of information*, AEA Papers and Proceedings 115",
+    "Brown, Salisbury & Ball (2025) Evidence-based funding and the value of information. AEA Papers and Proceedings.",
+    "Brown, Salisbury & Ball (2025) — Evidence-based funding and the value of information, AEA P&P.",
+    "**Brown, Salisbury & Ball (2025)**. Evidence-based funding and the value of information.",
+])
+def test_brown_invented_title_variants_remain_title_wrong(citation):
+    client = RecordedClient()
+    result = _check(citation, BROWN_DOI, client)
+    assert result["tier"] == "TITLE_WRONG"
+    assert "TITLE_NOT_FOUND" in result["text_fidelity"]
+    assert len(client.searches) == 2
+
+
+@pytest.mark.parametrize("citation", [
+    "Brown, Salisbury & Ball (2025): Evidence-based funding and the value of information.",
+    "Brown, Salisbury & Ball (2025); Evidence-based funding and the value of information.",
+    "__Brown, Salisbury & Ball (2025)__: _Evidence-based funding and the value of information_.",
+])
+def test_brown_colon_semicolon_and_underscore_emphasis(citation):
+    result = _check(citation, BROWN_DOI, RecordedClient())
+    assert result["tier"] == "TITLE_WRONG"
+
+
+def test_parenthetical_venue_after_year_is_not_a_title():
+    client = RecordedClient()
+    result = _check("Meager (2019, AEJ: Applied)", MEAGER_DOI, client)
+    assert result["tier"] == "PLAUSIBLE"
     assert client.searches == []
 
 
