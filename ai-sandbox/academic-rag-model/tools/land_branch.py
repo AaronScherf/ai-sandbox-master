@@ -419,24 +419,31 @@ class LandResult:
     attempts: int
     retested: bool
     retest_chunk_timings: list[dict] = field(default_factory=list)
+    approved_at: str = ""
+    approved_base: str = ""
+    approved_reason: str = ""
+    retest_reason: str = ""
 
 
 def approved_check(worktree: Path, branch: str, cid: str) -> dict:
-    """The strongest passing check for this branch and change ID; newest wins ties."""
+    """The check to land on: an explicit --full pass wins, otherwise the newest pass.
+
+    The same change ID means the same diff, so the newest check was computed by
+    the current selection policy. An older "stronger" reason (e.g. non_py_file)
+    may come from superseded policy and must not force a full retest.
+    """
     path = log_path(worktree)
     entries = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
     best: dict | None = None
-    best_rank = -1
     for line in reversed(entries):
         entry = json.loads(line)
         if (entry.get("event") == "check" and entry.get("branch") == branch
                 and entry.get("change_id") == cid and entry.get("checks") in ("passed", "skipped")):
             reason = entry.get("selection_reason") or entry.get("full_reason")
-            rank = (3 if entry.get("full") or reason == "explicit_full" else
-                    2 if reason in {"core_change", "non_py_file", "unmapped_file", "helper_change"} else
-                    1 if entry["checks"] == "passed" else 0)
-            if rank > best_rank:
-                best, best_rank = entry, rank
+            if entry.get("full") or reason == "explicit_full":
+                return entry  # deliberate full request: newest of these wins
+            if best is None:
+                best = entry  # newest non-explicit pass; keep scanning for explicit full
     if best is not None:
         return best
     raise LandingError(f"no passing check for change {cid} on {branch}; run check and ask again")
@@ -480,6 +487,10 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
     tested_base = approved["base"]
     retests = 0
     retest_chunks: list[ChunkResult] = []
+    last_retest_reason = ""
+    approved_reason = approved.get("selection_reason") or approved.get("full_reason") or ""
+    print(f"Approved check: {approved.get('at', '?')} base {str(approved.get('base', ''))[:8]} "
+          f"{approved.get('checks')} reason {approved_reason or '?'}")
     for attempt in range(1, MAX_ATTEMPTS + 1):
         rebase_onto_main(worktree)
         if change_id(worktree) != cid:
@@ -498,6 +509,9 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
             if retests > MAX_RETEST_ATTEMPTS:
                 raise LandingError(f"main kept moving: {MAX_RETEST_ATTEMPTS} test re-runs without landing")
             prefix = subdir.rstrip("/") + "/" if subdir else ""
+            retest_reason = ", ".join(sorted(code_delta)[:5]) + (
+                f" (+{len(code_delta) - 5} more)" if len(code_delta) > 5 else "")
+            print(f"Retesting: main changed since {tested_base[:8]}: {retest_reason}")
             status, _, _ = run_checks(
                 worktree / subdir, project_relative(branch_files, subdir),
                 approved.get("full", False),
@@ -511,6 +525,7 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
             if status not in ("passed", "skipped"):
                 raise LandingError("tests failed after rebasing onto the new main")
             tested_base = main_now
+            last_retest_reason = retest_reason
         violations = guard_binaries.check_range(worktree, MAIN_BRANCH)
         if violations:
             raise LandingError(
@@ -535,6 +550,8 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
             retested=retests > 0,
             retest_chunk_timings=[{"name": r.name, "returncode": r.returncode, "seconds": r.seconds}
                                   for r in retest_chunks],
+            approved_at=approved.get("at", ""), approved_base=approved.get("base", ""),
+            approved_reason=approved_reason, retest_reason=last_retest_reason,
         )
     raise LandingError(f"main kept moving: no landing after {MAX_ATTEMPTS} attempts")
 

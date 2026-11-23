@@ -375,6 +375,22 @@ class LandingLogTests(unittest.TestCase):
         append_log(self.wt, {**base, "selection_reason": "targeted", "full": False, "sha": "b"})
         self.assertEqual(approved_check(self.wt, "claude/t", "same")["sha"], "a")
 
+    def test_approved_check_newer_skip_beats_stale_policy_pass(self):
+        # An older pass under superseded policy (non_py_file) must not outrank
+        # a newer check of the same diff that the current policy skips.
+        from tools.land_branch import append_log, approved_check
+        base = {"event": "check", "branch": "claude/t", "change_id": "same", "full": False}
+        append_log(self.wt, {**base, "checks": "passed", "selection_reason": "non_py_file", "sha": "old"})
+        append_log(self.wt, {**base, "checks": "skipped", "selection_reason": "outside_project_only", "sha": "new"})
+        self.assertEqual(approved_check(self.wt, "claude/t", "same")["sha"], "new")
+
+    def test_approved_check_newest_wins_without_explicit_full(self):
+        from tools.land_branch import append_log, approved_check
+        base = {"event": "check", "branch": "claude/t", "change_id": "same", "full": False}
+        append_log(self.wt, {**base, "checks": "passed", "selection_reason": "core_change", "sha": "old"})
+        append_log(self.wt, {**base, "checks": "passed", "selection_reason": "targeted", "sha": "new"})
+        self.assertEqual(approved_check(self.wt, "claude/t", "same")["sha"], "new")
+
 
 class RunChecksFullSuiteTests(unittest.TestCase):
     def setUp(self):
