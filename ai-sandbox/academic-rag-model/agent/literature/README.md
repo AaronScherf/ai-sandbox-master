@@ -45,6 +45,11 @@ python -m agent.literature api r1 --approve-cost 1.0       # explicit paid-API o
 `submit` picks the right stage from the run. Cards live in `<index-root>/.agent_work/<run>/` (gitignored). A pending or
 bounced card stays pending; nothing is sent to the API unless `api` is invoked.
 
+## Research profile
+
+Per-document classification (report type, discipline, 3ie tags, applicability), folders and a corpus summary live in
+[`profile/`](profile/README.md); it runs on the same task-card loop but has its own CLI.
+
 ## Record
 
 One JSON file per paper, `<file_id>.json` (pass b: `<file_id>.b.json`; proposals: `_proposals.json`):

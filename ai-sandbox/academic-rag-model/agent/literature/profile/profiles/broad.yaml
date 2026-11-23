@@ -1,0 +1,11 @@
+# Every paper with any 3ie intervention or outcome tag; the flags (role, orientation, status) stay on the record.
+name: broad
+framework: 3ie sector taxonomy
+require_intervention: false
+require_any_tag: true
+evidence_roles: []
+study_designs: []
+orientations: []
+income_groups: []
+min_year: null
+include_unclear: true

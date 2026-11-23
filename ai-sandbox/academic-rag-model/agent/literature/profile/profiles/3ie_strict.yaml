@@ -1,0 +1,23 @@
+# Inclusion profile that follows the public 3ie evidence-gap-map PICOS criteria (see umbrella design v2, section 5a).
+# Criteria are parameters of this profile, not constants in code: another map protocol gets another file.
+name: 3ie_strict
+framework: 3ie sector taxonomy
+require_intervention: true
+require_any_tag: false
+evidence_roles: [primary_evaluation, synthesis]
+study_designs:
+  - study_design.randomized_controlled_trial
+  - study_design.cluster_randomized_trial
+  - study_design.difference_in_differences
+  - study_design.regression_discontinuity
+  - study_design.instrumental_variables
+  - study_design.propensity_score_matching
+  - study_design.synthetic_control
+  - study_design.panel_fixed_effects
+  - study_design.interrupted_time_series
+  - study_design.natural_experiment
+  - study_design.systematic_review
+orientations: [retrospective]
+income_groups: [low, lower_middle, upper_middle]
+min_year: 2000
+include_unclear: true
