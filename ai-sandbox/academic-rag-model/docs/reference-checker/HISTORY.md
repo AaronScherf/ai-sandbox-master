@@ -2,7 +2,7 @@
 
 How the checker came to be, in the order the decisions were made. Each step links its record, so the reasoning can be checked against the source. Usage is covered in [README.md](README.md).
 
-The project ran from 2026-11-11 to 2026-11-18, across three agents:
+The project has run since 2026-11-11, across three agents:
 - **Codex** built and tested the code.
 - **Claude** reviewed it, made the design calls with Aaron, built the review page and integrated the work.
 - **Gemini** wrote the research notes being checked.
@@ -75,12 +75,60 @@ Until then, nothing called the checker unless an agent chose to run it, the same
 - Handoffs v12 and v13; acceptance: `S/2026-11-18-reference-checker-title-gate-acceptance.md`
 - Landed on `main` at `ca422ff0`.
 
-## State at 2026-11-18
+## 8. The first full sweep (2026-11-19 to 11-22)
 
-Five notes have been checked: RQ1 v4, RQ2 v4, RQ3 v5, the Summary v3 and the Literature Gap Memo v2. There are no open review items. Ten citations were accepted by hand. Three TITLE_WRONG defects are waiting on a fix to the notes: Lopez et al. and Brown et al. in RQ1, and Rosenzweig & Udry in RQ3. Until they are fixed, any new version of those two notes will be stopped at landing.
+v14 fixed two ledger faults that Claude's probes found:
+- A failed lookup now keeps an item's prior state, including a human defect.
+- An accepted item reopens only when its evidence changes: the tier, the citation text, or the registered title, authors, year or venue. A shifted line number no longer reopens it.
+
+The same commit corrected the three invented titles in RQ1 and RQ3. Every agent's instruction file then got a "Citing literature" section: the root `CLAUDE.md`, `AGENTS.md` and `GEMINI.md`, and the website's `GEMINI.md`. v15 specified a `--check-references` option for journal discovery; it has not been implemented.
+
+v16 swept the latest version of every research note with a DOI. The sweep found eight real citation errors, which were corrected on `claude/citation-error-fixes`:
+- a wrong Pritchett & Sandefur DOI in the Narrative and slides;
+- wrong Crost et al. and Bold et al. rows, corrected in Context Distance Cases v2;
+- a wrong Bailey et al. row, corrected in Adversarial Scan v2.
+
+It also produced a batch of false positives, which v16 fixed:
+- a venue read as a title;
+- a short title prefix not counted as a match;
+- comparison prose read as a title;
+- Markdown left on the end of a DOI;
+- adjacent links run together.
+
+v16 added the **Quoted on purpose** decision, for review notes that quote a wrong citation in order to correct it. Claude's review found a regression in which invented titles passed after author-year formatting; it was fixed before landing.
+
+- Handoffs v14–v16; acceptance: `S/2026-11-22-reference-checker-v16-acceptance.md`
+- Landed on `main` at `ca9e6eea`.
+
+## 9. Only queue what a person can decide (2026-11-22 to 11-23)
+
+The v16 sweep left 60 open items. Most were a surname and a year. Aaron's 8 decisions on rows like that had all been accepts, and both real catches had come from rows with titles. So v17 let title-less rows pass on author and year, whatever siblings the same team had. It also used venue, volume and pages as agreement or conflict, passed descriptive links that share words with the registered title (DESCRIBED), and reported the review load after each `raise`. Claude's review caught three bugs and one regression before landing:
+- venue-less rows matched to siblings;
+- "AEA P&P" read as a title;
+- an accept rate that could never be computed;
+- a title containing its journal's name read as the venue.
+
+The live sweep cut the page from 60 items to 20.
+
+- Handoff v17; review and acceptance: `S/2026-11-23-reference-checker-v17-review.md`
+- Landed on `main` at `6ced8bb4`.
+
+## 10. A DOI does not show what was meant (2026-11-23)
+
+Reviewing the remaining 20, Aaron found that name, year and DOI could not tell him what Gemini meant to cite. Some DOIs were plainly unrelated. Some citations matched a real paper by the same authors and year that the DOI did not point to. Gemini seemed to invent a DOI when it couldn't find one. So passing a row because the DOI is by those authors in that year, as v17 does, rests on evidence that the writer cannot be trusted to supply.
+
+The decision was to move the burden to the writer. In a note a branch adds or edits, a citation must carry the title of the work the writer means, looked up from that work rather than read off the DOI's record. A missing title is a defect the writer fixes, not an item a reviewer guesses at. Whether the paper supports the claim is a separate design, recorded as a pending to-do (a download-and-transcribe queue ordered by how much a claim matters and how unsure the reviewer is).
+
+- Handoff v18; evidence: `S/2026-11-23-reference-checker-v17-review.md` section 6.
+
+## State at 2026-11-23
+
+- The review page has 12 deferred items in existing notes. They block nothing unless someone edits those notes.
+- `claude/citation-error-fixes` passes its landing check and waits for approval.
+- v18 is handed to Codex.
 
 **Still open:**
-- a claim check, i.e. whether each paper supports what it is cited for;
+- the claim check (pending to-do, `## Claim Support Check`);
 - resolving plain URLs;
-- a routing line in `docs/AGENT_ROUTING.md`, deferred until `claude/spec-a-research-profile` lands, to avoid an overlap;
-- keeping a decided item closed when a later title search fails transiently.
+- v15 (discovery `--check-references`);
+- a routing line in `docs/AGENT_ROUTING.md`, deferred until `claude/spec-a-research-profile` lands, to avoid an overlap.
