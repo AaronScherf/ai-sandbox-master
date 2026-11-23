@@ -1264,6 +1264,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     chunk_p.add_argument("--file-id", default=None, help="exact card identity; requires --course")
     chunk_p.add_argument("--json", action="store_true", help="structured result for --file-id")
     chunk_p.add_argument("--dry-run", action="store_true")
+    chunk_p.add_argument("--use-paid-key", action="store_true",
+                         help="Embed with PAID_GEMINI_KEY; GEMINI_API_KEY may be a free-tier key with a small daily quota.")
     chunk_p.add_argument("--ignore-unresolved", action="store_true", help=_IGNORE_HELP)
 
     ask_p = subparsers.add_parser("ask", help="Ask a single grounded question (no conversation memory).")
@@ -1368,7 +1370,7 @@ def main() -> None:
             raise SystemExit(1)
         return
     load_dotenv_override()
-    client = get_gemini_client()
+    client = get_gemini_client("PAID_GEMINI_KEY") if getattr(args, "use_paid_key", False) else get_gemini_client()
     if client is None:
         raise SystemExit(1)
 

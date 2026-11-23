@@ -76,3 +76,16 @@ def test_non_ascii_card_text_is_written_with_unix_newlines_and_round_trips(tmp_p
     raw = run.card_path("t-1").read_bytes()
     assert b"\r\n" not in raw
     assert raw.decode("utf-8") == render_card(task)
+
+
+def test_bounce_reasons_are_kept_after_the_card_is_finally_applied(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    run = create_run(tmp_path / "work", repo, "demo", [_task()], run_id="r1")
+    assert "bounce_log" not in run.task("t-1")  # manifests of clean runs stay unchanged
+    run.bounce("t-1", ["quote: not found on page 2"])
+    run.bounce("t-1", ["quote: too short"])
+    run.set_status("t-1", "applied")
+    entry = load_run(tmp_path / "work", "r1").task("t-1")
+    assert entry["status"] == "applied" and entry["reasons"] == []
+    assert entry["bounce_log"] == [["quote: not found on page 2"], ["quote: too short"]]

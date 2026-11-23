@@ -68,6 +68,7 @@ class Run:
     def bounce(self, task_id: str, reasons: list[str]) -> None:
         entry = self.task(task_id)
         entry["attempts"] = entry.get("attempts", 0) + 1
+        entry.setdefault("bounce_log", []).append(list(reasons))  # kept after the card is applied
         path = self.card_path(task_id)
         text = path.read_text(encoding="utf-8")
         cut = text.find("\n## Bounced")
