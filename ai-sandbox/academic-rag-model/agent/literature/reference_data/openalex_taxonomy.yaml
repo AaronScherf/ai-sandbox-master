@@ -1,0 +1,843 @@
+retrieved: '2026-11-13'
+source: https://api.openalex.org/domains, /fields, /subfields
+domains:
+  '3': Physical Sciences
+  '2': Social Sciences
+  '4': Health Sciences
+  '1': Life Sciences
+fields:
+  '33':
+    label: Social Sciences
+    domain: '2'
+  '31':
+    label: Physics and Astronomy
+    domain: '3'
+  '27':
+    label: Medicine
+    domain: '4'
+  '12':
+    label: Arts and Humanities
+    domain: '2'
+  '11':
+    label: Agricultural and Biological Sciences
+    domain: '1'
+  '22':
+    label: Engineering
+    domain: '3'
+  '17':
+    label: Computer Science
+    domain: '3'
+  '23':
+    label: Environmental Science
+    domain: '3'
+  '14':
+    label: Business, Management and Accounting
+    domain: '2'
+  '13':
+    label: Biochemistry, Genetics and Molecular Biology
+    domain: '1'
+  '19':
+    label: Earth and Planetary Sciences
+    domain: '3'
+  '20':
+    label: Economics, Econometrics and Finance
+    domain: '2'
+  '25':
+    label: Materials Science
+    domain: '3'
+  '16':
+    label: Chemistry
+    domain: '3'
+  '32':
+    label: Psychology
+    domain: '2'
+  '26':
+    label: Mathematics
+    domain: '3'
+  '28':
+    label: Neuroscience
+    domain: '1'
+  '24':
+    label: Immunology and Microbiology
+    domain: '1'
+  '36':
+    label: Health Professions
+    domain: '4'
+  '21':
+    label: Energy
+    domain: '3'
+  '18':
+    label: Decision Sciences
+    domain: '2'
+  '29':
+    label: Nursing
+    domain: '4'
+  '35':
+    label: Dentistry
+    domain: '4'
+  '30':
+    label: Pharmacology, Toxicology and Pharmaceutics
+    domain: '1'
+  '15':
+    label: Chemical Engineering
+    domain: '3'
+  '34':
+    label: Veterinary
+    domain: '4'
+subfields:
+  '3106':
+    label: Nuclear and High Energy Physics
+    field: '31'
+  '1110':
+    label: Plant Science
+    field: '11'
+  '3304':
+    label: Education
+    field: '33'
+  '1202':
+    label: History
+    field: '12'
+  '3312':
+    label: Sociology and Political Science
+    field: '33'
+  '3320':
+    label: Political Science and International Relations
+    field: '33'
+  '1208':
+    label: Literature and Literary Theory
+    field: '12'
+  '2208':
+    label: Electrical and Electronic Engineering
+    field: '22'
+  '3308':
+    label: Law
+    field: '33'
+  '1312':
+    label: Molecular Biology
+    field: '13'
+  '2002':
+    label: Economics and Econometrics
+    field: '20'
+  '2739':
+    label: Public Health, Environmental and Occupational Health
+    field: '27'
+  '1105':
+    label: Ecology, Evolution, Behavior and Systematics
+    field: '11'
+  '2746':
+    label: Surgery
+    field: '27'
+  '1213':
+    label: Visual Arts and Performing Arts
+    field: '12'
+  '1203':
+    label: Language and Linguistics
+    field: '12'
+  '2210':
+    label: Mechanical Engineering
+    field: '22'
+  '1212':
+    label: Religious studies
+    field: '12'
+  '2505':
+    label: Materials Chemistry
+    field: '25'
+  '2705':
+    label: Cardiology and Cardiovascular Medicine
+    field: '27'
+  '2205':
+    label: Civil and Structural Engineering
+    field: '22'
+  '1605':
+    label: Organic Chemistry
+    field: '16'
+  '1702':
+    label: Artificial Intelligence
+    field: '17'
+  '1211':
+    label: Philosophy
+    field: '12'
+  '2303':
+    label: Ecology
+    field: '23'
+  '1204':
+    label: Archeology (arts and humanities)
+    field: '12'
+  '3316':
+    label: Cultural Studies
+    field: '33'
+  '2730':
+    label: Oncology
+    field: '27'
+  '3203':
+    label: Clinical Psychology
+    field: '32'
+  '1408':
+    label: Strategy and Management
+    field: '14'
+  '1710':
+    label: Information Systems
+    field: '17'
+  '3107':
+    label: Atomic and Molecular Physics, and Optics
+    field: '31'
+  '2725':
+    label: Infectious Diseases
+    field: '27'
+  '1109':
+    label: Insect Science
+    field: '11'
+  '1210':
+    label: Music
+    field: '12'
+  '2207':
+    label: Control and Systems Engineering
+    field: '22'
+  '3103':
+    label: Astronomy and Astrophysics
+    field: '31'
+  '1103':
+    label: Animal Science and Zoology
+    field: '11'
+  '2728':
+    label: Clinical Neurology
+    field: '27'
+  '1707':
+    label: Computer Vision and Pattern Recognition
+    field: '17'
+  '3204':
+    label: Developmental and Educational Psychology
+    field: '32'
+  '1705':
+    label: Computer Networks and Communications
+    field: '17'
+  '2003':
+    label: Finance
+    field: '20'
+  '1604':
+    label: Inorganic Chemistry
+    field: '16'
+  '1207':
+    label: History and Philosophy of Science
+    field: '12'
+  '1106':
+    label: Food Science
+    field: '11'
+  '1402':
+    label: Accounting
+    field: '14'
+  '1406':
+    label: Marketing
+    field: '14'
+  '2740':
+    label: Pulmonary and Respiratory Medicine
+    field: '27'
+  '1311':
+    label: Genetics
+    field: '13'
+  '1910':
+    label: Oceanography
+    field: '19'
+  '2712':
+    label: Endocrinology, Diabetes and Metabolism
+    field: '27'
+  '1803':
+    label: Management Science and Operations Research
+    field: '18'
+  '1407':
+    label: Organizational Behavior and Human Resource Management
+    field: '14'
+  '3305':
+    label: Geography, Planning and Development
+    field: '33'
+  '2202':
+    label: Aerospace Engineering
+    field: '22'
+  '2805':
+    label: Cognitive Neuroscience
+    field: '28'
+  '1902':
+    label: Atmospheric Science
+    field: '19'
+  '2105':
+    label: Renewable Energy, Sustainability and the Environment
+    field: '21'
+  '2312':
+    label: Water Science and Technology
+    field: '23'
+  '3309':
+    label: Library and Information Sciences
+    field: '33'
+  '3314':
+    label: Anthropology
+    field: '33'
+  '2713':
+    label: Epidemiology
+    field: '27'
+  '3315':
+    label: Communication
+    field: '33'
+  '2720':
+    label: Hematology
+    field: '27'
+  '1111':
+    label: Soil Science
+    field: '11'
+  '2302':
+    label: Ecological Modeling
+    field: '23'
+  '2204':
+    label: Biomedical Engineering
+    field: '22'
+  '1906':
+    label: Geochemistry and Petrology
+    field: '19'
+  '2403':
+    label: Immunology
+    field: '24'
+  '3207':
+    label: Social Psychology
+    field: '32'
+  '2206':
+    label: Computational Mechanics
+    field: '22'
+  '2306':
+    label: Global and Planetary Change
+    field: '23'
+  '1107':
+    label: Forestry
+    field: '11'
+  '2741':
+    label: Radiology, Nuclear Medicine and Imaging
+    field: '27'
+  '2211':
+    label: Mechanics of Materials
+    field: '22'
+  '3600':
+    label: General Health Professions
+    field: '36'
+  '2731':
+    label: Ophthalmology
+    field: '27'
+  '2215':
+    label: Building and Construction
+    field: '22'
+  '2209':
+    label: Industrial and Manufacturing Engineering
+    field: '22'
+  '2504':
+    label: Electronic, Optical and Magnetic Materials
+    field: '25'
+  '3318':
+    label: Gender Studies
+    field: '33'
+  '2308':
+    label: Management, Monitoring, Policy and Law
+    field: '23'
+  '2735':
+    label: Pediatrics, Perinatology and Child Health
+    field: '27'
+  '2000':
+    label: General Economics, Econometrics and Finance
+    field: '20'
+  '1209':
+    label: Museology
+    field: '12'
+  '2738':
+    label: Psychiatry and Mental health
+    field: '27'
+  '1205':
+    label: Classics
+    field: '12'
+  '3104':
+    label: Condensed Matter Physics
+    field: '31'
+  '2732':
+    label: Orthopedics and Sports Medicine
+    field: '27'
+  '2916':
+    label: Nutrition and Dietetics
+    field: '29'
+  '3310':
+    label: Linguistics and Language
+    field: '33'
+  '1908':
+    label: Geophysics
+    field: '19'
+  '1602':
+    label: Analytical Chemistry
+    field: '16'
+  '1405':
+    label: Management of Technology and Innovation
+    field: '14'
+  '2216':
+    label: Architecture
+    field: '22'
+  '1102':
+    label: Agronomy and Crop Science
+    field: '11'
+  '1409':
+    label: Tourism, Leisure and Hospitality Management
+    field: '14'
+  '2715':
+    label: Gastroenterology
+    field: '27'
+  '2737':
+    label: Physiology (medical)
+    field: '27'
+  '3322':
+    label: Urban Studies
+    field: '33'
+  '2604':
+    label: Applied Mathematics
+    field: '26'
+  '1306':
+    label: Cancer Research
+    field: '13'
+  '2804':
+    label: Cellular and Molecular Neuroscience
+    field: '28'
+  '1104':
+    label: Aquatic Science
+    field: '11'
+  '2307':
+    label: Health, Toxicology and Mutagenesis
+    field: '23'
+  '3205':
+    label: Experimental and Cognitive Psychology
+    field: '32'
+  '2507':
+    label: Polymers and Plastics
+    field: '25'
+  '2213':
+    label: Safety, Risk, Reliability and Quality
+    field: '22'
+  '2613':
+    label: Statistics and Probability
+    field: '26'
+  '2305':
+    label: Environmental Engineering
+    field: '23'
+  '1703':
+    label: Computational Theory and Mathematics
+    field: '17'
+  '2708':
+    label: Dermatology
+    field: '27'
+  '1904':
+    label: Earth-Surface Processes
+    field: '19'
+  '2310':
+    label: Pollution
+    field: '23'
+  '2729':
+    label: Obstetrics and Gynecology
+    field: '27'
+  '2727':
+    label: Nephrology
+    field: '27'
+  '1911':
+    label: Paleontology
+    field: '19'
+  '1404':
+    label: Management Information Systems
+    field: '14'
+  '1100':
+    label: General Agricultural and Biological Sciences
+    field: '11'
+  '2745':
+    label: Rheumatology
+    field: '27'
+  '1712':
+    label: Software
+    field: '17'
+  '2506':
+    label: Metals and Alloys
+    field: '25'
+  '1606':
+    label: Physical and Theoretical Chemistry
+    field: '16'
+  '2748':
+    label: Urology
+    field: '27'
+  '3313':
+    label: Transportation
+    field: '33'
+  '1607':
+    label: Spectroscopy
+    field: '16'
+  '2608':
+    label: Geometry and Topology
+    field: '26'
+  '2405':
+    label: Parasitology
+    field: '24'
+  '1907':
+    label: Geology
+    field: '19'
+  '3317':
+    label: Demography
+    field: '33'
+  '2309':
+    label: Nature and Landscape Conservation
+    field: '23'
+  '2721':
+    label: Hepatology
+    field: '27'
+  '1912':
+    label: Space and Planetary Science
+    field: '19'
+  '3500':
+    label: General Dentistry
+    field: '35'
+  '3306':
+    label: Health
+    field: '33'
+  '1307':
+    label: Cell Biology
+    field: '13'
+  '2736':
+    label: Pharmacology (medical)
+    field: '27'
+  '2502':
+    label: Biomaterials
+    field: '25'
+  '2103':
+    label: Fuel Technology
+    field: '21'
+  '2707':
+    label: Complementary and alternative medicine
+    field: '27'
+  '2743':
+    label: Reproductive Medicine
+    field: '27'
+  '3108':
+    label: Radiation
+    field: '31'
+  '3302':
+    label: Archeology
+    field: '33'
+  '2703':
+    label: Anesthesiology and Pain Medicine
+    field: '27'
+  '2203':
+    label: Automotive Engineering
+    field: '22'
+  '3109':
+    label: Statistical and Nonlinear Physics
+    field: '31'
+  '2404':
+    label: Microbiology
+    field: '24'
+  '3303':
+    label: Development
+    field: '33'
+  '2610':
+    label: Mathematical Physics
+    field: '26'
+  '3612':
+    label: Physical Therapy, Sports Therapy and Rehabilitation
+    field: '36'
+  '3504':
+    label: Oral Surgery
+    field: '35'
+  '1708':
+    label: Hardware and Architecture
+    field: '17'
+  '1711':
+    label: Signal Processing
+    field: '17'
+  '2311':
+    label: Waste Management and Disposal
+    field: '23'
+  '3105':
+    label: Instrumentation
+    field: '31'
+  '1507':
+    label: Fluid Flow and Transfer Processes
+    field: '15'
+  '2734':
+    label: Pathology and Forensic Medicine
+    field: '27'
+  '1410':
+    label: Industrial relations
+    field: '14'
+  '3321':
+    label: Public Administration
+    field: '33'
+  '1704':
+    label: Computer Graphics and Computer-Aided Design
+    field: '17'
+  '3005':
+    label: Toxicology
+    field: '30'
+  '2508':
+    label: Surfaces, Coatings and Films
+    field: '25'
+  '2706':
+    label: Critical Care and Intensive Care Medicine
+    field: '27'
+  '3202':
+    label: Applied Psychology
+    field: '32'
+  '2711':
+    label: Emergency Medicine
+    field: '27'
+  '2724':
+    label: Internal Medicine
+    field: '27'
+  '2304':
+    label: Environmental Chemistry
+    field: '23'
+  '3004':
+    label: Pharmacology
+    field: '30'
+  '1709':
+    label: Human-Computer Interaction
+    field: '17'
+  '2733':
+    label: Otorhinolaryngology
+    field: '27'
+  '2922':
+    label: Research and Theory
+    field: '29'
+  '2717':
+    label: Geriatrics and Gerontology
+    field: '27'
+  '2808':
+    label: Neurology
+    field: '28'
+  '2212':
+    label: Ocean Engineering
+    field: '22'
+  '1303':
+    label: Biochemistry
+    field: '13'
+  '3605':
+    label: Health Information Management
+    field: '36'
+  '1706':
+    label: Computer Science Applications
+    field: '17'
+  '2503':
+    label: Ceramics and Composites
+    field: '25'
+  '2602':
+    label: Algebra and Number Theory
+    field: '26'
+  '1802':
+    label: Information Systems and Management
+    field: '18'
+  '3404':
+    label: Small Animals
+    field: '34'
+  '1206':
+    label: Conservation
+    field: '12'
+  '2607':
+    label: Discrete Mathematics and Combinatorics
+    field: '26'
+  '2402':
+    label: Applied Microbiology and Biotechnology
+    field: '24'
+  '2406':
+    label: Virology
+    field: '24'
+  '3311':
+    label: Safety Research
+    field: '33'
+  '3616':
+    label: Speech and Hearing
+    field: '36'
+  '2611':
+    label: Modeling and Simulation
+    field: '26'
+  '2726':
+    label: Microbiology (medical)
+    field: '27'
+  '3003':
+    label: Pharmaceutical Science
+    field: '30'
+  '1305':
+    label: Biotechnology
+    field: '13'
+  '1304':
+    label: Biophysics
+    field: '13'
+  '3307':
+    label: Human Factors and Ergonomics
+    field: '33'
+  '2807':
+    label: Endocrine and Autonomic Systems
+    field: '28'
+  '1200':
+    label: General Arts and Humanities
+    field: '12'
+  '2723':
+    label: Immunology and Allergy
+    field: '27'
+  '3300':
+    label: General Social Sciences
+    field: '33'
+  '2104':
+    label: Nuclear Energy and Engineering
+    field: '21'
+  '3506':
+    label: Periodontics
+    field: '35'
+  '3319':
+    label: Life-span and Life-course Studies
+    field: '33'
+  '1506':
+    label: Filtration and Separation
+    field: '15'
+  '1315':
+    label: Structural Biology
+    field: '13'
+  '2716':
+    label: Genetics (clinical)
+    field: '27'
+  '3102':
+    label: Acoustics and Ultrasonics
+    field: '31'
+  '1503':
+    label: Catalysis
+    field: '15'
+  '2809':
+    label: Sensory Systems
+    field: '28'
+  '2702':
+    label: Anatomy
+    field: '27'
+  '3002':
+    label: Drug Discovery
+    field: '30'
+  '3607':
+    label: Medical Laboratory Technology
+    field: '36'
+  '2102':
+    label: Energy Engineering and Power Technology
+    field: '21'
+  '2742':
+    label: Rehabilitation
+    field: '27'
+  '1403':
+    label: Business and International Management
+    field: '14'
+  '3505':
+    label: Orthodontics
+    field: '35'
+  '2704':
+    label: Biochemistry (medical)
+    field: '27'
+  '3611':
+    label: Pharmacy
+    field: '36'
+  '2214':
+    label: Media Technology
+    field: '22'
+  '3609':
+    label: Occupational Therapy
+    field: '36'
+  '2612':
+    label: Numerical Analysis
+    field: '26'
+  '2714':
+    label: Family Practice
+    field: '27'
+  '2910':
+    label: Issues, ethics and legal aspects
+    field: '29'
+  '1800':
+    label: General Decision Sciences
+    field: '18'
+  '2500':
+    label: General Materials Science
+    field: '25'
+  '2718':
+    label: Health Informatics
+    field: '27'
+  '1804':
+    label: Statistics, Probability and Uncertainty
+    field: '18'
+  '1508':
+    label: Process Chemistry and Technology
+    field: '15'
+  '1603':
+    label: Electrochemistry
+    field: '16'
+  '1310':
+    label: Endocrinology
+    field: '13'
+  '2747':
+    label: Transplantation
+    field: '27'
+  '1308':
+    label: Clinical Biochemistry
+    field: '13'
+  '1314':
+    label: Physiology
+    field: '13'
+  '2100':
+    label: General Energy
+    field: '21'
+  '3200':
+    label: General Psychology
+    field: '32'
+  '3402':
+    label: Equine
+    field: '34'
+  '2806':
+    label: Developmental Neuroscience
+    field: '28'
+  '2614':
+    label: Theoretical Computer Science
+    field: '26'
+  '3604':
+    label: Emergency Medical Services
+    field: '36'
+  '2802':
+    label: Behavioral Neuroscience
+    field: '28'
+  '1504':
+    label: Chemical Health and Safety
+    field: '15'
+  '2911':
+    label: Leadership and Management
+    field: '29'
+  '1108':
+    label: Horticulture
+    field: '11'
+  '1302':
+    label: Aging
+    field: '13'
+  '3603':
+    label: Complementary and Manual Therapy
+    field: '36'
+  '3206':
+    label: Neuropsychology and Physiological Psychology
+    field: '32'
+  '1309':
+    label: Developmental Biology
+    field: '13'
+  '2803':
+    label: Biological Psychiatry
+    field: '28'
+  '1313':
+    label: Molecular Medicine
+    field: '13'
+  '2200':
+    label: General Engineering
+    field: '22'
+  '2605':
+    label: Computational Mathematics
+    field: '26'
+  '3608':
+    label: Medical Terminology
+    field: '36'
+  '1502':
+    label: Bioengineering
+    field: '15'
+  '3614':
+    label: Radiological and Ultrasound Technology
+    field: '36'
