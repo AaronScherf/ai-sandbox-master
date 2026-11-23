@@ -1326,3 +1326,10 @@ class TestNullDriverSafetyNet(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
+
+
+class TestMissingPagesGuard(unittest.TestCase):
+    def test_missing_pages_lists_gaps_in_order(self):
+        from pipelines.transcribe_notes.transcribe_notes import missing_pages
+        self.assertEqual(missing_pages({"1": "a", "3": "c"}, 4), [2, 4])
+        self.assertEqual(missing_pages({"1": "a", "2": "b"}, 2), [])

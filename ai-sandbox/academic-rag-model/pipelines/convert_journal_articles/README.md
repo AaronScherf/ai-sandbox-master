@@ -13,7 +13,7 @@ publisher-rendered documents — into Markdown by reusing
   subfolders, e.g. `economics/`, that may nest further — unlike the flat,
   single-level folders the notes pipeline usually sees) with its own
   `known_doc_types={"journal_article"}`. A document over `--max-pages`
-  (default 150) is flagged and **skipped entirely**, never converted — the
+  (default 100) is flagged and **skipped entirely** until the owner decides (see "Oversize PDFs" below), never converted — the
   GPU/Marker [`convert_textbook/`](../convert_textbook/) pipeline is the most expensive step
   in this whole project, and it only ever runs on files a human deliberately
   moves into `academic-hub/`'s own folder structure, never something this
@@ -89,21 +89,50 @@ python -m pipelines.convert_journal_articles.convert_journal_articles --submit r
   paper's thematic subfolder (`economics/`, `misc/`, ...) becomes its
   course automatically.
 * Add `--max-pages <N>` to change the oversized-document threshold
-  (default 150). A document over it is flagged and **skipped entirely**
-  -- not converted, not indexed. This is deliberate: the GPU/Marker
-  textbook pipeline is the most expensive part of this whole project,
-  and it only ever runs on files actually sitting in `academic-hub/`'s
-  own folder structure. A flagged file needs a human decision (move it
-  into `academic-hub/` and run `convert_textbook.py` there, or leave it
-  out of the indexed corpus) -- this script never makes that call for
-  you. Confirmed real: a 402-page monograph briefly sat in
-  `journal-articles/` alongside genuine ~20-page papers before this
-  guard existed.
+  (default 100, `oversize.THRESHOLD`). A document over it that has not been
+  transcribed yet is flagged and **skipped** -- not converted, not indexed --
+  until the owner decides; see "Oversize PDFs" below. This is deliberate: a
+  book is not a research paper, and the GPU/Marker textbook pipeline is the
+  most expensive part of this whole project. Confirmed real: a 402-page
+  monograph briefly sat in `journal-articles/` alongside genuine ~20-page
+  papers before this guard existed. A PDF that already has a transcript is
+  never flagged.
 * Output: `processed_outputs/<name>.md` next to each source PDF (same
   `processed_outputs/`-alongside-the-input convention as the notes
   pipeline), including the `<!-- page N -->` tags and YAML frontmatter
   (`routing`, `model`, `tags: []`, ...) `transcribe_notes.py` always
   produces.
+
+### Oversize PDFs (owner decision)
+
+A PDF over 100 pages with no transcript is recorded in
+`<index-root>/.index/oversize_review/decisions.json` (`oversize.py`) with an `OVERSIZE:` warning, and the owner answers
+on a review Artifact (project rule in `academic-rag-model/CLAUDE.md`). Apply the answers with
+`oversize.apply_decisions(index_root, {rel_path: choice})`:
+
+* `article` -- transcribe it and treat it like a paper (later runs let it through).
+* `leave` -- keep the PDF where it is, do not transcribe it, stop warning about it.
+* `move` -- move the PDF and its `.meta.json` to `<base>/oversize_PDF/`, which discovery skips. Refuses to overwrite.
+
+### Pending-transcription queue
+
+`--queue` writes `journal-articles/TRANSCRIPTION_QUEUE.md` (no transcription, no API calls) from the disk and the
+oversize ledger: PDFs with no `processed_outputs/<name>.md`, in four sections -- ready (short first, with a page total),
+ready but long (cleared as `article`), waiting on an owner decision, unreadable. Use the page totals to plan Gemini
+subscription quota. The file is generated; rebuild it, do not edit it.
+
+### Running in rounds, and what is skipped
+
+* An agent run transcribes **six pages per document per round**, in strict page order (each card needs the previous
+  pages as context). `--submit` writes the pages it received and stages the next card, so a 90-page document needs
+  about 15 rounds. Finish a short tail on the paid key with `--submit <run> --file "<name>.pdf" --allow-api-fallback`
+  (one document per call; warn first if the estimate passes $1).
+* A PDF byte-identical to one already transcribed is **linked** to the existing transcript at no cost.
+* Discovery skips folders named `zotero`, `local`, `replication_materials` (a paper's data-and-code package, not
+  papers) and `oversize_PDF`.
+* Paper folders under `journal-articles/` are reorganised by the research profile (discipline folders, project
+  folders, nested sub-folders); see [`agent/literature/profile/README.md`](../../agent/literature/profile/README.md).
+  The transcriber's `_pages_cache.json` / `_pages_driver.json` files move with the transcript.
 
 ### How it works
 

@@ -122,7 +122,15 @@ class TestSubmitDoc(unittest.TestCase):
             process_pdf(pdf_path, None, None, hub, driver=driver, collect_mode=True)
             doc_slug = driver.last_doc_slug
 
-            with unittest.mock.patch("pipelines.transcribe_notes.agent_submit.process_pdf") as mock_process:
+            from pipelines.transcribe_notes.agent_submit import _md_path_for
+
+            def _writes_md(*_a, **_k):
+                os.makedirs(os.path.dirname(_md_path_for(pdf_path)), exist_ok=True)
+                open(_md_path_for(pdf_path), "w").close()
+
+            with unittest.mock.patch(
+                "pipelines.transcribe_notes.agent_submit.process_pdf", side_effect=_writes_md,
+            ) as mock_process:
                 status = submit_doc(
                     hub, hub, "run-1", doc_slug, pdf_path, client=MagicMock(), model_override=None,
                     allow_api_fallback=True,
@@ -325,7 +333,16 @@ class TestSubmitDocForceVision(unittest.TestCase):
                                     "## Agent output\n\n", "## Agent output\n\n--- PAGE 1 ---\nAgent text.\n",
                                 ))
 
-                            with patch("pipelines.transcribe_notes.transcribe_notes._write_markdown_and_index") as mock_write:
+                            from pipelines.transcribe_notes.agent_submit import _md_path_for
+
+                            def _writes_md(*_a, **_k):
+                                os.makedirs(os.path.dirname(_md_path_for(pdf_path)), exist_ok=True)
+                                open(_md_path_for(pdf_path), "w").close()
+
+                            with patch(
+                                "pipelines.transcribe_notes.transcribe_notes._write_markdown_and_index",
+                                side_effect=_writes_md,
+                            ) as mock_write:
                                 with patch(
                                     "pipelines.transcribe_notes.agent_submit.extract_page_text", return_value="hint",
                                 ):
@@ -343,3 +360,38 @@ class TestSubmitDocForceVision(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPartialTranscriptNotReported(unittest.TestCase):
+    def test_submit_doc_reports_incomplete_when_process_pdf_wrote_nothing(self):
+        with tempfile.TemporaryDirectory() as hub:
+            notes_dir = os.path.join(hub, "notes")
+            os.makedirs(notes_dir)
+            pdf_path = os.path.join(notes_dir, "doc.pdf")
+            _write_minimal_tier3_pdf(pdf_path)
+            driver = AgentDriver(hub, "run-1")
+            from pipelines.transcribe_notes.transcribe_notes import process_pdf
+            process_pdf(pdf_path, None, None, hub, driver=driver, collect_mode=True)
+            with unittest.mock.patch("pipelines.transcribe_notes.agent_submit.process_pdf"):
+                status = submit_doc(
+                    hub, hub, "run-1", driver.last_doc_slug, pdf_path, client=MagicMock(),
+                    model_override=None, allow_api_fallback=True,
+                )
+            self.assertTrue(status.startswith("incomplete"))
+
+
+class TestStaleTranscriptIsNotThisRunsOutput(unittest.TestCase):
+    def test_an_older_md_does_not_count_as_written_in_this_run(self):
+        from pipelines.transcribe_notes.agent_submit import _written_in_this_run
+        with tempfile.TemporaryDirectory() as tmp:
+            doc_dir = os.path.join(tmp, "doc")
+            os.makedirs(doc_dir)
+            card = os.path.join(doc_dir, "task-0001.md")
+            md = os.path.join(tmp, "doc.md")
+            open(card, "w").close()
+            open(md, "w").close()
+            os.utime(md, (1000, 1000))  # an earlier run's transcript
+            self.assertFalse(_written_in_this_run(md, doc_dir))
+            os.utime(md, None)
+            self.assertTrue(_written_in_this_run(md, doc_dir))
+            self.assertFalse(_written_in_this_run(os.path.join(tmp, "missing.md"), doc_dir))

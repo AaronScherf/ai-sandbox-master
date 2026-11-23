@@ -109,6 +109,15 @@ def _md_path_for(pdf_path: str) -> str:
     return os.path.join(resolve_output_dir(pdf_path), f"{base_name}.md")
 
 
+def _written_in_this_run(md_path: str, doc_dir: str) -> bool:
+    """True when the transcript exists and is newer than this run's first task card, so a transcript left by an earlier
+    (possibly truncated) run is never mistaken for this run's output."""
+    if not os.path.exists(md_path):
+        return False
+    started = min((os.path.getmtime(os.path.join(doc_dir, f)) for f in os.listdir(doc_dir)), default=0.0)
+    return os.path.getmtime(md_path) >= started
+
+
 def submit_doc(
     hub_root: str, academic_hub_root: str, run_id: str, doc_slug: str,
     pdf_path: str, client, model_override: str | None, agent_name: str = "antigravity",
@@ -130,7 +139,7 @@ def submit_doc(
     # tier-3 document has more entries yet to be staged (see is_tier3
     # below), and a previous write attempt may have failed (final review
     # I4), in which case this must retry rather than report done forever.
-    if all(e.status == "submitted" for e in entries) and os.path.exists(_md_path_for(pdf_path)):
+    if all(e.status == "submitted" for e in entries) and _written_in_this_run(_md_path_for(pdf_path), doc_dir):
         return "already complete"
 
     cache_path, driver_path = _cache_paths_for(pdf_path)
@@ -207,5 +216,10 @@ def submit_doc(
         # above also checks the .md file actually exists, so a later
         # submit call will retry this.
         return f"write failed: {err}"
+
+    if not _written_in_this_run(_md_path_for(pdf_path), doc_dir):
+        # process_pdf refuses to write a transcript with missing pages (the API gave up on some); the page cache keeps
+        # the finished ones, so a later submit resumes.
+        return "incomplete: transcript not written because some pages failed; submit again to retry them"
 
     return "complete" if not allow_api_fallback else "complete (api fallback used for remaining pages)"

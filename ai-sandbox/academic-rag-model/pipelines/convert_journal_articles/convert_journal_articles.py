@@ -41,16 +41,17 @@ from core.env.gemini_utils import get_gemini_client, load_dotenv_override
 from core.indexer.index_card import compute_file_id
 from pipelines.convert_journal_articles.identity import attach_identity
 from pipelines.transcribe_notes.agent_driver import NullDriver, NullDriverFired
+from pipelines.convert_journal_articles import oversize, queue
 from pipelines.transcribe_notes.agent_submit import submit_doc
 from pipelines.transcribe_notes.agent_work import AgentDriver, agent_work_dir, dedupe_by_file_id, doc_slug_for
 from pipelines.transcribe_notes.transcribe_notes import process_pdf
 
 _JOURNAL_DOC_TYPES = frozenset({"journal_article"})
 
-_DEFAULT_MAX_PAGES = 150  # confirmed real: a 402-page monograph mis-filed
+_DEFAULT_MAX_PAGES = oversize.THRESHOLD  # confirmed real: a 402-page monograph mis-filed
 # into research/journal-articles alongside genuine ~20-page papers is
-# exactly the case this guards against -- comfortably above any real
-# journal article's length, comfortably below a full book's.
+# exactly the case this guards against. A PDF over the limit is never
+# converted on its own: it becomes an open item for the owner (see oversize.py).
 
 # Confirmed real 2026-09-02: a Zotero library synced into this same
 # directory tree puts its own attachment copies under zotero/storage/
@@ -58,7 +59,8 @@ _DEFAULT_MAX_PAGES = 150  # confirmed real: a 402-page monograph mis-filed
 # converted elsewhere in the tree (re-processing it would be pure wasted
 # API cost). local/ is a similar stray, non-topic folder confirmed real
 # in this same corpus. Excluded by directory name at any depth.
-_EXCLUDED_DIR_NAMES = frozenset({"zotero", "local"})
+# replication_materials: a paper's data-and-code package (READMEs, appendices, scripts), not papers.
+_EXCLUDED_DIR_NAMES = frozenset({"zotero", "local", "replication_materials", oversize.OVERSIZE_DIR.lower()})
 
 
 def discover_pdf_files(articles_dir: str, file_filter: str | None = None) -> list[str]:
@@ -119,18 +121,33 @@ Papers that are clean machine text have no cards at all: --submit converts them 
 """
 
 
-def _eligible_pdfs(pdf_paths: list[str], max_pages: int) -> list[str]:
+def _already_transcribed(pdf_path: str) -> bool:
+    folder, name = os.path.split(pdf_path)
+    return os.path.exists(os.path.join(folder, "processed_outputs", os.path.splitext(name)[0] + ".md"))
+
+
+def _eligible_pdfs(pdf_paths: list[str], max_pages: int, index_root: str | None = None) -> list[str]:
+    """PDFs to convert. One over `max_pages` that is not transcribed yet is a book or monograph until the owner
+    says otherwise: it is recorded as an open item (when `index_root` is given) and skipped; an owner choice of
+    `article` lets it through and `leave` skips it quietly."""
     keep = []
     for pdf_path in pdf_paths:
         page_count = _page_count(pdf_path)
         if page_count is None:
             print(f"WARNING: could not read {pdf_path}; skipping.")
-        elif page_count > max_pages:
-            print(f"FLAGGED: {pdf_path} has {page_count} pages (over --max-pages {max_pages}) -- "
-                  f"likely a book or monograph, not a journal article. Skipping. If you want it "
-                  f"processed, move it into academic-hub/ and run convert_textbook.py there.")
-        else:
+        elif page_count <= max_pages or _already_transcribed(pdf_path):
             keep.append(pdf_path)
+        elif index_root is None:
+            print(f"FLAGGED: {pdf_path} has {page_count} pages (over --max-pages {max_pages}); skipping.")
+        else:
+            rel = os.path.relpath(pdf_path, index_root).replace(os.sep, "/")
+            choice = oversize.register(index_root, rel, page_count).get("choice")
+            if choice == "article":
+                keep.append(pdf_path)
+            elif choice is None:
+                print(f"OVERSIZE: {rel} has {page_count} pages (over {max_pages}), likely a book, not a paper. "
+                      f"Skipped until the owner decides: transcribe as an article, leave untranscribed, or move "
+                      f"to {oversize.OVERSIZE_DIR}/ (review Artifact; see oversize.py).")
     return keep
 
 
@@ -165,7 +182,7 @@ def _finish_locally(pdf_path: str, client, args) -> str:
 
 
 def _submit(pdf_paths: list[str], args) -> None:
-    client = get_gemini_client()
+    client = get_gemini_client("PAID_GEMINI_KEY" if args.use_paid_key else "GEMINI_API_KEY")
     if client is None:
         sys.exit(1)
     run_dir = agent_work_dir(args.index_root, args.submit)
@@ -260,6 +277,16 @@ def main():
     )
     parser.add_argument("--bootstrap", default=None, metavar="RUN_ID", help="Print the agent's operating contract for this run.")
     parser.add_argument(
+        "--use-paid-key", action="store_true",
+        help="Use PAID_GEMINI_KEY (the metered project) instead of GEMINI_API_KEY, which can be a free-tier key with a "
+             "small daily quota. Needed for --allow-api-fallback and --driver api runs of any size.",
+    )
+    parser.add_argument(
+        "--queue", action="store_true",
+        help="Write journal-articles/TRANSCRIPTION_QUEUE.md (PDFs with no transcript yet, with page counts) and exit. "
+             "No transcription, no API calls.",
+    )
+    parser.add_argument(
         "--backfill-identity", action="store_true",
         help="Stamp OpenAlex identity from each paper's .meta.json sidecar onto its existing index card. "
              "No transcription, no API calls.",
@@ -275,8 +302,12 @@ def main():
         print(f"No PDF files found under {args.articles_dir}.")
         sys.exit(1)
 
+    if args.queue:
+        print(f"wrote {queue.write_queue(args.articles_dir, args.index_root, pdf_paths, _page_count)}")
+        return
+
     load_dotenv_override()
-    pdf_paths = _eligible_pdfs(pdf_paths, args.max_pages)
+    pdf_paths = _eligible_pdfs(pdf_paths, args.max_pages, args.index_root)
 
     if args.backfill_identity:
         _backfill_identity(pdf_paths, args)
@@ -304,7 +335,7 @@ def main():
         print("--driver agent requires --collect or --submit (or --dry-run).")
         sys.exit(1)
 
-    client = get_gemini_client()
+    client = get_gemini_client("PAID_GEMINI_KEY" if args.use_paid_key else "GEMINI_API_KEY")
     if client is None:
         sys.exit(1)
     for pdf_path in pdf_paths:

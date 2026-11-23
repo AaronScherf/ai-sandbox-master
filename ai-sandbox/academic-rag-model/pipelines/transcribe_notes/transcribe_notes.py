@@ -797,6 +797,17 @@ def build_final_markdown(cache: dict, total_pages: int) -> str:
     return "\n\n".join(parts)
 
 
+def missing_pages(cache: dict, total_pages: int) -> list[int]:
+    """Page numbers with no transcription in the cache. build_final_markdown skips them silently, so a write
+    that follows a page the API gave up on would publish (and index) a truncated transcript."""
+    return [n for n in range(1, total_pages + 1) if cache.get(str(n)) is None]
+
+
+def _refuse_partial(base_name: str, gaps: list[int]) -> None:
+    print(f"[{base_name}] INCOMPLETE: no transcription for page(s) {gaps[:15]}{'...' if len(gaps) > 15 else ''}; "
+          f"nothing was written or indexed. Rerun to resume from the page cache.")
+
+
 def render_page_to_image_bytes(pdf_path: str, page_index: int, dpi: int = 200) -> bytes:
     """Touches PyMuPDF -- not unit-tested locally, like the other PyMuPDF functions below."""
     import pymupdf
@@ -1370,6 +1381,11 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
                       f"ready for submit's rerun.")
             return
 
+        gaps = missing_pages(cache, total_pages)
+        if gaps:
+            _refuse_partial(base_name, gaps)
+            return
+
         final_md = build_final_markdown(cache, total_pages)
         frontmatter = build_frontmatter({
             **base_metadata, "routing": "gemini_batched", "model": model,
@@ -1441,6 +1457,11 @@ def process_pdf(pdf_path: str, client, model_override: str | None, academic_hub_
         else:
             print(f"[{base_name}] collect: all {total_pages} page(s) cached -- "
                   f"ready for submit's rerun.")
+        return
+
+    gaps = missing_pages(cache, total_pages)
+    if gaps:
+        _refuse_partial(base_name, gaps)
         return
 
     final_md = build_final_markdown(cache, total_pages)
