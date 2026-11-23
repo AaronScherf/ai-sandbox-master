@@ -106,6 +106,14 @@ one task, one branch, one worktree, one writer; integration is serialized.
   guides, tutoring hints, audits, synthesized notes, and generated files) must
   be persisted to their proper repository or vault destination (e.g.
   `academic_notes/`), not left solely in temporary agent session storage.
+- **Parallel Gemini handoffs.** Waiting on Gemini runs is the usual bottleneck. When a task needs several handoffs
+  to Gemini and it is safe to do so, write the prompts so they can run at the same time in separate Gemini sessions
+  (one session per run, so no session sees another's answers). Safe means the runs touch different run folders and
+  no run's input depends on another's output. Filling task cards is parallel-safe; **applying results is not**, when
+  several runs write the same shared files (index shards, a ledger) without a lock. So in a parallel batch, tell the
+  Gemini sessions to fill the cards and *not* run `submit`; the integrating agent then submits the runs one after
+  another. Runs that depend on each other (for example tag level 2 after level 1) stay sequential; stage every
+  independent run in the same turn rather than one per turn.
 - Don't copy this file's content into `CLAUDE.md` / `GEMINI.md` /
   `AGENTS.md` — link to it and add only agent-specific notes locally.
 
