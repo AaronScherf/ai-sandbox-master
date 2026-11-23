@@ -793,6 +793,19 @@ def _venue_matches(cited: str, registered: str) -> bool:
     return acronym(cited_words) == acronym(registered_words) or "".join(cited_words) == acronym(registered_words)
 
 
+def _venue_label_matches(cited: str, registered: str) -> bool:
+    """A venue label may abbreviate its registry name, but cannot contain it as a title."""
+    cited_words, registered_words = normalized(cited).split(), normalized(registered).split()
+    if not cited_words or not registered_words:
+        return False
+    if " ".join(cited_words) in " ".join(registered_words):
+        return True
+    def acronym(words):
+        return "".join(word[0] for word in words if word not in {"of", "the", "and"})
+    return (acronym(cited_words) == acronym(registered_words) or
+            "".join(cited_words) == acronym(registered_words))
+
+
 def _cited_title(citation: str, record: dict) -> str:
     """Do not mistake a journal-only citation for a paper title."""
     year = YEAR.search(citation)
@@ -808,7 +821,7 @@ def _cited_title(citation: str, record: dict) -> str:
     tail = re.sub(r"^\s*[.,:;—–-]\s*", "", tail, count=1).lstrip(" \t")
     venue = record.get("venue") or ""
     venue_text = re.sub(r"\s*(?:\([^()]*\)|`[^`]*`)\s*$", "", tail).strip(" *_.,")
-    if venue_text and not re.search(r"[.,;]", venue_text) and venue and _venue_matches(venue_text, venue):
+    if venue_text and not re.search(r"[.,;]", venue_text) and venue and _venue_label_matches(venue_text, venue):
         return ""
     if re.match(r"^[^.!?]+,\s*\d+(?:\s*\(\d+\))?,\s*\d+\s*[-–]\s*\d+\s*$", tail):
         return ""

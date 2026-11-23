@@ -9,6 +9,8 @@ from tools.reference_checker import check, clean_identifier, extract
 
 
 RECORDS = {
+    "10.1016/j.gfs.2022.100661": ("Lin", 2023,
+        "The impact of Russia-Ukraine conflict on global food security", "Global Food Security"),
     "10.1007/s10705-021-10174-1": ("Nziguheba", 2021,
         "Quantifying the prevalence of (non)-response to fertilizers in SSA using on-farm trial data",
         "Nutrient Cycling in Agroecosystems"),
@@ -104,11 +106,28 @@ def test_brown_invented_title_variants_remain_title_wrong(citation):
     assert len(client.searches) == 2
 
 
-@pytest.mark.parametrize("suffix", ["(pandp.20251068)", "`pandp.20251068`"])
+@pytest.mark.parametrize("suffix", ["", "(pandp.20251068)", "`pandp.20251068`"])
 def test_brown_venue_with_trailing_identifier_is_not_an_invented_title(suffix):
     result = _check(f"Brown, Salisbury & Ball (2025), AEA P&P {suffix}", BROWN_DOI, RecordedClient())
     assert result["tier"] == "PLAUSIBLE"
     assert "TITLE_NOT_FOUND" not in result["text_fidelity"]
+
+
+def test_lin_title_containing_registered_venue_remains_a_title():
+    citation = ("Faqin Lin, Xuecao Li, Ningyuan Jia, Fan Feng, Hai Huang, et al. (2022). "
+                "The impact of Russia-Ukraine conflict on global food security")
+    result = _check(citation, "10.1016/j.gfs.2022.100661", RecordedClient())
+    assert result["tier"] == "CONFIRMED"
+    assert result["evidence"] == "title_in_citation"
+
+
+def test_invented_title_containing_registered_venue_reaches_title_search():
+    client = RecordedClient()
+    citation = "Lin et al. (2022). Global Food Security Is Guaranteed by Martians"
+    result = _check(citation, "10.1016/j.gfs.2022.100661", client)
+    assert result["tier"] == "TITLE_WRONG"
+    assert "TITLE_NOT_FOUND" in result["text_fidelity"]
+    assert len(client.searches) == 2
 
 
 @pytest.mark.parametrize("citation", [
