@@ -364,7 +364,8 @@ def test_raise_cli_reports_incomplete_kept_count_and_retry_advice(tmp_path, monk
 
     assert ledger.main(["raise", str(note), "--offline", "--cache", str(tmp_path / "cache")]) == 0
     captured = capsys.readouterr()
-    assert captured.err.strip() == "Incomplete lookups kept prior state: 1; retry later"
+    assert captured.err.splitlines() == ["Incomplete lookups kept prior state: 1; retry later",
+                                         "Review load: no queued items or decisions"]
     payload = json.loads(captured.out)
     assert payload["incomplete_lookup_kept"] == 1
     assert payload["items"] == [] and len(payload["defects"]) == 1
@@ -380,7 +381,7 @@ def test_raise_cli_omits_retry_line_when_no_prior_state_is_kept(tmp_path, monkey
 
     assert ledger.main(["raise", str(note), "--offline", "--cache", str(tmp_path / "cache")]) == 0
     captured = capsys.readouterr()
-    assert captured.err == ""
+    assert captured.err == "Review load: REVIEW: 1 queued, no decisions\n"
     assert json.loads(captured.out)["incomplete_lookup_kept"] == 0
 
 
@@ -568,12 +569,12 @@ def test_raise_with_recorded_registry_answer_keeps_exact_line(tmp_path):
                 "published": {"date-parts": [[2020]]}, "container-title": ["Journal"]}}}
 
     note = tmp_path / "note.md"
-    note.write_text("# References\n\n* [Smith (2020)](https://doi.org/10.1234/sample)\n", encoding="utf-8")
+    note.write_text("# References\n\n* [Smith (2021)](https://doi.org/10.1234/sample)\n", encoding="utf-8")
     items = ledger.raise_items([note], Client(), store=tmp_path / "store", repo_root=tmp_path)
     assert len(items) == 1
     assert items[0].candidates[0]["tier"] == "PLAUSIBLE"
     assert items[0].candidates[0]["mentions"] == [
-        {"line": 3, "cited_text": "Smith (2020)", "normalized_citation": "smith 2020"}]
+        {"line": 3, "cited_text": "Smith (2021)", "normalized_citation": "smith 2021"}]
 
 
 def test_resolve_dismisses_every_mention_and_carries_across_notes(tmp_path, monkeypatch):
@@ -744,12 +745,10 @@ def test_author_year_is_not_queued_and_clears_prior_deferred_item(tmp_path):
     note.write_text("# References\n* [Smith (2020)](https://doi.org/10.1234/sample)\n", encoding="utf-8")
     store = tmp_path / "store"
     client = Client()
-    first = ledger.raise_items([note], client, store=store, repo_root=tmp_path)
-    assert len(first) == 1 and first[0].candidates[0]["tier"] == "PLAUSIBLE"
-    assert first[0].candidates[0]["siblings"] == [{
-        "doi": "10.1234/other", "title": "Distinct work", "year": 2021,
-        "type": "journal-article"}]
-    assert ledger.defer(first[0].item_id, store=store)
+    prior = ledger.make_item("note.md", doi, [{"line": 2, "cited_text": "Smith (2020)"}],
+                             tier="PLAUSIBLE", reason="same-team sibling", evidence="")
+    prior.status = "deferred"
+    ledger.save_review([prior], store)
     assert ledger.load_review(store)[0].status == "deferred"
     client.sibling = False
     assert ledger.raise_items([note], client, store=store, repo_root=tmp_path) == []
@@ -801,7 +800,7 @@ def test_cli_list_apply_and_raise_with_recorded_client(tmp_path, monkeypatch, ca
     monkeypatch.setattr(ledger, "DEFAULT_STORE", store)
     monkeypatch.setattr(ledger, "DEFAULT_REPO_ROOT", tmp_path)
     note = tmp_path / "note.md"
-    note.write_text("# References\n* [Smith (2020)](https://doi.org/10.1234/sample)\n", encoding="utf-8")
+    note.write_text("# References\n* [Smith (2021)](https://doi.org/10.1234/sample)\n", encoding="utf-8")
 
     class Client:
         def __init__(self, cache, online):
@@ -830,3 +829,21 @@ def test_cli_list_apply_and_raise_with_recorded_client(tmp_path, monkeypatch, ca
     assert json.loads(capsys.readouterr().out)[0]["outcome"] == "applied"
     assert ledger.main(["list"]) == 0
     assert json.loads(capsys.readouterr().out)[0]["status"] == "deferred"
+
+
+def test_review_load_summary_counts_decisions_and_automation_candidate(tmp_path):
+    accepted = [ledger.make_item(f"a{i}.md", f"10.1234/a{i}",
+                                 [{"line": 1, "cited_text": "Smith (2020)"}],
+                                 tier="PLAUSIBLE", reason="", evidence="") for i in range(10)]
+    for item in accepted:
+        item.status = "accepted"
+    declined = ledger.make_item("b.md", "10.1234/b",
+                                [{"line": 1, "cited_text": "Smith (2020)"}],
+                                tier="REVIEW", reason="", evidence="")
+    declined.status = "declined"
+    ledger.save_review(accepted + [declined], tmp_path)
+    summary = ledger.review_load_summary(accepted[:2] + [declined], tmp_path)
+    assert summary["PLAUSIBLE"] == {"queued": 2, "accepted": 10, "decisions": 10,
+                                   "accept_rate": 1.0, "automation_candidate": True}
+    assert summary["REVIEW"]["accept_rate"] == 0.0
+    assert summary["REVIEW"]["automation_candidate"] is False

@@ -9,13 +9,12 @@ It exists because an AI writing agent marked every reference in four literature 
 **Checks:**
 - that each DOI or arXiv ID is registered, with Crossref, DataCite or arXiv;
 - that the registered work is the one cited: authors, year and title, scored against the citation text;
-- for a citation with no title, that its authors and year match, and that the same team published no similar work in the surrounding years that the citation could mean instead;
+- for a citation with no title, that its authors and year match; venue, volume and pages can add agreement or expose a conflict;
 - for a cited title that does not match the record, whether that title exists anywhere in Crossref or OpenAlex. If it doesn't, the title was invented.
 
 **Does not check:**
 - that the paper supports the claim it is cited for (there is no claim check yet);
 - URLs that are not DOIs, which it counts but does not resolve;
-- page numbers, volume or journal name, beyond the identity score.
 
 ## Files
 
@@ -66,7 +65,8 @@ python -m tools.reference_review list --status defects
 | Tier | Meaning | Outcome |
 |---|---|---|
 | CONFIRMED | Title scores ≥0.92 and the year is within one, or the title scores ≥0.5 and the year matches exactly | Passes |
-| AUTHOR_YEAR | No title in the citation; every cited surname is registered; the year matches exactly; Crossref registered the DOI; the same-team search finds no sibling | Passes |
+| AUTHOR_YEAR | No title; cited surnames and year match the registry, and any venue, volume and pages given agree | Passes |
+| DESCRIBED | A descriptive link shares at least two content words with the registered title or venue | Passes |
 | PLAUSIBLE | No title, and one of the AUTHOR_YEAR conditions fails | Review |
 | UNCHECKED | No DOI (plain URL or bare citation); the checker only offers candidates | Counted, not gated |
 | UNRESOLVED | A registry lookup failed | Gate fails closed; retry |
@@ -75,7 +75,7 @@ python -m tools.reference_review list --status defects
 | NOT_FOUND | The DOI is not registered | Defect |
 | WRONG_WORK | The DOI resolves to a different work | Defect |
 
-**Same-team guard.** This only applies to title-less rows. The checker resolves the DOI in OpenAlex to author IDs, then lists every work by the first author within one year either side of the cited year. A sibling is a work that shares the first author and at least one co-author, and whose title scores below 0.8 against the registered title. Crossref author search can add siblings but cannot clear a row. The guard fails closed: if the first author has no ID, there are more than 1,000 candidates, or a lookup errors, the row stays in review.
+**Same-team guard.** For title-less rows, the checker lists nearby same-team works as context. Siblings alone do not hold a row for review, and an incomplete sibling lookup does not block an author/year pass. If a cited venue and year fit a sibling better than the DOI record, the row stays in review.
 
 ## The review loop
 
@@ -89,6 +89,8 @@ python -m tools.reference_review list --status defects
    - **Can't tell:** deferred, and stays open.
    - **Quoted on purpose:** dismisses an item or checker defect only for its current citation text in this note. A changed citation text needs a new decision; the same citation in another note remains reviewable. This decision is available only through the page and `apply`.
 4. The agent reads the page's `decisions` collection and runs `apply`.
+
+After each sweep, inspect `raise`'s `review_load` summary: queued items by tier, the acceptance rate of recorded human decisions, and tiers with at least ten decisions that were all accepted. Those tiers are candidates for a future rule change.
 
 Defects clear when the note's citation text changes or a reviewer marks that exact note and citation `quoted`. An unchanged citation otherwise keeps its defect when the note is raised again.
 

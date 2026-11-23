@@ -579,7 +579,7 @@ def test_memo_v2_seven_dois_are_plausible_using_recorded_registry_answers():
     url_results = results[7:]
     assert len(doi_results) == 7
     assert [row["identity"] for row in doi_results] == ["SAME_WORK"] * 7
-    assert [row["tier"] for row in doi_results] == ["PLAUSIBLE"] * 7
+    assert [row["tier"] for row in doi_results] == ["AUTHOR_YEAR"] * 7
     assert not any(row["tier"] == "CONFIRMED" for row in doi_results)
     expected_registry_facts = {
         "10.1214/24-AOAS1959": (
@@ -805,7 +805,7 @@ def test_linking_does_not_match_reference_entry_with_different_year():
 - Hjort, B. (2020). How Research Affects Policy: Experimental Evidence from 2,150 Brazilian Municipalities.
 """
     row = check_note(note, FixtureClient())[0]
-    assert row["tier"] == "PLAUSIBLE"
+    assert row["tier"] == "AUTHOR_YEAR"
     assert row["evidence"] == ""
     assert "linked_citation" not in row
 

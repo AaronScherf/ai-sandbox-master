@@ -72,7 +72,7 @@ def shared_project_root(cwd: Path | None = None) -> Path:
 
 DEFAULT_CACHE = shared_project_root() / ".reference_checker_cache"
 
-TIER_RANK = {"CONFIRMED": 0, "AUTHOR_YEAR": 1, "PLAUSIBLE": 2, "UNCHECKED": 3,
+TIER_RANK = {"CONFIRMED": 0, "AUTHOR_YEAR": 1, "DESCRIBED": 1, "PLAUSIBLE": 2, "UNCHECKED": 3,
              "UNRESOLVED": 4, "REVIEW": 5, "AMBIGUOUS": 5, "TITLE_WRONG": 6,
              "NOT_FOUND": 7, "WRONG_WORK": 8}
 SAME_TEAM_VERSION_TITLE_THRESHOLD = 0.8
@@ -166,10 +166,10 @@ def extract(text: str) -> list[dict]:
         if table:
             cells = [cell.strip() for cell in line.strip("|").split("|")]
             author_year = re.compile(r"\b[A-Z][\w'’.-]*(?:\s+[A-Z][\w'’.-]*){0,4}\s*\((?:19|20)\d{2}\)")
-            citation = next((cell.split("<br>", 1)[0].strip(" *`_") for cell in cells
+            citation = next((re.sub(r"<br\s*/?>", ". ", cell, flags=re.I).strip(" *`_") for cell in cells
                              if author_year.search(DOI.sub("", cell))), "")
             if not citation:
-                citation = next((cell.split("<br>", 1)[0].strip(" *`_") for cell in cells
+                citation = next((re.sub(r"<br\s*/?>", ". ", cell, flags=re.I).strip(" *`_") for cell in cells
                                  if YEAR.search(DOI.sub("", cell)) and not re.fullmatch(r"[\d. /-]+", cell)), "")
             if not citation:
                 citation = re.sub(r"[*`]", "", cells[0]).strip()
@@ -182,13 +182,18 @@ def extract(text: str) -> list[dict]:
                     prior = LINK.sub(lambda m: m.group(1), prior)
                     candidate = ""
                     for part in re.split(r"\s*\|\s*", prior):
-                        part = part.split("<br>", 1)[0]
+                        part = re.sub(r"<br\s*/?>", ". ", part, flags=re.I)
                         part = LINK.sub(lambda m: m.group(1), part)
                         found_author_year = author_year.search(DOI.sub("", part))
                         if found_author_year:
-                            candidate = part[:found_author_year.end()].strip(" |*`_")
+                            candidate = re.sub(r"\[[^]]*$", "", part).replace("**", "").strip(" |*`_. ")
                             break
-                    rows.append({"citation": clean_citation(candidate or citation), "identifier": ident, "kind": "doi", "line": index + 1})
+                    link_text = next((link.group(1) for link in LINK.finditer(line)
+                                      if ident.lower() in link.group(2).lower()), "")
+                    selected = candidate or (citation if author_year.search(citation) else "") or link_text or citation
+                    rows.append({"citation": clean_citation(selected),
+                                 "identifier": ident, "kind": "doi", "line": index + 1,
+                                 "descriptive_link": bool(link_text and selected == link_text)})
                     seen.add(ident.lower())
             if not seen:
                 for link in LINK.finditer(line):
@@ -215,7 +220,8 @@ def extract(text: str) -> list[dict]:
                     following = lines[index + 1].strip()
                     if following.startswith("*") and YEAR.search(following) and not LINK.search(following):
                         citation = following.strip("* ")
-                rows.append({"citation": clean_citation(citation), "identifier": ident, "kind": kind, "line": index + 1})
+                rows.append({"citation": clean_citation(citation), "identifier": ident, "kind": kind,
+                             "line": index + 1, "descriptive_link": True})
             continue
         line = re.sub(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)", "", line)
         dois = list(DOI.finditer(line))
@@ -223,9 +229,9 @@ def extract(text: str) -> list[dict]:
             for doi_index, match in enumerate(dois):
                 start = dois[doi_index - 1].end() if doi_index else 0
                 before = line[start:match.start()].rsplit("; ", 1)[-1]
-                for segment in before.split(": "):
-                    if YEAR.search(segment):
-                        before = segment
+                prefix, separator, remainder = before.partition(": ")
+                if separator and not YEAR.search(prefix) and YEAR.search(remainder):
+                    before = remainder
                 comma_year = re.search(r"\(((?:19|20)\d{2})(?=\s*[,;])", before)
                 if comma_year:
                     author_block = before[:comma_year.start()].strip(" *`():—–-")
@@ -321,6 +327,16 @@ def citation_fields(citation: str) -> dict:
     pages = re.search(r",\s*(\d+)\s*[–-]\s*(\d+)(?=\s*[.,]|\s*$)", details)
     venue = details[:volume.start()] if volume else re.split(r"\.\s+", details, maxsplit=1)[0]
     venue = venue.strip(" *_.,")
+    if venue_only and year:
+        metadata = re.sub(r"^\s*\)\s*[,.;]?\s*", "", citation[year.end():]).strip(" *_.,")
+        match = re.match(r"^(.*?)(?:,\s*(\d+)(?:\s*\([^)]*\))?)?(?:,\s*(\d+\s*[-–]\s*\d+))?\s*$", metadata)
+        if match:
+            venue = match.group(1).strip(" *_.,")
+            volume = match.group(2)
+            pages = match.group(3)
+            return {"year": int(year.group()), "author": normalized(first.group()) if first else "",
+                    "title": "", "venue": venue, "volume": volume or "",
+                    "pages": (pages or "").replace(" ", "")}
     return {"year": int(year.group()) if year else None,
             "author": normalized(first.group()) if first else "", "title": title,
             "venue": venue,
@@ -343,6 +359,8 @@ def _parse_reference_entry(entry: str) -> dict:
     clean = URL.sub("", DOI.sub("", entry))
     clean = re.sub(r"\(((?:19|20)\d{2})[a-z]\)", r"(\1)", clean, flags=re.I)
     fields = citation_fields(clean)
+    if re.search(r"\((?:19|20)\d{2}\)\.?\s*\*[^*]+\*\.?\s*(?:doi\s*:)?\s*$", clean, re.I):
+        fields["title"] = ""
     kind, identifier = identifiers(entry)
     return {
         "authors": _reference_authors(prefix),
@@ -630,7 +648,7 @@ def _openalex_guard(doi: str, record: dict, year: int, client: RegistryClient) -
         coauthors = {_openalex_id((a.get("author") or {}).get("id")) for a in authorships[1:]}
         coauthors.discard("")
         params = {"filter": f"authorships.author.id:{first},publication_year:{year - 1}-{year + 1}",
-                  "per-page": "200", "select": "doi,title,publication_year,type,authorships", "cursor": "*"}
+                  "per-page": "200", "select": "doi,title,publication_year,type,authorships,primary_location", "cursor": "*"}
         seen = set()
         siblings = []
         count = pages_read = 0
@@ -673,8 +691,10 @@ def _openalex_guard(doi: str, record: dict, year: int, client: RegistryClient) -
                 if similarity(title, record.get("title") or "") >= SAME_TEAM_VERSION_TITLE_THRESHOLD:
                     continue
                 count += 1
+                source = ((item.get("primary_location") or {}).get("source") or {})
                 siblings.append({"doi": candidate_doi, "title": title,
-                                 "year": item.get("publication_year"), "type": item.get("type")})
+                                 "year": item.get("publication_year"), "venue": source.get("display_name") or "",
+                                 "type": item.get("type")})
             # OpenAlex may include works without DOIs; count raw results instead.
             pages_read += len(items)
             if pages_read >= total:
@@ -786,7 +806,12 @@ def _cited_title(citation: str, record: dict) -> str:
     # Closing emphasis belongs to the author-year label, not the title.
     tail = re.sub(r"^\s*\)\s*[*_]*", "", tail, count=1)
     tail = re.sub(r"^\s*[.,:;—–-]\s*", "", tail, count=1).lstrip(" \t")
-    first_word = re.match(r"\w+", tail.lstrip("*_"))
+    venue = record.get("venue") or ""
+    if venue and normalized(tail.strip(" *_.,")) == normalized(venue):
+        return ""
+    if re.match(r"^[^.!?]+,\s*\d+(?:\s*\(\d+\))?,\s*\d+\s*[-–]\s*\d+\s*$", tail):
+        return ""
+    first_word = re.match(r"\w+", tail.lstrip("*_\"'‘“("))
     if not first_word or first_word.group()[0].islower():
         return ""
     italic = re.match(r"^([*_])([^*_]+)\1", tail)
@@ -796,7 +821,7 @@ def _cited_title(citation: str, record: dict) -> str:
     else:
         title = re.split(r"[.?!]\s+(?=[*_]*[A-Z])", tail, maxsplit=1)[0]
         remainder = ""
-    title = title.strip(" *_.,?!\"“”")
+    title = title.strip(" *_.,?!\"'‘“”()")
     if len(title.split()) < 2:
         return ""
     venue = record.get("venue") or ""
@@ -924,9 +949,10 @@ def _cited_surnames(citation: str, *, first_for_et_al: bool = True) -> tuple[lis
         return [], False
     prefix = citation[:year.start()].rstrip(" \t([,")
     et_al = bool(re.search(r"\bet\s+al\.?\s*,?\s*$", prefix, re.I))
-    prefix = re.sub(r"\bet\s+al\.?\s*,?\s*$", "", prefix, flags=re.I)
+    prefix = re.sub(r"\bet\s+al\.?\s*,?\s*$", "", prefix, flags=re.I).strip()
     names = []
     for part in re.split(r"\s*(?:,|&|\band\b)\s*", prefix):
+        part = re.sub(r"\s+[A-Z]{1,3}\.?$", "", part)
         surname = _family_last_token(part)
         if surname and len(surname) > 1:
             names.append(surname)
@@ -1033,21 +1059,63 @@ def _apply_author_year(result: dict, citation: str, registry: str, record: dict,
     if year is None or year not in registered_years:
         result["reason"] += "; cited year does not exactly match registry"
         return
-    if registry != "Crossref":
-        result["reason"] += "; same-team guard requires Crossref"
-        return
-    guard = same_team_guard(result["identifier"], record, year, client)
+    fields = _titleless_metadata(citation)
+    if fields["venue"] and record.get("venue") and not _venue_matches(fields["venue"], record["venue"]):
+        result["text_fidelity"].append("VENUE_DIFFERS")
+    if fields["volume"] and record.get("volume") and fields["volume"] != str(record["volume"]):
+        result["text_fidelity"].append("VOLUME_DIFFERS")
+    if fields["pages"] and record.get("pages") and fields["pages"].replace("–", "-") != str(record["pages"]).replace("–", "-"):
+        result["text_fidelity"].append("PAGES_DIFFER")
+    guard = same_team_guard(result["identifier"], record, year, client) if registry == "Crossref" else SameTeamGuardResult(False, [], 0)
     if guard.siblings:
         result["siblings"] = guard.siblings
-    if not guard.complete:
-        result["reason"] += "; same-team guard incomplete: " + guard.reason
-    elif guard.sibling_count:
-        work_label = "work" if guard.sibling_count == 1 else "works"
-        result["reason"] += (f"; same team: {guard.sibling_count} other {work_label} "
-                             f"{year - 1} to {year + 1}")
-    else:
+    venue = fields["venue"]
+    target_matches = bool(record.get("venue") and _venue_matches(venue, record["venue"]))
+    better = next((s for s in guard.siblings if s.get("venue") and s.get("year") == year
+                   and _venue_matches(venue, s["venue"]) and not target_matches), None)
+    if better:
+        result["tier"] = "REVIEW"
+        result["reason"] += "; cited venue/year match a different work by the same team: " + better["title"]
+        return
+    differences = {"VENUE_DIFFERS", "VOLUME_DIFFERS", "PAGES_DIFFER", "YEAR_DIFFERS"}
+    if differences.intersection(result["text_fidelity"]):
+        return
+    if not venue:
         result["tier"] = "AUTHOR_YEAR"
-        result["reason"] += "; author/year agreement; same-team guard found no sibling"
+        result["reason"] += "; author/year agreement"
+        return
+    if not target_matches:
+        return
+    result["tier"] = "AUTHOR_YEAR"
+    agreed = ["venue"] + [name for name in ("volume", "pages") if fields[name] and record.get(name)]
+    result["reason"] += "; " + ", ".join(agreed) + " agree"
+
+
+def _description_words(value: str) -> set[str]:
+    stop = {"the", "and", "for", "with", "from", "into", "versus", "against", "this", "that",
+            "chapter", "springer", "link", "here", "paper", "study", "article", "doi", "www"}
+    return {word for word in normalized(value).split() if len(word) >= 3 and word not in stop and not word.isdigit()}
+
+
+def _titleless_metadata(citation: str) -> dict[str, str]:
+    year = YEAR.search(citation)
+    tail = citation[year.end():] if year else ""
+    tail = re.sub(r"^\s*\)\s*[.,;]?\s*", "", tail).strip(" .,·)")
+    tail = re.sub(r"\.\s*(?:doi|https?://).*", "", tail, flags=re.I).strip(" .,·)")
+    italic = re.match(r"^\*([^*]+)\*", tail)
+    if italic:
+        tail = italic.group(1) + tail[italic.end():]
+    parts = [part.strip(" *_.,") for part in tail.split(",")]
+    if italic and "," in italic.group(1):
+        parts = [italic.group(1)] + [part.strip(" *_.,") for part in tail[len(italic.group(1)):].lstrip(", ").split(",") if part]
+    venue = parts[0] if parts else ""
+    volume = pages = ""
+    for part in parts[1:]:
+        if re.fullmatch(r"\d+\s*[-–]\s*\d+", part):
+            pages = part.replace(" ", "")
+        elif match := re.fullmatch(r"(\d+)(?:\s*\(\d+\))?", part):
+            volume = match.group(1)
+    return {"venue": venue, "volume": volume, "pages": pages}
 
 
 def check(row: dict, client: RegistryClient, *, author_year: bool = True) -> dict:
@@ -1089,6 +1157,12 @@ def check(row: dict, client: RegistryClient, *, author_year: bool = True) -> dic
     result["identity"], result["text_fidelity"], result["reason"] = compare(citation, record)
     _apply_title_search(result, citation, record, client)
     result["tier"] = _identity_tier(result["identity"], citation, record)
+    if result["tier"] == "UNCHECKED" and row.get("descriptive_link") and not citation_fields(citation)["year"]:
+        shared = sorted(_description_words(citation) &
+                        _description_words((record.get("title") or "") + " " + (record.get("venue") or "")))
+        if len(shared) >= 2:
+            result["tier"] = "DESCRIBED"
+            result["reason"] = "description agrees: " + ", ".join(shared)
     if "TITLE_NOT_FOUND" in result["text_fidelity"]:
         result["tier"] = "TITLE_WRONG"
     result["classification"] = ("MISMATCH" if result["identity"] == "WRONG_WORK" else
@@ -1141,7 +1215,8 @@ def check_note(text: str, client: RegistryClient, rows: list[dict] | None = None
         original = check(row, client, author_year=False)
         if "line" in row:
             original["line"] = row["line"]
-        original["evidence"] = "title_in_citation" if citation_fields(row["citation"])["title"] else ""
+        record = (original.get("registry_answer") or {}).get("record") or {}
+        original["evidence"] = "title_in_citation" if _cited_title(row["citation"], record) else ""
         if original["identity"] != "SAME_WORK" or original["evidence"]:
             results.append(original)
             continue

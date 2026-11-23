@@ -343,6 +343,23 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
     return raised
 
 
+def review_load_summary(items: list[ReviewItem], store: Path) -> dict:
+    """Show queue size and observed human outcomes by tier."""
+    queued = Counter(item.candidates[0].get("tier", "UNKNOWN") for item in items)
+    decisions: dict[str, Counter] = {}
+    for item in load_review(Path(store)):
+        if item.status in {"accepted", "declined"}:
+            tier = item.candidates[0].get("tier", "UNKNOWN")
+            decisions.setdefault(tier, Counter())[item.status] += 1
+    return {tier: {"queued": queued[tier], "accepted": decisions.get(tier, Counter())["accepted"],
+                   "decisions": sum(decisions.get(tier, Counter()).values()),
+                   "accept_rate": (decisions[tier]["accepted"] / sum(decisions[tier].values())
+                                   if tier in decisions else None),
+                   "automation_candidate": (sum(decisions.get(tier, Counter()).values()) >= 10
+                                            and decisions.get(tier, Counter())["declined"] == 0)}
+            for tier in sorted(set(queued) | set(decisions))}
+
+
 def gate(note_paths: list[str | Path], client, *, store: Path = DEFAULT_STORE,
          repo_root: Path = DEFAULT_REPO_ROOT) -> GateResult:
     """Refresh scoped notes and report every reason the citation gate may stop."""
@@ -666,7 +683,15 @@ def main(argv: list[str] | None = None) -> int:
             if kept:
                 print(f"Incomplete lookups kept prior state: {kept}; retry later", file=sys.stderr)
             payload = {"items": [item.to_dict() for item in items], "defects": defects,
-                       "incomplete_lookup_kept": kept}
+                       "incomplete_lookup_kept": kept,
+                       "review_load": review_load_summary(items, DEFAULT_STORE)}
+            summary = "; ".join(
+                f"{tier}: {entry['queued']} queued, "
+                + (f"{entry['accept_rate']:.0%} accepted of {entry['decisions']} decisions"
+                   if entry["decisions"] else "no decisions")
+                + (" (automation candidate)" if entry["automation_candidate"] else "")
+                for tier, entry in payload["review_load"].items())
+            print("Review load: " + (summary or "no queued items or decisions"), file=sys.stderr)
         elif args.command == "list":
             payload = (list_defect_cards(store=DEFAULT_STORE) if args.status == "defects" else
                        [item.to_dict() for item in list_items(args.status, store=DEFAULT_STORE)])
