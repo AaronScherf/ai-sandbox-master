@@ -102,6 +102,17 @@ def worktree_stats(cwd: Path) -> dict:
     return {"worktrees": len(linked), "merged": merged}
 
 
+def last_scheduled_full(entries: list[dict], now: datetime | None = None) -> dict | None:
+    """Most recent `full-main` run: sha, result, failed chunks, and age in days."""
+    runs = [e for e in entries if e.get("event") == "scheduled_full"]
+    if not runs:
+        return None
+    last = max(runs, key=_at)
+    age = ((now or datetime.now(timezone.utc)) - _at(last)).total_seconds() / 86400
+    return {"sha": last.get("sha", ""), "result": last.get("result", "?"),
+            "failed_chunks": last.get("failed_chunks", []), "age_days": age}
+
+
 def _pct(a: int, b: int) -> str:
     return f"{100 * a / b:.0f}%" if b else "n/a"
 
@@ -132,6 +143,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Main: {c['commits']} commits, {c['merges']} merge commits "
           f"({_pct(c['merges'], c['commits'])}), {c['todo']} todo: commits")
     print(f"Worktrees now: {w['worktrees']}, already merged {w['merged']}")
+    sf = last_scheduled_full(entries)
+    if sf is None:
+        print("Scheduled full run: none logged (python -m tools.land_branch full-main)")
+    else:
+        flag = "" if sf["result"] == "passed" else "  ** FAILED: " + ", ".join(sf["failed_chunks"] or ["?"]) + " **"
+        print(f"Scheduled full run: {sf['result']} on {sf['sha'][:8]}, {sf['age_days']:.1f} days ago{flag}")
     return 0
 
 

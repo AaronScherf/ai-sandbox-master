@@ -757,6 +757,78 @@ class LandByChangeIdTests(unittest.TestCase):
             land(self.wt, cid, subdir="")
         self.assertNotEqual(self._head(self.repo, "main"), self._head(self.wt))
 
+    def _put_real_guard_on_main(self):
+        """The toy repo has no guard; give main the real one (as in production)."""
+        from tools.land_branch import GUARD_MODULE_PATH
+        real = (Path(__file__).resolve().parents[2] / "tools" / "guard_binaries.py").read_text(encoding="utf-8")
+        write_and_commit(self.repo, {GUARD_MODULE_PATH: real}, "guard on main")
+        git(self.wt, "rebase", "-q", "main")
+
+    def test_weakened_branch_guard_is_still_judged_by_main_in_check_and_land(self):
+        import types
+        from tools.land_branch import GUARD_MODULE_PATH, land
+        self._put_real_guard_on_main()
+        # The running tool is the branch's copy; here it has been weakened to allow everything.
+        weak = types.SimpleNamespace(check_range=lambda *a, **k: [])
+        write_and_commit(self.wt, {GUARD_MODULE_PATH: "def check_range(*a, **k):\n    return []\n",
+                                   "ai-sandbox/academic-hub/c/slide.svg": "<svg/>"}, "weaken guard, add svg")
+        with patch("tools.land_branch.guard_binaries", weak):
+            result = self._approve()
+            self.assertEqual(result.guard, "failed")
+            self.assertTrue(any("slide.svg" in v for v in result.guard_violations))
+            with self.assertRaisesRegex(LandingError, r"(?s)binary guard.*slide.svg"):
+                land(self.wt, result.change_id, subdir="")
+
+    def test_land_refuses_policy_change_the_approved_check_did_not_flag(self):
+        from tools.land_branch import GUARD_POLICY_PATHS, land
+        write_and_commit(self.wt, {GUARD_POLICY_PATHS[1]: "ai-sandbox/x/*.json  # reason\n"}, "edit allowlist")
+        result = self._approve()
+        self.assertEqual(result.guard_policy_changed, [GUARD_POLICY_PATHS[1]])
+        stale = {"checks": "passed", "base": result.base, "change_id": result.change_id}
+        with patch("tools.land_branch.approved_check", return_value=stale):
+            with self.assertRaisesRegex(LandingError, "edits the guard policy"):
+                land(self.wt, result.change_id, subdir="")
+
+    def test_land_accepts_policy_change_the_approved_check_flagged(self):
+        from tools.land_branch import GUARD_POLICY_PATHS, land
+        write_and_commit(self.wt, {GUARD_POLICY_PATHS[1]: "ai-sandbox/x/*.json  # reason\n"}, "edit allowlist")
+        result = self._approve()
+        land(self.wt, result.change_id, subdir="")
+        self.assertEqual(self._head(self.repo, "main"), self._head(self.wt))
+
+    def test_full_main_runs_origin_main_in_scratch_worktree_and_logs(self):
+        from tools.land_branch import full_main
+        seen = {}
+
+        def fake_runner(root):
+            seen["root"] = Path(root)
+            seen["existed"] = Path(root).exists()
+            return "failed", [ChunkResult("core", 0, 1.0, ""), ChunkResult("tools", 1, 2.0, "")], 3.0
+
+        entry = full_main(self.wt, runner=fake_runner, subdir="")
+        origin_sha = git(self.repo, "rev-parse", "origin/main").strip()
+        self.assertEqual(entry["sha"], origin_sha)
+        self.assertEqual(entry["result"], "failed")
+        self.assertEqual(entry["failed_chunks"], ["tools"])
+        self.assertTrue(seen["existed"])
+        self.assertFalse(seen["root"].exists())  # scratch worktree removed afterwards
+        self.assertNotIn(str(seen["root"]), git(self.repo, "worktree", "list"))
+        logged = [e for e in self._entries() if e["event"] == "scheduled_full"]
+        self.assertEqual(logged[-1]["sha"], origin_sha)
+        self.assertEqual(logged[-1]["chunk_timings"][1]["returncode"], 1)
+
+    def test_full_main_removes_scratch_worktree_when_runner_raises(self):
+        from tools.land_branch import full_main
+        roots = []
+
+        def boom(root):
+            roots.append(Path(root))
+            raise RuntimeError("runner died")
+
+        with self.assertRaises(RuntimeError):
+            full_main(self.wt, runner=boom, subdir="")
+        self.assertFalse(roots[0].exists())
+
     def test_land_refuses_a_change_with_no_passing_check(self):
         from tools.land_branch import LandingError, land
         write_and_commit(self.wt, {"core/a.py": "x = 2\n"}, "branch edit")

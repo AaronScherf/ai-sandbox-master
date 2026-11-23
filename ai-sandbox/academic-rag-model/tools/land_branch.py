@@ -12,6 +12,8 @@ import argparse
 import hashlib
 import json
 import sys
+import tempfile
+import types
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -56,6 +58,28 @@ OUTSIDE_TEST_INPUTS = (
     "ai-sandbox/research/independent-research/notes/00_overview-and-strategy/"
     "03_novelty-check/Novelty Check - Summary - v3.md",  # test_reference_checker.py
 )
+
+
+GUARD_MODULE_PATH = "ai-sandbox/academic-rag-model/tools/guard_binaries.py"
+
+
+def main_guard(worktree: Path) -> types.ModuleType:
+    """`guard_binaries` as it exists on main, so a branch cannot weaken its own judge.
+
+    Loaded from `git show main:...` rather than run as a subprocess in the main
+    checkout: the check then ignores uncommitted edits there and needs no cwd
+    switch (git objects are shared, so `main..<sha>` still resolves). If main has
+    no guard yet (a bootstrap), nothing can be weakened and this process's copy is used.
+    """
+    try:
+        source = run_git(["show", f"{MAIN_BRANCH}:{GUARD_MODULE_PATH}"], worktree)
+    except GitError:
+        return guard_binaries
+    module = types.ModuleType("_main_guard_binaries")
+    module.__file__ = f"{MAIN_BRANCH}:{GUARD_MODULE_PATH}"
+    sys.modules[module.__name__] = module  # dataclasses resolve annotations through it
+    exec(compile(source, module.__file__, "exec"), module.__dict__)
+    return module
 
 
 class LandingError(RuntimeError):
@@ -341,7 +365,7 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
     rebased = rebase_onto_main(worktree)
     sha = run_git(["rev-parse", "HEAD"], worktree).strip()
     changed = changed_since_merge_base(worktree, MAIN_BRANCH, "HEAD")
-    guard_violations = [str(v) for v in guard_binaries.check_range(worktree, MAIN_BRANCH)]
+    guard_violations = [str(v) for v in main_guard(worktree).check_range(worktree, MAIN_BRANCH)]
     policy_changed = sorted(changed & set(GUARD_POLICY_PATHS))
     overlaps = find_overlaps(worktree, changed)
     relative = project_relative(changed, subdir)
@@ -497,6 +521,11 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
             raise LandingError(f"the change differs from approved change {cid}; ask again")
         branch_files = changed_since_merge_base(worktree, MAIN_BRANCH, "HEAD")
         main_now = run_git(["rev-parse", MAIN_BRANCH], worktree).strip()
+        policy_now = sorted(branch_files & set(GUARD_POLICY_PATHS))
+        if policy_now and not set(policy_now) <= set(approved.get("guard_policy_changed") or []):
+            raise LandingError(
+                "this change edits the guard policy (" + ", ".join(policy_now) + ") but the approved "
+                "check did not flag it; run check again and ask for approval of the new change ID")
         touched = sorted(branch_files & _files_between(worktree, approved["base"], main_now))
         if touched:
             raise LandingError("main changed files this branch also changes: " + ", ".join(touched))
@@ -526,7 +555,7 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
                 raise LandingError("tests failed after rebasing onto the new main")
             tested_base = main_now
             last_retest_reason = retest_reason
-        violations = guard_binaries.check_range(worktree, MAIN_BRANCH)
+        violations = main_guard(worktree).check_range(worktree, MAIN_BRANCH)
         if violations:
             raise LandingError(
                 "binary guard refused the landing:\n  " + "\n  ".join(map(str, violations)))
@@ -556,6 +585,39 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
     raise LandingError(f"main kept moving: no landing after {MAX_ATTEMPTS} attempts")
 
 
+def full_main(
+    worktree: Path, *, runner=None, subdir: str = PROJECT_SUBDIR,
+) -> dict:
+    """Run the full chunked suite on origin/main in a scratch worktree and log it.
+
+    Static test selection cannot see run-time imports or subprocess-only tests, so
+    this scheduled run is the backstop. The scratch worktree is detached, lives in
+    the system temp dir (never the main checkout) and is removed afterwards.
+    `runner` replaces `run_all` in tests.
+    """
+    runner = runner or run_all
+    run_git(["fetch", "origin", MAIN_BRANCH], worktree)
+    sha = run_git(["rev-parse", f"origin/{MAIN_BRANCH}"], worktree).strip()
+    scratch = Path(tempfile.mkdtemp(prefix="full-main-"))
+    tree = scratch / "tree"
+    run_git(["worktree", "add", "--detach", str(tree), sha], worktree)
+    try:
+        status, results, seconds = runner(tree / subdir)
+    finally:
+        run_git(["worktree", "remove", "--force", str(tree)], worktree)
+        scratch.rmdir()
+    entry = {
+        "sha": sha,
+        "result": status,
+        "seconds": round(seconds, 1),
+        "failed_chunks": [r.name for r in results if chunk_failed(r.returncode)],
+        "chunk_timings": [{"name": r.name, "returncode": r.returncode, "seconds": round(r.seconds, 1)}
+                          for r in results],
+    }
+    append_log(worktree, {"event": "scheduled_full", **entry})
+    return entry
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Pre-landing checks for an agent branch.")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -570,7 +632,18 @@ def main(argv: list[str] | None = None) -> int:
     p_land.add_argument("--worktree", type=Path, default=Path.cwd())
     p_land.add_argument("--change-id", required=True)
     p_land.add_argument("--subdir", default=PROJECT_SUBDIR, help=argparse.SUPPRESS)
+    p_full = sub.add_parser("full-main", help="run the full suite on origin/main in a scratch worktree")
+    p_full.add_argument("--worktree", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)
+    if args.cmd == "full-main":
+        try:
+            entry = full_main(args.worktree.resolve())
+        except GitError as exc:
+            print(f"NOT RUN: {exc}", file=sys.stderr)
+            return 1
+        print(f"full-main {entry['sha'][:8]}: {entry['result']} in {entry['seconds']}s"
+              + (f"; failed: {', '.join(entry['failed_chunks'])}" if entry["failed_chunks"] else ""))
+        return 0 if entry["result"] == "passed" else 1
     if args.cmd == "record":
         record(args.worktree.resolve(), args.sha, args.outcome)
         return 0

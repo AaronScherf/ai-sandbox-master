@@ -64,6 +64,31 @@ approval; any edit to the change does. Approval does not carry over to other
 sessions or branches. Untracked or unrelated files in the main checkout do not
 block a landing.
 
+The binary guard runs from `main`'s copy of `tools/guard_binaries.py` and
+`main`'s allowlist (`main_guard` in `tools/land_branch.py`), not the branch's, so
+a branch cannot weaken its own judge. `land` also refuses a change that edits a
+`GUARD_POLICY_PATHS` file unless the approved check flagged it
+(`guard_policy_changed`); if it did not, run `check` again and ask for the new
+change ID.
+
+## Scheduled full run of `main`
+
+`python -m tools.land_branch full-main` fetches `origin/main`, runs the full
+chunked suite in a scratch detached worktree under the system temp dir (the main
+checkout is never touched; the worktree is removed afterwards) and appends a
+`scheduled_full` record (sha, result, failed chunks, per-chunk timings) to the
+landing log. `python -m tools.landing_metrics` shows the last run, its result and
+age, and flags a failure. It exits 1 when any chunk fails. A run takes 15 to 30
+minutes. Nothing schedules it yet; whether to is the owner's call. To run it
+nightly with Windows Task Scheduler (run once from an elevated or normal
+PowerShell, adjust the time):
+
+```powershell
+schtasks /Create /TN "ai-sandbox full-main" /SC DAILY /ST 03:00 /TR "cmd /c cd /d C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model && .venv\Scripts\python.exe -m tools.land_branch full-main --worktree C:\Users\theaa\ai-sandbox-master"
+```
+
+Remove it with `schtasks /Delete /TN "ai-sandbox full-main" /F`.
+
 Merge style is rebase onto `main`, then `--ff-only`. Do not use `--no-ff`
 merges. Rebasing is allowed only on a branch that is exclusively owned and not
 published.

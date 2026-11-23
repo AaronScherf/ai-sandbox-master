@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from git_fixture import git, make_repo, write_and_commit
-from tools.landing_metrics import commit_stats, landings, main, summarize, worktree_stats
+from tools.landing_metrics import commit_stats, landings, last_scheduled_full, main, summarize, worktree_stats
 
 
 def check(at, branch, sha, checks="passed", change_id=None):
@@ -137,3 +137,20 @@ class GitStatsTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ScheduledFullTests(unittest.TestCase):
+    def test_none_when_never_run(self):
+        self.assertIsNone(last_scheduled_full([{"event": "check", "at": "2026-11-20T00:00:00+00:00"}]))
+
+    def test_reports_latest_run_result_and_age(self):
+        entries = [
+            {"event": "scheduled_full", "at": "2026-11-10T00:00:00+00:00", "sha": "a" * 40,
+             "result": "passed", "failed_chunks": []},
+            {"event": "scheduled_full", "at": "2026-11-20T00:00:00+00:00", "sha": "b" * 40,
+             "result": "failed", "failed_chunks": ["tools"]},
+        ]
+        now = datetime(2026, 11, 22, tzinfo=timezone.utc)
+        last = last_scheduled_full(entries, now=now)
+        self.assertEqual((last["sha"], last["result"], last["failed_chunks"]), ("b" * 40, "failed", ["tools"]))
+        self.assertAlmostEqual(last["age_days"], 2.0)
