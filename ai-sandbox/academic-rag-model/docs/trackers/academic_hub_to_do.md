@@ -10,6 +10,10 @@ cd .\ai-sandbox\academic-rag-model; .\.venv\Scripts\python.exe -m tools.project_
      (aim for ~800 characters) and link long evidence from a status doc. Agents add items when asked to "add this as a
      pending to-do" (see the root CLAUDE.md). -->
 
+## Claim Support Check (separate design from `tools/reference_checker.py`)
+
+- Design a claim check, separate from the reference checker. A matched DOI only shows the paper exists; it does not show that the paper supports the sentence citing it. The owner's 2026-11-23 review found Gemini attaching real but unrelated papers to claims, and inventing DOIs when it found none. Build a queue of cited papers to download and transcribe (reuse the journal-discovery `needs_manual_downloads` worklist and the existing PDF-to-Markdown conversion), then compare each claim sentence against the transcribed text. Order the queue by (a) how much the note depends on the claim being true (proposal premises, headline findings and slide numbers first) and (b) how uncertain the reviewer is that the paper is right and supports it (review-page defers, rows passed only on author and year, quotes Gemini attributed to a paper). Start with a brainstorm and spec. Evidence: `docs/status/tools/2026-11-23-reference-checker-v17-review.md`. (added 2026-11-23)
+
 ## Evidence Map and reprokit evidence kind (`research/independent-research/projects/evidence-map`, `.../projects/reprokit`)
 
 - reprokit v0.4.0 (the `evidence` project kind) is released and merged (PR #1, tag `v0.4.0`, CI green on Linux and Windows). Spec: `ai-sandbox/research/independent-research/docs/superpowers/specs/2026-11-06-reprokit-evidence-kind-design.md`; operator doc: `projects/reprokit/docs/evidence-kind.md`. DONE 2026-11-07.
