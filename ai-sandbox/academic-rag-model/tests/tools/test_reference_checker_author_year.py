@@ -202,6 +202,30 @@ def test_same_year_sibling_with_better_venue_stays_in_review(monkeypatch):
     assert result["siblings"] == [sibling]
 
 
+def test_venue_less_author_year_ignores_same_year_sibling_venue(monkeypatch):
+    from tools import reference_checker as checker
+
+    sibling = {"doi": "10.1000/other", "title": "A different study", "year": 2020,
+               "venue": "Other Journal", "type": "article"}
+    monkeypatch.setattr(checker, "same_team_guard", lambda *args: checker.SameTeamGuardResult(True, [sibling], 1))
+    result = check(row("Smith & Jones (2020)"), RecordedClient())
+    assert result["tier"] == "AUTHOR_YEAR"
+    assert result["siblings"] == [sibling]
+
+
+def test_venue_with_trailing_parenthetical_identifier_passes():
+    class Client(RecordedClient):
+        def get(self, url):
+            answer = super().get(url)
+            if "api.crossref.org/works/" in url and "?" not in url:
+                answer["data"]["message"]["container-title"] = ["AEA Papers and Proceedings"]
+            return answer
+
+    result = check(row("Smith & Jones (2020), AEA P&P (`pandp.20251068`)"), Client())
+    assert result["tier"] == "AUTHOR_YEAR"
+    assert "venue agree" in result["reason"]
+
+
 def test_initials_and_italic_venue_are_author_year_evidence():
     class Client(RecordedClient):
         def get(self, url):

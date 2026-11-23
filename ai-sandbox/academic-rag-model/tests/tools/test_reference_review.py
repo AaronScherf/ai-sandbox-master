@@ -835,15 +835,39 @@ def test_review_load_summary_counts_decisions_and_automation_candidate(tmp_path)
     accepted = [ledger.make_item(f"a{i}.md", f"10.1234/a{i}",
                                  [{"line": 1, "cited_text": "Smith (2020)"}],
                                  tier="PLAUSIBLE", reason="", evidence="") for i in range(10)]
-    for item in accepted:
-        item.status = "accepted"
     declined = ledger.make_item("b.md", "10.1234/b",
                                 [{"line": 1, "cited_text": "Smith (2020)"}],
                                 tier="REVIEW", reason="", evidence="")
-    declined.status = "declined"
     ledger.save_review(accepted + [declined], tmp_path)
+    decisions = [{"item_id": item.item_id, "action": "accept", "chosen": None} for item in accepted]
+    decisions.append({"item_id": declined.item_id, "action": "decline", "chosen": "wrong_work"})
+    assert all(result["outcome"] == "applied" for result in ledger.apply_decisions(decisions, store=tmp_path))
     summary = ledger.review_load_summary(accepted[:2] + [declined], tmp_path)
     assert summary["PLAUSIBLE"] == {"queued": 2, "accepted": 10, "decisions": 10,
                                    "accept_rate": 1.0, "automation_candidate": True}
     assert summary["REVIEW"]["accept_rate"] == 0.0
     assert summary["REVIEW"]["automation_candidate"] is False
+
+
+def test_review_load_summary_reads_applied_accept_and_decline_tiers(tmp_path):
+    accepted = ledger.make_item("a.md", "10.1234/a",
+                                [{"line": 1, "cited_text": "Smith (2020)"},
+                                 {"line": 2, "cited_text": "Smith et al. (2020)"}],
+                                tier="PLAUSIBLE", reason="", evidence="")
+    declined = ledger.make_item("b.md", "10.1234/b",
+                                [{"line": 1, "cited_text": "Jones (2020)"}],
+                                tier="PLAUSIBLE", reason="", evidence="")
+    ledger.save_review([accepted, declined], tmp_path)
+    results = ledger.apply_decisions([
+        {"item_id": accepted.item_id, "action": "accept", "chosen": None},
+        {"item_id": declined.item_id, "action": "decline", "chosen": "wrong_work"},
+    ], store=tmp_path)
+    assert [result["outcome"] for result in results] == ["applied", "applied"]
+    assert len(ledger.load_dismissals(tmp_path)) == 2
+    assert all(entry["review_tier"] == "PLAUSIBLE" for entry in ledger.load_dismissals(tmp_path))
+    assert ledger.load_defects(tmp_path)[0]["review_tier"] == "PLAUSIBLE"
+    ledger.save_review([], tmp_path)
+    assert ledger.review_load_summary([], tmp_path)["PLAUSIBLE"] == {
+        "queued": 0, "accepted": 1, "decisions": 2,
+        "accept_rate": 0.5, "automation_candidate": False,
+    }

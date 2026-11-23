@@ -347,10 +347,18 @@ def review_load_summary(items: list[ReviewItem], store: Path) -> dict:
     """Show queue size and observed human outcomes by tier."""
     queued = Counter(item.candidates[0].get("tier", "UNKNOWN") for item in items)
     decisions: dict[str, Counter] = {}
-    for item in load_review(Path(store)):
-        if item.status in {"accepted", "declined"}:
-            tier = item.candidates[0].get("tier", "UNKNOWN")
-            decisions.setdefault(tier, Counter())[item.status] += 1
+    seen: set[tuple[str, str]] = set()
+    for kind, outcome in (("dismissals", "accepted"), ("defects", "declined"),
+                          ("false_positives", "declined")):
+        for entry in _load(kind, Path(store)):
+            if kind == "defects" and entry.get("source") != "human":
+                continue
+            tier, item_id = entry.get("review_tier"), entry.get("item_id")
+            key = (item_id, outcome)
+            if not tier or not item_id or key in seen:
+                continue
+            seen.add(key)
+            decisions.setdefault(tier, Counter())[outcome] += 1
     return {tier: {"queued": queued[tier], "accepted": decisions.get(tier, Counter())["accepted"],
                    "decisions": sum(decisions.get(tier, Counter()).values()),
                    "accept_rate": (decisions[tier]["accepted"] / sum(decisions[tier].values())
@@ -416,7 +424,8 @@ def resolve(item_id: str, *, store: Path = DEFAULT_STORE) -> bool:
     for doi, citation in sorted(_mention_keys(item)):
         if (doi, citation) not in known:
             existing.append({"doi": doi, "normalized_citation": citation,
-                             "item_id": item_id, "decided_at": now})
+                             "item_id": item_id, "review_tier": item.candidates[0]["tier"],
+                             "decided_at": now})
             added = True
     if added:
         save_dismissals(existing, store)
@@ -453,10 +462,12 @@ def reject(item_id: str, reason: str, *, store: Path = DEFAULT_STORE) -> bool:
             if not registry_title:
                 raise ValueError("wrong_title requires a registered title")
             entry = {"note": note, "doi": doi.lower(), "tier": "TITLE_WRONG",
+                     "item_id": item_id, "review_tier": item.candidates[0]["tier"],
                      "reason": f"human reviewer: DOI correct; title in note wrong; use registered title: {registry_title}",
                      "mentions": mentions, "source": "human", "registry_title": registry_title}
         else:
             entry = {"note": note, "doi": doi.lower(), "tier": "WRONG_WORK",
+                     "item_id": item_id, "review_tier": item.candidates[0]["tier"],
                      "reason": "human reviewer: wrong work", "mentions": mentions,
                      "source": "human"}
         defects = [d for d in defects if not (d.get("note"), d.get("doi"), d.get("source"))
@@ -467,7 +478,8 @@ def reject(item_id: str, reason: str, *, store: Path = DEFAULT_STORE) -> bool:
         false_positives = load_false_positives(store)
         if not any(row.get("item_id") == item_id and row.get("mentions") == mentions
                    for row in false_positives):
-            false_positives.append({"item_id": item_id, "note": note, "doi": doi.lower(),
+            false_positives.append({"item_id": item_id, "review_tier": item.candidates[0]["tier"],
+                                    "note": note, "doi": doi.lower(),
                                     "mentions": mentions, "recorded_at": now})
             save_false_positives(false_positives, store)
     if item.status != "declined":

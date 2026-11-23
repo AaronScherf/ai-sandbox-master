@@ -91,6 +91,7 @@ python -m tools.reference_review list --status defects
 4. The agent reads the page's `decisions` collection and runs `apply`.
 
 After each sweep, inspect `raise`'s `review_load` summary: queued items by tier, the acceptance rate of recorded human decisions, and tiers with at least ten decisions that were all accepted. Those tiers are candidates for a future rule change.
+Decisions recorded before v17 lack their originating tier and are excluded from per-tier rates.
 
 Defects clear when the note's citation text changes or a reviewer marks that exact note and citation `quoted`. An unchanged citation otherwise keeps its defect when the note is raised again.
 

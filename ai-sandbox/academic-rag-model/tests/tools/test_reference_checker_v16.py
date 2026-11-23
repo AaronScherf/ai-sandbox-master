@@ -104,6 +104,13 @@ def test_brown_invented_title_variants_remain_title_wrong(citation):
     assert len(client.searches) == 2
 
 
+@pytest.mark.parametrize("suffix", ["(pandp.20251068)", "`pandp.20251068`"])
+def test_brown_venue_with_trailing_identifier_is_not_an_invented_title(suffix):
+    result = _check(f"Brown, Salisbury & Ball (2025), AEA P&P {suffix}", BROWN_DOI, RecordedClient())
+    assert result["tier"] == "PLAUSIBLE"
+    assert "TITLE_NOT_FOUND" not in result["text_fidelity"]
+
+
 @pytest.mark.parametrize("citation", [
     "Brown, Salisbury & Ball (2025): Evidence-based funding and the value of information.",
     "Brown, Salisbury & Ball (2025); Evidence-based funding and the value of information.",

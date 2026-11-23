@@ -807,7 +807,8 @@ def _cited_title(citation: str, record: dict) -> str:
     tail = re.sub(r"^\s*\)\s*[*_]*", "", tail, count=1)
     tail = re.sub(r"^\s*[.,:;—–-]\s*", "", tail, count=1).lstrip(" \t")
     venue = record.get("venue") or ""
-    if venue and normalized(tail.strip(" *_.,")) == normalized(venue):
+    venue_text = re.sub(r"\s*(?:\([^()]*\)|`[^`]*`)\s*$", "", tail).strip(" *_.,")
+    if venue_text and not re.search(r"[.,;]", venue_text) and venue and _venue_matches(venue_text, venue):
         return ""
     if re.match(r"^[^.!?]+,\s*\d+(?:\s*\(\d+\))?,\s*\d+\s*[-–]\s*\d+\s*$", tail):
         return ""
@@ -1070,8 +1071,8 @@ def _apply_author_year(result: dict, citation: str, registry: str, record: dict,
     if guard.siblings:
         result["siblings"] = guard.siblings
     venue = fields["venue"]
-    target_matches = bool(record.get("venue") and _venue_matches(venue, record["venue"]))
-    better = next((s for s in guard.siblings if s.get("venue") and s.get("year") == year
+    target_matches = bool(venue and record.get("venue") and _venue_matches(venue, record["venue"]))
+    better = next((s for s in guard.siblings if venue and s.get("venue") and s.get("year") == year
                    and _venue_matches(venue, s["venue"]) and not target_matches), None)
     if better:
         result["tier"] = "REVIEW"
@@ -1101,6 +1102,7 @@ def _titleless_metadata(citation: str) -> dict[str, str]:
     year = YEAR.search(citation)
     tail = citation[year.end():] if year else ""
     tail = re.sub(r"^\s*\)\s*[.,;]?\s*", "", tail).strip(" .,·)")
+    tail = re.sub(r"\s*(?:\([^()]*\)|`[^`]*`)\s*$", "", tail)
     tail = re.sub(r"\.\s*(?:doi|https?://).*", "", tail, flags=re.I).strip(" .,·)")
     italic = re.match(r"^\*([^*]+)\*", tail)
     if italic:
