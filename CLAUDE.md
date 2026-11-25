@@ -55,7 +55,7 @@ Applies to anything Claude writes or revises that cites literature: research not
 - Never write `[source-verified]`, `[REGISTRY-MATCHED]` or a similar tag yourself; only the checker and the user's review decide that.
 - When the queue has open items, sync the review page (`https://claude.ai/artifact/EQM9L22JbowiAGMfx8jUQe`) and apply decisions with `reference_review apply`.
 - A matched DOI says nothing about whether the paper supports the claim. Read the paper before quoting a finding from it.
-- The landing gate enforces this for Markdown under `ai-sandbox/research/`.
+- The landing gates enforce this for Markdown under `ai-sandbox/research/` through `tools.land_branch` and website `content/` through `tools.land_website`.
 
 ## Bug report intake
 

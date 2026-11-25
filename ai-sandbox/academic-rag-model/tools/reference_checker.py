@@ -120,6 +120,30 @@ def identifiers(text: str) -> tuple[str, str]:
 def extract(text: str) -> list[dict]:
     """One row per reference; prefer the full citation directly below a link."""
     rows = []
+    # Hugo publication pages cite their own title in the leading YAML block.
+    # Keep this case separate from body references, whose title rules differ.
+    front = re.match(r"\A---\s*\n(.*?)\n---\s*(?:\n|\Z)", text, re.S)
+    if front:
+        title = doi = ""
+        doi_line = 0
+        for number, raw in enumerate(front.group(1).splitlines(), 2):
+            field = re.match(r"^(title|doi):\s*(.*?)\s*$", raw, re.I)
+            if field:
+                value = field.group(2).strip().strip("\"'")
+                if field.group(1).lower() == "title":
+                    title = value
+                else:
+                    doi, doi_line = value, number
+        if DOI.search(doi):
+            rows.append({"citation": title, "identifier": clean_identifier(DOI.search(doi).group()),
+                         "kind": "doi", "line": doi_line, "front_matter_title": title})
+        body = text[front.end():]
+        offset = text[:front.end()].count("\n")
+        for row in extract(body):
+            if "line" in row:
+                row["line"] += offset
+            rows.append(row)
+        return rows
     markdown_document = bool(re.search(r"^#{1,6}\s", text, re.M))
     lines = text.splitlines()
     reference_headings = [i for i, line in enumerate(lines)
@@ -1169,6 +1193,25 @@ def check(row: dict, client: RegistryClient, *, author_year: bool = True) -> dic
         result["tier"] = result["identity"]
         result["reason"] = status
         return result
+    if "front_matter_title" in row:
+        title = row["front_matter_title"]
+        score = _title_score(title, record) if title else 0.0
+        if score >= 0.92:
+            result.update(classification="MATCH", identity="SAME_WORK", tier="CONFIRMED",
+                          evidence="front_matter_title", text_fidelity=["OK"],
+                          reason="front matter title matches registered title")
+        elif not title:
+            result.update(classification="PARTIAL", identity="SAME_WORK", tier="TITLE_MISSING",
+                          text_fidelity=["NO_TITLE"], reason="front matter DOI has no title")
+        else:
+            hit, complete = search_cited_title(title, client, title=title)
+            tier = "REVIEW" if hit or not complete else "TITLE_WRONG"
+            result.update(classification="PARTIAL", identity="SAME_WORK", tier=tier,
+                          evidence="front_matter_title", text_fidelity=["TITLE_DIFFERS"],
+                          reason="front matter title differs from registered title")
+            if hit:
+                result["cited_title_found"] = hit
+        return result
     result["evidence"] = "title_in_citation" if _cited_title(citation, record) else ""
     result["identity"], result["text_fidelity"], result["reason"] = compare(citation, record)
     _apply_title_search(result, citation, record, client)
@@ -1231,6 +1274,9 @@ def check_note(text: str, client: RegistryClient, rows: list[dict] | None = None
         original = check(row, client, author_year=False)
         if "line" in row:
             original["line"] = row["line"]
+        if "front_matter_title" in row:
+            results.append(original)
+            continue
         record = (original.get("registry_answer") or {}).get("record") or {}
         original["evidence"] = "title_in_citation" if _cited_title(row["citation"], record) else ""
         if original["identity"] != "SAME_WORK" or original["evidence"]:

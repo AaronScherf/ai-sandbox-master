@@ -32,6 +32,12 @@ All paths are relative to `ai-sandbox/academic-rag-model/`.
 
 The cache and ledger always live in the main checkout, found through git's common directory, so every worktree shares one set of decisions.
 
+## Website gate
+
+From this project directory, use `python -m tools.land_website check <website-worktree>`.
+After the owner approves its change ID, use `python -m tools.land_website land <website-worktree> --change-id <id>`.
+The check verifies the website repo and clean branch, fetches and requires a fast-forward from `origin/main`, blocks overlaps with unmerged local branches, builds Hugo into a temporary directory, checks changed Markdown under `content/`, and records a change ID. It never merges or pushes. The land command rechecks before fast-forwarding and pushing website `main`.
+
 ## Running it
 
 From `ai-sandbox/academic-rag-model/`, with the project venv:

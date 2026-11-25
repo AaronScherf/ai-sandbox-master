@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.indexer.review_envelope import ReviewItem, _digest
+from tools.git_workflow import GitError, run_git
 from tools.reference_checker import (DEFAULT_CACHE, RegistryClient, TIER_RANK, _cited_title,
                                      check_note, normalized, shared_project_root)
 
@@ -189,10 +190,31 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def _note_path(path: str | Path, repo_root: Path) -> tuple[Path, str]:
+def _note_path(path: str | Path, repo_root: Path,
+               note_keys: dict[Path, str] | None = None) -> tuple[Path, str]:
     resolved = Path(path).resolve()
-    relative = resolved.relative_to(repo_root.resolve())
-    return resolved, relative.as_posix()
+    if note_keys is not None and resolved in note_keys:
+        key = note_keys[resolved]
+        if not key.startswith("ai-sandbox/personal-website/AaronScherf.github.io/content/") or ".." in Path(key).parts:
+            raise ValueError(f"invalid website note key: {key}")
+        return resolved, key
+    try:
+        relative = resolved.relative_to(repo_root.resolve())
+    except ValueError:
+        relative = None
+    if relative is not None and relative.as_posix().startswith("ai-sandbox/research/"):
+        return resolved, relative.as_posix()
+    try:
+        site = Path(run_git(["rev-parse", "--show-toplevel"], resolved.parent).strip())
+        origin = run_git(["remote", "get-url", "origin"], site).strip()
+        page = resolved.relative_to(site).as_posix()
+        if origin.rstrip("/").removesuffix(".git").endswith("AaronScherf/AaronScherf.github.io") and page.startswith("content/"):
+            return resolved, "ai-sandbox/personal-website/AaronScherf.github.io/" + page
+    except (GitError, ValueError):
+        pass
+    if relative is not None:
+        return resolved, relative.as_posix()
+    raise ValueError(f"note is outside repository root: {resolved}")
 
 
 def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, str]],
@@ -215,6 +237,7 @@ def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, st
                                 and TIER_RANK.get(tier, TIER_RANK["UNRESOLVED"]) < TIER_RANK["TITLE_MISSING"]
                                 and not any(row.get("tier") == "DESCRIBED" for row in mentions))
         if can_be_title_missing and not any(
+                row.get("evidence") == "front_matter_title" or
                 _cited_title(text, ((row.get("registry_answer") or {}).get("record") or {}))
                 for row in mentions for text in (row["citation"], row.get("linked_citation")) if text):
             tier = "TITLE_MISSING"
@@ -249,6 +272,7 @@ def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, st
 
 def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_STORE,
                 repo_root: Path = DEFAULT_REPO_ROOT,
+                note_keys: dict[Path, str] | None = None,
                 rows_by_note: dict[str, list[dict]] | None = None,
                 stats: dict[str, int] | None = None, strict: bool = False) -> list[ReviewItem]:
     """Check notes, upsert their open DOI questions, and refresh checker defects.
@@ -267,7 +291,7 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
     raised: list[ReviewItem] = []
     now = _now()
     for path in note_paths:
-        absolute, relative = _note_path(path, repo_root)
+        absolute, relative = _note_path(path, repo_root, note_keys)
         if relative in scanned:
             continue
         scanned.add(relative)
@@ -384,10 +408,11 @@ def review_load_summary(items: list[ReviewItem], store: Path) -> dict:
 
 
 def gate(note_paths: list[str | Path], client, *, store: Path = DEFAULT_STORE,
-         repo_root: Path = DEFAULT_REPO_ROOT) -> GateResult:
+         repo_root: Path = DEFAULT_REPO_ROOT,
+         note_keys: dict[Path, str] | None = None) -> GateResult:
     """Refresh scoped notes and report every reason the citation gate may stop."""
     rows_by_note: dict[str, list[dict]] = {}
-    raise_items(note_paths, client, store=store, repo_root=repo_root, strict=True,
+    raise_items(note_paths, client, store=store, repo_root=repo_root, note_keys=note_keys, strict=True,
                 rows_by_note=rows_by_note)
     defects = load_defects(store)
     open_items = list_items("open", store=store)

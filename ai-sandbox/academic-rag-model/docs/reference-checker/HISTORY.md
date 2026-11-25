@@ -7,6 +7,10 @@ The project has run since 2026-11-11, across three agents:
 - **Claude** reviewed it, made the design calls with Aaron, built the review page and integrated the work.
 - **Gemini** wrote the research notes being checked.
 
+## Website landing gate (2026-11-25)
+
+The [website gate design v2](2026-11-25-website-citation-gate-design%20-%20v2.md) chose a local landing tool instead of a CI job. The owner's citation decisions live in a local, untracked ledger. CI cannot read those decisions and would reopen accepted items; publishing the ledger would expose review state in a public repository. The local tool checks before merging or pushing, using the shared ledger and an owner-approved change ID.
+
 Paths below are relative to the repository root. The handoff series is the main thread: each version is a new file, and none was edited after it was committed.
 
 ```text

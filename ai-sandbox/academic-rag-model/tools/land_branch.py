@@ -130,13 +130,13 @@ class CheckResult:
     citation_gate: list[dict] = field(default_factory=list)
 
 
-def change_id(worktree: Path) -> str:
+def change_id(worktree: Path, base_ref: str = MAIN_BRANCH) -> str:
     """Fingerprint of the branch's diff against its merge-base with main.
 
     Whitespace-sensitive (unlike `git patch-id`), and blind to `index` and `@@`
     lines, which change when unrelated lines move, so a clean rebase keeps it.
     """
-    base = run_git(["merge-base", MAIN_BRANCH, "HEAD"], worktree).strip()
+    base = run_git(["merge-base", base_ref, "HEAD"], worktree).strip()
     diff = run_git(
         ["diff", "--no-color", "--no-ext-diff", "--binary", "-U0",
          "--src-prefix=a/", "--dst-prefix=b/", base, "HEAD"],
@@ -151,9 +151,10 @@ def project_relative(paths: set[str], subdir: str) -> set[str]:
     return {p[len(prefix):] for p in paths if p.startswith(prefix)}
 
 
-def changed_research_notes(worktree: Path) -> list[str]:
+def changed_research_notes(worktree: Path, prefix: str = "ai-sandbox/research/",
+                           base_ref: str = MAIN_BRANCH) -> list[str]:
     """Research Markdown added or edited by this branch, excluding pure renames."""
-    base = run_git(["merge-base", MAIN_BRANCH, "HEAD"], worktree).strip()
+    base = run_git(["merge-base", base_ref, "HEAD"], worktree).strip()
     fields = run_git(["diff", "--name-status", "-z", "-M", base, "HEAD"], worktree).split("\0")
     notes = []
     i = 0
@@ -165,9 +166,26 @@ def changed_research_notes(worktree: Path) -> list[str]:
         path = fields[i]
         i += 1
         if (status in {"A", "M"} or status.startswith("R") and status != "R100") and (
-                path.startswith("ai-sandbox/research/") and path.lower().endswith(".md")):
+                path.startswith(prefix) and path.lower().endswith(".md")):
             notes.append(path)
     return sorted(notes)
+
+
+def citation_gate_error(result: reference_review.GateResult) -> LandingError:
+    details = []
+    for note in result.notes:
+        if not note.blocked:
+            continue
+        action = []
+        if note.defects:
+            action.append("fix the note")
+        if note.open_items:
+            action.append("ask Claude to sync the review page")
+        if note.unresolved:
+            action.append("retry failed registry lookups")
+        details.append(f"{note.note}: defects={note.defects}, open_items={note.open_items}, "
+                       f"unresolved={note.unresolved}, URL-only={note.url_only}; " + ", ".join(action))
+    return LandingError("citation gate: " + " | ".join(details))
 
 
 def run_citation_gate(worktree: Path) -> reference_review.GateResult:
@@ -177,20 +195,7 @@ def run_citation_gate(worktree: Path) -> reference_review.GateResult:
     client = RegistryClient(DEFAULT_CACHE, online=True)
     result = reference_review.gate([worktree / path for path in paths], client, repo_root=worktree)
     if result.blocked:
-        details = []
-        for note in result.notes:
-            if not note.blocked:
-                continue
-            action = []
-            if note.defects:
-                action.append("fix the note")
-            if note.open_items:
-                action.append("ask Claude to sync the review page")
-            if note.unresolved:
-                action.append("retry failed registry lookups")
-            details.append(f"{note.note}: defects={note.defects}, open_items={note.open_items}, "
-                           f"unresolved={note.unresolved}, URL-only={note.url_only}; " + ", ".join(action))
-        raise LandingError("citation gate: " + " | ".join(details))
+        raise citation_gate_error(result)
     return result
 
 
