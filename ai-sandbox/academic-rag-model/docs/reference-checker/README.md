@@ -43,6 +43,9 @@ python -m tools.reference_checker "path\to\note.md" --format markdown
 # Check notes and update the review ledger; prints open items and defects
 python -m tools.reference_review raise "path\to\note.md" ["path\to\other.md" ...]
 
+# Maintenance sweep of untouched notes using v17 rules
+python -m tools.reference_review raise --sweep "path\to\note.md" ["path\to\other.md" ...]
+
 # Show the ledger
 python -m tools.reference_review list --status open
 
@@ -65,17 +68,20 @@ python -m tools.reference_review list --status defects
 | Tier | Meaning | Outcome |
 |---|---|---|
 | CONFIRMED | Title scores ≥0.92 and the year is within one, or the title scores ≥0.5 and the year matches exactly | Passes |
-| AUTHOR_YEAR | No title; cited surnames and year match the registry, and any venue, volume and pages given agree | Passes |
+| AUTHOR_YEAR | Sweep mode only: no title; cited surnames and year match the registry, and any venue, volume and pages given agree | Passes in sweeps |
 | DESCRIBED | A descriptive link shares at least two content words with the registered title or venue | Passes |
 | PLAUSIBLE | No title, and one of the AUTHOR_YEAR conditions fails | Review |
 | UNCHECKED | No DOI (plain URL or bare citation); the checker only offers candidates | Counted, not gated |
 | UNRESOLVED | A registry lookup failed | Gate fails closed; retry |
 | REVIEW / AMBIGUOUS | Same authors, but the title or year disagrees and no rule settles it | Review |
 | TITLE_WRONG | Right DOI and authors, but the cited title exists in neither Crossref nor OpenAlex | Defect: fix the title in the note |
+| TITLE_MISSING | Strict mode: a DOI citation has no title in any mention or linked reference entry | Defect: writer names the intended work |
 | NOT_FOUND | The DOI is not registered | Defect |
 | WRONG_WORK | The DOI resolves to a different work | Defect |
 
 **Same-team guard.** For title-less rows, the checker lists nearby same-team works as context. Siblings alone do not hold a row for review, and an incomplete sibling lookup does not block an author/year pass. If a cited venue and year fit a sibling better than the DOI record, the row stays in review.
+
+`raise` and the landing gate use strict mode: every DOI citation in a touched note needs the intended work's title, while descriptive links that match the registered work still pass. `raise --sweep` keeps v17 classification for untouched notes and preserves any existing TITLE_MISSING defects. Search for the work by title and authors before taking its DOI from the registry record; copying a title from a DOI record can make a wrong DOI appear correct.
 
 ## The review loop
 

@@ -73,7 +73,7 @@ def shared_project_root(cwd: Path | None = None) -> Path:
 DEFAULT_CACHE = shared_project_root() / ".reference_checker_cache"
 
 TIER_RANK = {"CONFIRMED": 0, "AUTHOR_YEAR": 1, "DESCRIBED": 1, "PLAUSIBLE": 2, "UNCHECKED": 3,
-             "UNRESOLVED": 4, "REVIEW": 5, "AMBIGUOUS": 5, "TITLE_WRONG": 6,
+             "UNRESOLVED": 4, "REVIEW": 5, "AMBIGUOUS": 5, "TITLE_WRONG": 6, "TITLE_MISSING": 6,
              "NOT_FOUND": 7, "WRONG_WORK": 8}
 SAME_TEAM_VERSION_TITLE_THRESHOLD = 0.8
 
@@ -1050,7 +1050,8 @@ def _apply_title_search(result: dict, citation: str, record: dict, client: Regis
     else:
         result["text_fidelity"].append("TITLE_NOT_FOUND")
         result["registry_title"] = record.get("title") or ""
-        result["reason"] = "cited title not found in Crossref or OpenAlex; DOI and authors match; use the registered title"
+        result["reason"] = ("cited title not found in Crossref or OpenAlex; DOI and authors match; "
+                            "confirm which work you meant; if it is this DOI's work, use its registered title")
 
 
 def _apply_author_year(result: dict, citation: str, registry: str, record: dict, client: RegistryClient) -> None:

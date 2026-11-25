@@ -362,7 +362,7 @@ def test_raise_cli_reports_incomplete_kept_count_and_retry_advice(tmp_path, monk
     monkeypatch.setattr(ledger, "check_note", lambda text, client: [
         {**_row("10.1234/a", "REVIEW"), "reason": "title search unavailable"}])
 
-    assert ledger.main(["raise", str(note), "--offline", "--cache", str(tmp_path / "cache")]) == 0
+    assert ledger.main(["raise", str(note), "--sweep", "--offline", "--cache", str(tmp_path / "cache")]) == 0
     captured = capsys.readouterr()
     assert captured.err.splitlines() == ["Incomplete lookups kept prior state: 1; retry later",
                                          "Review load: no queued items or decisions"]
@@ -379,7 +379,7 @@ def test_raise_cli_omits_retry_line_when_no_prior_state_is_kept(tmp_path, monkey
     monkeypatch.setattr(ledger, "RegistryClient", lambda *args, **kwargs: object())
     monkeypatch.setattr(ledger, "check_note", lambda text, client: [_row("10.1234/a", "REVIEW")])
 
-    assert ledger.main(["raise", str(note), "--offline", "--cache", str(tmp_path / "cache")]) == 0
+    assert ledger.main(["raise", str(note), "--sweep", "--offline", "--cache", str(tmp_path / "cache")]) == 0
     captured = capsys.readouterr()
     assert captured.err == "Review load: REVIEW: 1 queued, no decisions\n"
     assert json.loads(captured.out)["incomplete_lookup_kept"] == 0
@@ -398,7 +398,8 @@ def test_gate_blocks_checker_defects_by_note(tmp_path, monkeypatch, tier):
 def test_gate_open_item_blocks_until_resolved_and_deferred_still_blocks(tmp_path, monkeypatch):
     note = tmp_path / "note.md"
     note.write_text("# References\n", encoding="utf-8")
-    monkeypatch.setattr(ledger, "check_note", lambda text, client: [_row("10.1234/a", "REVIEW")])
+    row = {**_row("10.1234/a", "REVIEW"), "linked_citation": "Smith (2020). Sample paper"}
+    monkeypatch.setattr(ledger, "check_note", lambda text, client: [row])
     store = tmp_path / "store"
     first = ledger.gate([note], object(), store=store, repo_root=tmp_path)
     assert first.blocked and first.notes[0].open_items == 1
@@ -414,7 +415,7 @@ def test_gate_open_item_blocks_until_resolved_and_deferred_still_blocks(tmp_path
 def test_gate_preserves_matching_human_defect_after_acceptance(tmp_path, monkeypatch):
     note = tmp_path / "note.md"
     note.write_text("# References\n", encoding="utf-8")
-    row = _row("10.1234/a", "CONFIRMED")
+    row = {**_row("10.1234/a", "CONFIRMED"), "linked_citation": "Smith (2020). Sample paper"}
     monkeypatch.setattr(ledger, "check_note", lambda text, client: [row])
     store = tmp_path / "store"
     ledger.save_defects([{"note": "note.md", "doi": "10.1234/a", "tier": "TITLE_WRONG",
@@ -427,7 +428,8 @@ def test_gate_preserves_matching_human_defect_after_acceptance(tmp_path, monkeyp
 def test_gate_fails_closed_on_lookup_and_reports_url_only_rows(tmp_path, monkeypatch):
     note = tmp_path / "note.md"
     note.write_text("# References\n", encoding="utf-8")
-    rows = [_row("10.1234/a", "CONFIRMED"), _row("10.1234/b", "AUTHOR_YEAR"),
+    rows = [{**_row("10.1234/a", "CONFIRMED"), "linked_citation": "Smith (2020). Sample paper"},
+            {**_row("10.1234/b", "AUTHOR_YEAR"), "linked_citation": "Smith (2020). Sample paper"},
             _row("https://example.org/paper", "UNCHECKED")]
     monkeypatch.setattr(ledger, "check_note", lambda text, client: rows)
     store = tmp_path / "store"
@@ -435,21 +437,21 @@ def test_gate_fails_closed_on_lookup_and_reports_url_only_rows(tmp_path, monkeyp
     assert not passed.blocked
     assert passed.notes == [ledger.NoteGateResult("note.md", 0, 0, 0, 1)]
 
-    failure = _row("10.1234/c", "UNRESOLVED")
+    failure = {**_row("10.1234/c", "UNRESOLVED"), "linked_citation": "Smith (2020). Sample paper"}
     failure["reason"] = "registry lookup unavailable: HTTP 503"
     rows.append(failure)
     blocked = ledger.gate([note], object(), store=store, repo_root=tmp_path)
     assert blocked.blocked and blocked.notes[0].unresolved == 1
-    title_failure = _row("10.1234/d", "REVIEW")
+    title_failure = {**_row("10.1234/d", "REVIEW"), "linked_citation": "Smith (2020). Sample paper"}
     title_failure["reason"] = "title search unavailable"
     rows.append(title_failure)
     blocked = ledger.gate([note], object(), store=store, repo_root=tmp_path)
     assert blocked.notes[0].unresolved == 2
-    guard_failure = _row("10.1234/e", "PLAUSIBLE")
+    guard_failure = {**_row("10.1234/e", "PLAUSIBLE"), "linked_citation": "Smith (2020). Sample paper"}
     guard_failure["reason"] = "same-team guard incomplete: Crossref lookup unavailable"
     rows.append(guard_failure)
     assert ledger.gate([note], object(), store=store, repo_root=tmp_path).notes[0].unresolved == 3
-    metadata_gap = _row("10.1234/f", "PLAUSIBLE")
+    metadata_gap = {**_row("10.1234/f", "PLAUSIBLE"), "linked_citation": "Smith (2020). Sample paper"}
     metadata_gap["reason"] = "same-team guard incomplete: first OpenAlex author ID missing"
     rows.append(metadata_gap)
     assert ledger.gate([note], object(), store=store, repo_root=tmp_path).notes[0].unresolved == 3
@@ -644,7 +646,7 @@ def test_wrong_title_decision_is_note_local_and_apply_is_idempotent(tmp_path):
     assert len(defects) == 1
     assert defects[0]["tier"] == "TITLE_WRONG"
     assert defects[0]["registry_title"] == title
-    assert "DOI correct" in defects[0]["reason"] and title in defects[0]["reason"]
+    assert "confirm which work you meant" in defects[0]["reason"] and title in defects[0]["reason"]
     assert defects[0]["note"] == "research/a.md"
     assert ledger.load_dismissals(store) == []
 
@@ -814,7 +816,7 @@ def test_cli_list_apply_and_raise_with_recorded_client(tmp_path, monkeypatch, ca
                 "published": {"date-parts": [[2020]]}, "container-title": ["Journal"]}}}
 
     monkeypatch.setattr(ledger, "RegistryClient", Client)
-    assert ledger.main(["raise", str(note), "--offline", "--cache", str(tmp_path / "cache")]) == 0
+    assert ledger.main(["raise", str(note), "--sweep", "--offline", "--cache", str(tmp_path / "cache")]) == 0
     raised = json.loads(capsys.readouterr().out)
     iid = raised["items"][0]["item_id"]
     assert raised["defects"] == []

@@ -16,7 +16,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from core.indexer.review_envelope import ReviewItem, _digest
-from tools.reference_checker import DEFAULT_CACHE, RegistryClient, TIER_RANK, check_note, normalized, shared_project_root
+from tools.reference_checker import (DEFAULT_CACHE, RegistryClient, TIER_RANK, _cited_title,
+                                     check_note, normalized, shared_project_root)
 
 
 DEFAULT_STORE = shared_project_root() / ".reference_checker_review"
@@ -24,7 +25,9 @@ DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[3]
 FILES = {"review": "review.json", "dismissals": "dismissals.json", "defects": "defects.json",
          "false_positives": "false_positives.json", "quoted": "quoted.json"}
 REVIEW_TIERS = {"REVIEW", "AMBIGUOUS", "PLAUSIBLE", "UNCHECKED", "UNRESOLVED"}
-DEFECT_TIERS = {"WRONG_WORK", "NOT_FOUND", "TITLE_WRONG"}
+DEFECT_TIERS = {"WRONG_WORK", "NOT_FOUND", "TITLE_WRONG", "TITLE_MISSING"}
+TITLE_MISSING_REASON = ("no title: write the title of the work you mean, found by searching for that work, "
+                        "then take its DOI from that record; do not copy this DOI's registered title")
 
 
 def _incomplete_lookup(row: dict) -> bool:
@@ -193,7 +196,7 @@ def _note_path(path: str | Path, repo_root: Path) -> tuple[Path, str]:
 
 
 def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, str]],
-              quoted: list[dict] | None = None) -> tuple[list[ReviewItem], list[dict]]:
+              quoted: list[dict] | None = None, *, strict: bool = False) -> tuple[list[ReviewItem], list[dict]]:
     """Group DOI mentions and route the worst tier to review or defects."""
     groups: dict[str, list[dict]] = {}
     for row in rows:
@@ -208,6 +211,14 @@ def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, st
         worst = max(mentions, key=lambda row: (TIER_RANK.get(row.get("tier"), TIER_RANK["UNRESOLVED"]),
                                                bool(row.get("siblings"))))
         tier = worst.get("tier", "UNRESOLVED")
+        can_be_title_missing = (strict
+                                and TIER_RANK.get(tier, TIER_RANK["UNRESOLVED"]) < TIER_RANK["TITLE_MISSING"]
+                                and not any(row.get("tier") == "DESCRIBED" for row in mentions))
+        if can_be_title_missing and not any(
+                _cited_title(text, ((row.get("registry_answer") or {}).get("record") or {}))
+                for row in mentions for text in (row["citation"], row.get("linked_citation")) if text):
+            tier = "TITLE_MISSING"
+            worst = {**worst, "reason": TITLE_MISSING_REASON}
         if tier in DEFECT_TIERS:
             defect = {"note": note_rel_path, "doi": doi, "tier": tier,
                       "reason": worst.get("reason", ""), "mentions": cited,
@@ -239,7 +250,7 @@ def _selected(note_rel_path: str, rows: list[dict], dismissed: set[tuple[str, st
 def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_STORE,
                 repo_root: Path = DEFAULT_REPO_ROOT,
                 rows_by_note: dict[str, list[dict]] | None = None,
-                stats: dict[str, int] | None = None) -> list[ReviewItem]:
+                stats: dict[str, int] | None = None, strict: bool = False) -> list[ReviewItem]:
     """Check notes, upsert their open DOI questions, and refresh checker defects.
 
     Only files beneath ``repo_root`` are accepted. Each scanned note replaces
@@ -263,12 +274,12 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
         rows = check_note(absolute.read_text(encoding="utf-8"), client)
         if rows_by_note is not None:
             rows_by_note[relative] = rows
-        current, found_defects = _selected(relative, rows, dismissed, quoted)
+        current, found_defects = _selected(relative, rows, dismissed, quoted, strict=strict)
         # A dismissal suppresses selection of an accepted citation. Compare
         # fresh evidence with its prior item before deciding whether it reopens.
         if any(item.status == "accepted" and item.subject_ids[0] == relative
                for item in existing.values()):
-            all_current, _ = _selected(relative, rows, set(), quoted)
+            all_current, _ = _selected(relative, rows, set(), quoted, strict=strict)
             selected_ids = {item.item_id for item in current}
             current.extend(item for item in all_current
                            if item.item_id not in selected_ids
@@ -294,9 +305,12 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
                         == current_texts.get(d.get("doi"))}
         kept_defect_dois = {d["doi"] for d in defects if id(d) in kept_defects
                             and d["doi"] not in kept_items}
-        protected_dois = set(kept_items) | kept_defect_dois
+        sweep_title_missing = ({d["doi"] for d in defects if d.get("note") == relative
+                                and d.get("tier") == "TITLE_MISSING"} if not strict else set())
+        lookup_kept_dois = set(kept_items) | kept_defect_dois
+        protected_dois = lookup_kept_dois | sweep_title_missing
         if stats is not None:
-            stats["incomplete_lookup_kept"] = stats.get("incomplete_lookup_kept", 0) + len(protected_dois)
+            stats["incomplete_lookup_kept"] = stats.get("incomplete_lookup_kept", 0) + len(lookup_kept_dois)
         current = [item for item in current if item.subject_ids[1] not in protected_dois]
         current.extend(kept_items.values())
         found_defects = [d for d in found_defects if d["doi"] not in protected_dois]
@@ -307,6 +321,7 @@ def raise_items(note_paths: list[str | Path], client, *, store: Path = DEFAULT_S
                 current_citations.setdefault(doi, set()).add(normalized(row["citation"]))
         defects = [d for d in defects if not (
             d.get("note") == relative and d.get("doi") not in kept_items
+            and (strict or d.get("tier") != "TITLE_MISSING")
             and id(d) not in kept_defects and (
                 d.get("source") == "checker" or
                 (d.get("source") == "human" and
@@ -372,7 +387,7 @@ def gate(note_paths: list[str | Path], client, *, store: Path = DEFAULT_STORE,
          repo_root: Path = DEFAULT_REPO_ROOT) -> GateResult:
     """Refresh scoped notes and report every reason the citation gate may stop."""
     rows_by_note: dict[str, list[dict]] = {}
-    raise_items(note_paths, client, store=store, repo_root=repo_root,
+    raise_items(note_paths, client, store=store, repo_root=repo_root, strict=True,
                 rows_by_note=rows_by_note)
     defects = load_defects(store)
     open_items = list_items("open", store=store)
@@ -463,7 +478,8 @@ def reject(item_id: str, reason: str, *, store: Path = DEFAULT_STORE) -> bool:
                 raise ValueError("wrong_title requires a registered title")
             entry = {"note": note, "doi": doi.lower(), "tier": "TITLE_WRONG",
                      "item_id": item_id, "review_tier": item.candidates[0]["tier"],
-                     "reason": f"human reviewer: DOI correct; title in note wrong; use registered title: {registry_title}",
+                     "reason": ("human reviewer: title in note wrong; confirm which work you meant; "
+                                f"if it is this DOI's work, use its registered title: {registry_title}"),
                      "mentions": mentions, "source": "human", "registry_title": registry_title}
         else:
             entry = {"note": note, "doi": doi.lower(), "tier": "WRONG_WORK",
@@ -675,6 +691,7 @@ def main(argv: list[str] | None = None) -> int:
     raising = sub.add_parser("raise", help="check notes and update the local review ledger")
     raising.add_argument("notes", nargs="+", type=Path)
     raising.add_argument("--offline", action="store_true", help="read cached registry answers only")
+    raising.add_argument("--sweep", action="store_true", help="use v17 rules for untouched notes")
     raising.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
     listing = sub.add_parser("list", help="print stored review items without writing")
     listing.add_argument("--status", choices=("open", "pending", "deferred", "accepted", "declined", "all", "defects"),
@@ -688,7 +705,7 @@ def main(argv: list[str] | None = None) -> int:
             client = RegistryClient(args.cache, online=not args.offline)
             stats: dict[str, int] = {}
             items = raise_items(args.notes, client, store=DEFAULT_STORE,
-                                repo_root=DEFAULT_REPO_ROOT, stats=stats)
+                                repo_root=DEFAULT_REPO_ROOT, stats=stats, strict=not args.sweep)
             requested = {_note_path(path, DEFAULT_REPO_ROOT)[1] for path in args.notes}
             defects = [d for d in load_defects(DEFAULT_STORE) if d.get("note") in requested]
             kept = stats.get("incomplete_lookup_kept", 0)

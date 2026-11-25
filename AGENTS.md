@@ -140,6 +140,7 @@ not authorize concurrent writers in this worktree.
 
 Applies to anything Codex writes that cites literature, including test fixtures and status docs that name papers. Reference: [reference checker README](ai-sandbox/academic-rag-model/docs/reference-checker/README.md).
 - Take identifiers (DOIs, URLs) and bibliographic details from a registry lookup or a source file, never from memory.
+- Give every citation the work's title. Find the work in a registry by title and authors, then take its DOI from that record; never fill in a title by reading a DOI's record.
 - Before handing off a note that cites literature, run `python -m tools.reference_review raise <note>` from `ai-sandbox/academic-rag-model/`. Fix every defect, and report the counts.
 - Never write a `[source-verified]`-style tag yourself.
 - Never hand-edit `.reference_checker_review/` files. Decisions go through the review page and `reference_review apply`.
