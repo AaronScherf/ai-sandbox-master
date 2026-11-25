@@ -15,6 +15,7 @@ from agent.literature.profile.profiles import DEFAULT_DIR, load_profile
 from agent.literature.vocab import load_vocabularies
 from core.agent_tasks.loop import BudgetError, api_run, collect_run, provenance, submit_run
 from core.agent_tasks.work import load_run
+from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
 from core.indexer.research_profile import set_research_profile
 
 _DEFAULT_ROOT = Path(__file__).resolve().parents[3].parent / "research"
@@ -311,8 +312,28 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _writes(args) -> bool:
+    """True when the command can change cards, folders or transcripts under the index root. `collect` only writes
+    private task cards under `.agent_work/`, so it does not take the corpus lock."""
+    action = getattr(args, "action", None)
+    if args.command in ("summary", "queue", "eval"):
+        return False
+    return not (action in ("plan", "collect"))
+
+
 def main(argv: list[str] | None = None, *, lookup=None, complete=None) -> int:
     args = build_parser().parse_args(argv)
+    if not _writes(args):
+        return _dispatch(args, lookup, complete)
+    try:
+        with corpus_write_lock([args.index_root], f"profile {args.command}"):
+            return _dispatch(args, lookup, complete)
+    except CorpusWriteLockError as exc:
+        print(str(exc))
+        return 2
+
+
+def _dispatch(args, lookup, complete) -> int:
     if args.command == "metadata":
         return cmd_metadata(args, lookup)
     if args.command in ("classify", "tag"):

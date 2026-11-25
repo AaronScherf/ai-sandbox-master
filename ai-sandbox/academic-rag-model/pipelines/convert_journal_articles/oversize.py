@@ -67,6 +67,10 @@ def apply_decisions(index_root: str, decisions: dict[str, str]) -> dict[str, str
     root = Path(index_root)
     ledger = load(index_root)
     result: dict[str, str] = {}
+    for rel in decisions:
+        resolved = (root / rel).resolve()
+        if not rel or not resolved.is_relative_to(root.resolve()) or len(rel.split("/")) < 2:
+            raise ValueError(f"path {rel!r} is not inside the corpus folder; nothing was changed")
     for rel, choice in decisions.items():
         entry = ledger.setdefault(rel, {"pages": None, "choice": None})
         if choice == "move":

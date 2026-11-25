@@ -307,7 +307,8 @@ def main():
         return
 
     load_dotenv_override()
-    pdf_paths = _eligible_pdfs(pdf_paths, args.max_pages, args.index_root)
+    # A dry run must not write the oversize ledger (index_root=None only prints the flag).
+    pdf_paths = _eligible_pdfs(pdf_paths, args.max_pages, None if args.dry_run else args.index_root)
 
     if args.backfill_identity:
         _backfill_identity(pdf_paths, args)

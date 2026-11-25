@@ -79,6 +79,23 @@ def test_move_refuses_to_overwrite_and_unknown_choice_changes_nothing():
             oversize.apply_decisions(root, {"journal-articles/a/book.pdf": "delete"})
 
 
+def test_a_path_outside_the_corpus_is_refused_before_anything_moves():
+    with tempfile.TemporaryDirectory() as root:
+        _pdf(root, "journal-articles/a/book.pdf")
+        for bad in ("../elsewhere/book.pdf", "book.pdf"):
+            with pytest.raises(ValueError, match="not inside"):
+                oversize.apply_decisions(root, {"journal-articles/a/book.pdf": "move", bad: "move"})
+        assert os.path.exists(os.path.join(root, "journal-articles", "a", "book.pdf"))
+
+
+def test_dry_run_does_not_write_the_oversize_ledger(capsys):
+    with tempfile.TemporaryDirectory() as root:
+        pdf = _pdf(root, "journal-articles/a/book.pdf")
+        with patch.object(cja, "_page_count", return_value=300):
+            assert cja._eligible_pdfs([pdf], oversize.THRESHOLD, None) == []
+        assert oversize.load(root) == {}
+
+
 def test_replication_packages_are_not_discovered_as_papers():
     with tempfile.TemporaryDirectory() as root:
         _pdf(root, "a/paper.pdf")

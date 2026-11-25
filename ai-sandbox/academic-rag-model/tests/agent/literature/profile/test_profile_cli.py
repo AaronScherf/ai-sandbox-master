@@ -1,5 +1,6 @@
 import json
 import re
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -44,6 +45,7 @@ def _vocab_file(base: Path, kind: str):
 def root():
     with tempfile.TemporaryDirectory() as tmp:
         base = Path(tmp)
+        subprocess.run(["git", "init", "-q", str(base)], check=True)  # the corpus write lock needs a repo
         cards = [_paper(base, "f1", "Cash transfers in Kenya", "10.1/one"),
                  _paper(base, "f2", "Seed adoption in Mali", "10.1/two"),
                  _paper(base, "f3", "A carbon tax model", None)]
@@ -62,6 +64,15 @@ def _lookup(doi):
 
 def _run(root, *argv, **kw):
     return cli.main(["--index-root", str(root), *argv], **kw)
+
+
+def test_writing_commands_refuse_while_another_writer_holds_the_corpus_lock(root, capsys):
+    from core.env.corpus_write_lock import corpus_write_lock
+    with corpus_write_lock([root], "other writer"):
+        assert _run(root, "refresh-discipline") == 2
+        assert "other writer" in capsys.readouterr().out
+        assert _run(root, "summary") == 0  # read-only commands never take the lock
+        assert _run(root, "folders", "plan") == 0
 
 
 def _latest_run(root):

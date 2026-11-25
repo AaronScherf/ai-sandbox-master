@@ -13,8 +13,8 @@ from pipelines.convert_journal_articles import oversize
 
 
 def _pages_present(md_path: str) -> int:
-    """Distinct `<!-- page N -->` markers in a transcript. A metered run that gives up on a page still writes the file,
-    so fewer markers than the PDF has pages means a truncated transcript."""
+    """Distinct `<!-- page N -->` markers in a transcript. The transcriber now refuses to write a transcript with
+    missing pages, but one written by an older run can be truncated: fewer markers than the PDF has pages."""
     with open(md_path, encoding="utf-8") as f:
         return len({int(n) for n in re.findall(r"<!-- page (\d+) -->", f.read())})
 
