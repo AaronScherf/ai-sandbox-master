@@ -21,8 +21,8 @@ from pathlib import Path
 
 from agent.literature.profile.review import atomic_write_json, effective_value
 from core.indexer.chunk_index import load_chunks, save_chunks
-from core.indexer.index_card import (derive_course, find_card_by_file_id, load_shard, recompute_course_entry,
-                                     save_shard)
+from core.indexer.index_card import (derive_course, find_card_by_file_id, list_courses, load_shard,
+                                     recompute_course_entry, save_shard)
 from core.indexer.research_profile import RESEARCH_REPORT_TYPES
 
 OTHER = "other"
@@ -119,6 +119,42 @@ def _files(card: dict, old: str, new: str) -> list[tuple[str, str]]:
     return [(rel, _swap(rel, old, new)) for rel in rels]
 
 
+_LOCATION_LINE = re.compile(r"^(source_pdf|duplicate_of_path):([ \t]?)([\"']?)([^\r\n\"']*)\3(?=\r?$)", re.MULTILINE)
+_FRONTMATTER_HEAD = re.compile(r"---\r?\n.*?\r?\n---\r?\n", re.DOTALL)
+
+
+def _repoint_frontmatter(abs_md: Path, renames: dict[str, str]) -> None:
+    """Rewrites a transcript's own `source_pdf` and `duplicate_of_path` lines through `renames`, so the file agrees
+    with its card. Only those lines change; endings and body are kept byte for byte. Both fields are
+    LOCATION_FIELDS, which `compute_content_hash` ignores, so the card's content_hash stays valid."""
+    try:
+        raw = abs_md.read_bytes().decode("utf-8")
+    except FileNotFoundError:
+        return
+    block = _FRONTMATTER_HEAD.match(raw)
+    if not block:
+        return
+    head = _LOCATION_LINE.sub(lambda m: f"{m[1]}:{m[2]}{m[3]}{renames.get(m[4], m[4])}{m[3]}", block.group(0))
+    if head != block.group(0):
+        abs_md.write_bytes((head + raw[block.end():]).encode("utf-8"))
+
+
+def _repoint_clones(index_root: str, renames: dict[str, str]) -> None:
+    """A duplicate-linked clone names its canonical's transcript in `duplicate_of_path` (card and frontmatter);
+    when the canonical moves, or a move is undone, those pointers follow."""
+    for course in list_courses(index_root):
+        shard = load_shard(index_root, course)
+        changed = False
+        for card in shard:
+            target = renames.get(card.get("duplicate_of_path") or "")
+            if target:
+                card["duplicate_of_path"] = target
+                _repoint_frontmatter(Path(index_root) / card["path"], renames)
+                changed = True
+        if changed:
+            save_shard(index_root, course, shard)
+
+
 def _relocate(index_root: str, file_id: str, renames: dict[str, str]) -> None:
     """Rewrites the card's paths through `renames`, and its course to the new top-level folder (the course a
     re-index would derive), moving it between shards when the course changes."""
@@ -129,6 +165,9 @@ def _relocate(index_root: str, file_id: str, renames: dict[str, str]) -> None:
             card[key] = renames[card[key]]
     new_course = derive_course(card.get("source_pdf_path") or card["path"])
     card["course"] = new_course
+    if renames.get(card.get("duplicate_of_path") or ""):
+        card["duplicate_of_path"] = renames[card["duplicate_of_path"]]
+    _repoint_frontmatter(Path(index_root) / card["path"], renames)
     if new_course == old_course:
         save_shard(index_root, old_course, [card if c["file_id"] == file_id else c for c in load_shard(index_root, old_course)])
         return
@@ -190,6 +229,7 @@ def apply_moves(index_root: str, moves: list[Move], approved: set[str]) -> list[
             elif (root / dst).exists():
                 done.append([src, dst])  # moved by an interrupted earlier run: undo must still restore it
         _relocate(index_root, move.file_id, dict(pairs))
+        _repoint_clones(index_root, dict(pairs))
         entry = {"file_id": move.file_id, "from": move.from_folder, "to": move.to_folder, "files": done,
                  "at": datetime.datetime.now(datetime.timezone.utc).isoformat()}
         entries.append(entry)
@@ -220,6 +260,8 @@ def undo_moves(index_root: str, entries: list[dict]) -> None:
             if (root / dst).exists():
                 (root / src).parent.mkdir(parents=True, exist_ok=True)
                 shutil.move(str(root / dst), str(root / src))
-        _relocate(index_root, entry["file_id"], {dst: src for src, dst in entry["files"]})
+        back = {dst: src for src, dst in entry["files"]}
+        _relocate(index_root, entry["file_id"], back)
+        _repoint_clones(index_root, back)
     undone = {(e["file_id"], e["at"]) for e in entries}
     atomic_write_json(log_path(index_root), [e for e in _read_log(index_root) if (e["file_id"], e["at"]) not in undone])

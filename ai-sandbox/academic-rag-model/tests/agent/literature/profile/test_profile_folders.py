@@ -337,3 +337,54 @@ def test_a_moved_papers_chunks_follow_its_card():
         folders.apply_moves(str(root), _plan(root), {"a1"})
         assert [c["file_id"] for c in load_chunks(str(root), "economics-econometrics-and-finance")] == ["a1"]
         assert [c["file_id"] for c in load_chunks(str(root), "business")] == ["m1"]
+
+
+CRLF = bytes([13, 10])
+
+
+def _front(root: Path, fid: str, **fields):
+    """Gives a paper's transcript frontmatter with CRLF endings, as a Windows text-mode write would."""
+    card = find_card_by_file_id(str(root), fid)[1]
+    lines = ["---"] + [f"{k}: {v}" for k, v in fields.items()] + ["---", "", "body text", ""]
+    (root / card["path"]).write_bytes(CRLF.join(x.encode() for x in lines))
+    return card
+
+
+def _frontmatter(root: Path, fid: str) -> dict:
+    from core.env.frontmatter import parse_frontmatter
+    card = find_card_by_file_id(str(root), fid)[1]
+    text = (root / card["path"]).read_bytes().replace(CRLF, bytes([10])).decode()
+    return parse_frontmatter(text)[0]
+
+
+def test_move_rewrites_transcript_frontmatter_and_undo_restores_it():
+    tmp, root = _setup()
+    with tmp:
+        old = find_card_by_file_id(str(root), "a1")[1]
+        _front(root, "a1", title="x", source_pdf=old["source_pdf_path"])
+        raw_before = (root / old["path"]).read_bytes()
+        log = folders.apply_moves(str(root), _plan(root), {"a1"})
+        card = find_card_by_file_id(str(root), "a1")[1]
+        raw_after = (root / card["path"]).read_bytes()
+        assert _frontmatter(root, "a1")["source_pdf"] == card["source_pdf_path"]
+        assert raw_after.count(CRLF) == raw_before.count(CRLF) and b"body text" in raw_after
+        folders.undo_moves(str(root), log)
+        assert (root / old["path"]).read_bytes() == raw_before
+
+
+def test_moving_the_canonical_repoints_its_clones_card_and_transcript():
+    tmp, root = _setup()
+    with tmp:
+        canon = find_card_by_file_id(str(root), "a1")[1]
+        _paper(root, "business", "clone", "c1", None)
+        _front(root, "c1", duplicate_of_path=canon["path"])
+        shard = [dict(c, duplicate_of_path=canon["path"]) if c["file_id"] == "c1" else c
+                 for c in load_shard(str(root), "business")]
+        save_shard(str(root), "business", shard)
+        log = folders.apply_moves(str(root), _plan(root), {"a1"})
+        new_path = find_card_by_file_id(str(root), "a1")[1]["path"]
+        assert _frontmatter(root, "c1")["duplicate_of_path"] == new_path
+        assert find_card_by_file_id(str(root), "c1")[1]["duplicate_of_path"] == new_path
+        folders.undo_moves(str(root), log)
+        assert _frontmatter(root, "c1")["duplicate_of_path"] == canon["path"]
+        assert find_card_by_file_id(str(root), "c1")[1]["duplicate_of_path"] == canon["path"]
