@@ -77,7 +77,7 @@ from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
 from pipelines.convert_textbook.page_markers import remap_image_links, remap_page_markers, tag_single_page
-from pipelines.convert_textbook import chapter_index
+from pipelines.convert_textbook import chapter_index, page_audit
 from pipelines.convert_textbook.bib_info import (
     derive_folder_name, extract_bibliographic_info_from_filename,
     is_descriptive_bibliographic_info, merge_bibliographic_info, sanitize_filename,
@@ -450,6 +450,57 @@ def chunk_is_degraded(pypdf_fallback_ratio: float) -> bool:
     fallback already tolerates as a normal recovery path).
     """
     return pypdf_fallback_ratio > DEGRADED_CHUNK_FALLBACK_THRESHOLD
+
+
+DEFAULT_MAX_EMPTY_PAGES = 3
+
+
+def repair_empty_pages(converter, reader, workspace, chunk_text, start_page, end_page, images_dir,
+                       page_timeout_s, folio_offset, folio_start_page, max_empty_pages):
+    """
+    Retries, one page at a time, every page of a converted chunk that has no
+    content although its source page has ink. Returns (chunk_text,
+    unresolved_pages). Needed besides chunk_is_degraded because a dead
+    inference server raises nothing: surya returns empty results and Marker
+    reports success. Stops retrying once more than max_empty_pages have
+    failed, since the caller aborts at that point anyway; the rest are then
+    reported as unresolved untried. Pages still empty are flagged in the text.
+    """
+    candidates = [p for p in page_audit.empty_pages(chunk_text, start_page, end_page)
+                  if not page_audit.is_blank_page(reader, p)]
+    unresolved = []
+    for index, page in enumerate(candidates):
+        if len(unresolved) > max_empty_pages:
+            unresolved.extend(candidates[index:])
+            break
+        print(f"Page {page + 1} converted to nothing but is not blank; retrying it on its own.")
+        single_pdf_path = os.path.join(workspace, f"temp_p_{page}.pdf")
+        writer = PdfWriter()
+        writer.add_page(reader.pages[page])
+        with open(single_pdf_path, "wb") as f:
+            writer.write(f)
+        segment = ""
+        try:
+            with time_limit(page_timeout_s, f"page {page + 1}"):
+                rendered = converter(single_pdf_path)
+            text, _, images = text_from_rendered(rendered)
+            text = remap_page_markers(text, page, folio_offset, folio_start_page)
+            segment = remap_image_links(text, page + 1, images.keys())
+            for key, image in images.items():
+                image.save(os.path.join(images_dir, f"pg_{page + 1}_{key}"))
+        except Exception as retry_err:
+            print(f"Retry of page {page + 1} failed: {retry_err}")
+        finally:
+            if os.path.exists(single_pdf_path):
+                os.remove(single_pdf_path)
+
+        if not page_audit.has_content(segment):
+            unresolved.append(page)
+            segment = page_audit.UNCONVERTED_FLAG
+        if f"<!-- page {page} -->" not in segment:
+            segment = tag_single_page(segment, page, folio_offset, folio_start_page)
+        chunk_text = page_audit.replace_page(chunk_text, page, segment)
+    return chunk_text, unresolved
 
 
 _UNSAFE_BLOCK_TYPES = {"Table", "TableGroup", "Equation", "Form"}
@@ -997,6 +1048,23 @@ def process_one_pdf(converter, raw_input: str, raw_output: str, workspace: str, 
                       "will be skipped.")
                 sys.exit(1)
 
+            chunk_text, unresolved_pages = repair_empty_pages(
+                converter, reader, workspace, chunk_text, start_page, end_page, images_dir,
+                args.page_timeout, folio_offset, folio_start_page, args.max_empty_pages,
+            )
+            # 1-based, matching the other progress messages.
+            unresolved_runs = page_audit.format_runs([p + 1 for p in unresolved_pages])
+            if len(unresolved_pages) > args.max_empty_pages:
+                print(f"FATAL: {len(unresolved_pages)} pages in {start_page + 1}-{end_page} of {total_pages} "
+                      f"came out empty although the source has content: {unresolved_runs}. The local "
+                      f"Marker/VLM inference server is probably dead. Refusing to checkpoint this chunk.")
+                print("Restart the inference server and rerun. If those pages really cannot be "
+                      "converted, rerun with a higher --max-empty-pages.")
+                sys.exit(1)
+            if unresolved_pages:
+                print(f"WARNING: pages {unresolved_runs} stayed empty after a retry; "
+                      f"flagged in the output as conversion-empty.")
+
             # Write chunk text before the done marker, so a crash mid-write
             # never leaves a chunk falsely marked complete.
             with open(chunk_md_path, "w", encoding="utf-8") as f:
@@ -1266,6 +1334,11 @@ def parse_args():
         "--page-timeout", type=int, default=240,
         help="Max seconds allowed for one page-level Marker fallback call before giving up on "
              "that page and using raw PyPDF text extraction instead (default: 240). Set 0 to disable."
+    )
+    parser.add_argument(
+        "--max-empty-pages", type=int, default=DEFAULT_MAX_EMPTY_PAGES,
+        help="Max non-blank pages per chunk that may stay empty after a retry; they are flagged "
+             f"in the output. More than this aborts the run (default: {DEFAULT_MAX_EMPTY_PAGES})."
     )
     parser.add_argument(
         "--enable-multiprocessing", action="store_true",

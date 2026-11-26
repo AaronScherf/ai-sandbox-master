@@ -55,3 +55,6 @@ pydantic
 networkx
 ruamel.yaml
 lzstring
+# Renders source pages to tell blank ones from failed conversions
+# (pipelines/convert_textbook/page_audit.py); marker-pdf pulls it in on the VM.
+pypdfium2

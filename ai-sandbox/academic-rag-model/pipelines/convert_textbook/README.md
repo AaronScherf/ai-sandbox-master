@@ -493,7 +493,19 @@ That last value should read low (a few hundred MB is fine; multi-GB means
 something is still holding memory). Then rerun Step 3.3 with the same book
 list and re-arm the autostop watcher as usual.
 
-One residual gap worth knowing about: the automatic check only catches a
+A dead server does not always raise: surya logs `Inference error: ...` and
+returns an empty result, so Marker "succeeds" with blank pages. After each
+chunk, every page that is empty but has ink in the source is retried on its
+own. If more than `--max-empty-pages` (default 3) per chunk stay empty, the
+run prints `FATAL:` and does not checkpoint the chunk; up to that many are
+kept and flagged `<!-- conversion-empty: ... -->`. After a run, check the
+finished book (exit code 1 means unexplained empty pages):
+
+```bash
+python -m pipelines.convert_textbook.page_audit <book>.md --pdf <source>.pdf
+```
+
+One residual gap worth knowing about: the fallback-ratio check only catches a
 chunk where a clear majority (over half) of its pages fell back to raw
 PyPDF text -- a milder case (say 2 of 6 pages) still gets checkpointed as
 done, since a lone hard page recovering that way is normal, not a

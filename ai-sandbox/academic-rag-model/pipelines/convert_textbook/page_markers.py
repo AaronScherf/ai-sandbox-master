@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import re
 
-_MARKER_PAGE_BREAK_RE = re.compile(r"(?:^|\n\n)\{?(\d+)\}?-{48}\n\n")
+# The trailing blank line is a lookahead, not consumed: consecutive empty pages
+# share it with the next separator, which needs it as its own prefix.
+_MARKER_PAGE_BREAK_RE = re.compile(r"(?:^|\n\n)\{?(\d+)\}?-{48}(?=\n\n|\s*\Z)")
 _SPAN_ID_RE = re.compile(r'(<span id="page-)(\d+)(-\d+"></span>)')
 _LINK_TARGET_RE = re.compile(r"(\(#page-)(\d+)(-\d+\))")
 
@@ -39,7 +41,7 @@ def remap_page_markers(text: str, physical_offset: int, folio_offset: int | None
     def _replace_page_break(m: re.Match) -> str:
         physical_page = physical_offset + int(m.group(1))
         tag = f"<!-- page {physical_page} -->" + _folio_tag(physical_page, folio_offset, folio_start_page)
-        return f"\n\n{tag}\n\n"
+        return f"\n\n{tag}"
 
     text = _MARKER_PAGE_BREAK_RE.sub(_replace_page_break, text)
     text = _SPAN_ID_RE.sub(lambda m: f"{m.group(1)}{physical_offset + int(m.group(2))}{m.group(3)}", text)

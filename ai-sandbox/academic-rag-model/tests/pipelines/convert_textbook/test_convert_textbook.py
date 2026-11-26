@@ -29,6 +29,9 @@ def _blank_pdf_reader(num_pages):
     return PdfReader(buf)
 
 
+_FOUR_PAGES = "".join(f"<!-- page {p} -->\n\ntext\n\n" for p in range(4))
+
+
 class TestLoadOrComputeBoundariesCorruptRunConfig(unittest.TestCase):
     # Issue #3: a corrupt/truncated run_config.json hit the same silent
     # except-pass as the old-format case, but never got the stale-chunk-
@@ -412,6 +415,45 @@ class TestProcessOnePdfSkipsAlreadyConvertedBook(unittest.TestCase):
                     )
 
 
+class TestRepairEmptyPages(unittest.TestCase):
+    # surya swallows a dead inference server's errors, so Marker "succeeds"
+    # with empty pages: no exception and a 0% fallback ratio.
+
+    CHUNK = "<!-- page 0 -->\n\na\n\n<!-- page 1 -->\n\n<!-- page 2 -->\n\nc\n\n<!-- page 3 -->\n\nd"
+
+    def _run(self, chunk_text, retry_texts, blank=(), end=4, max_empty=3):
+        converter = MagicMock(return_value="rendered")
+        with tempfile.TemporaryDirectory() as tmp, \
+             patch.object(ct, "text_from_rendered", side_effect=[(t, {}, {}) for t in retry_texts]), \
+             patch.object(ct.page_audit, "is_blank_page", side_effect=lambda _r, p: p in blank):
+            text, unresolved = ct.repair_empty_pages(
+                converter, _blank_pdf_reader(end), tmp, chunk_text, 0, end, tmp,
+                page_timeout_s=30, folio_offset=None, folio_start_page=end, max_empty_pages=max_empty,
+            )
+        return text, unresolved, converter
+
+    def test_retry_fills_an_empty_page(self):
+        text, unresolved, _ = self._run(self.CHUNK, ["{0}" + "-" * 48 + "\n\nrecovered"])
+        self.assertEqual(unresolved, [])
+        self.assertIn("recovered", text)
+        self.assertEqual(ct.page_audit.empty_pages(text, 0, 4), [])
+
+    def test_blank_source_pages_are_not_retried(self):
+        _, unresolved, converter = self._run(self.CHUNK, [], blank={1})
+        self.assertEqual(unresolved, [])
+        converter.assert_not_called()
+
+    def test_a_page_that_stays_empty_is_flagged_not_silent(self):
+        text, unresolved, _ = self._run(self.CHUNK, [""])
+        self.assertEqual(unresolved, [1])
+        self.assertIn(ct.page_audit.UNCONVERTED_FLAG, text)
+
+    def test_stops_retrying_once_over_the_limit(self):
+        _, unresolved, converter = self._run("", [""] * 20, end=20)
+        self.assertEqual(unresolved, list(range(20)))
+        self.assertEqual(converter.call_count, 4)
+
+
 class TestProcessOnePdfAbortsOnDegradedChunk(unittest.TestCase):
     # The safety property behind the fix: process_one_pdf must never
     # checkpoint a chunk as done when process_page_range reports the local
@@ -426,7 +468,7 @@ class TestProcessOnePdfAbortsOnDegradedChunk(unittest.TestCase):
         output_dir = os.path.join(tmp, "output")
         os.makedirs(output_dir)
         reader = _blank_pdf_reader(4)
-        args = MagicMock(chunk_timeout=30, page_timeout=30)
+        args = MagicMock(chunk_timeout=30, page_timeout=30, max_empty_pages=3)
         return input_pdf, output_dir, reader, args
 
     def test_aborts_before_writing_done_marker_when_chunk_is_degraded(self):
@@ -446,6 +488,25 @@ class TestProcessOnePdfAbortsOnDegradedChunk(unittest.TestCase):
             done_marker = os.path.join(tmp, "marker_checkpoints", "some_book", "chunks", "00000_00004.done")
             self.assertFalse(os.path.exists(done_marker), "a degraded chunk must never be checkpointed as done")
 
+    def test_aborts_when_marker_succeeds_but_returns_empty_pages(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            input_pdf, output_dir, reader, args = self._setup(tmp)
+
+            with patch.object(ct, "find_card_by_file_id", return_value=None), \
+                 patch.object(ct, "PdfReader", return_value=reader), \
+                 patch.object(ct, "_load_or_compute_boundaries", return_value=([(0, 4)], None, 4)), \
+                 patch.object(ct, "process_page_range", return_value=("", {}, False, 0.0)), \
+                 patch.object(ct, "text_from_rendered", return_value=("", {}, {})), \
+                 patch.object(ct.page_audit, "is_blank_page", return_value=False):
+                with self.assertRaises(SystemExit):
+                    ct.process_one_pdf(
+                        converter=MagicMock(), raw_input=input_pdf, raw_output=output_dir,
+                        workspace=tmp, args=args,
+                    )
+
+            done_marker = os.path.join(tmp, "marker_checkpoints", "some_book", "chunks", "00000_00004.done")
+            self.assertFalse(os.path.exists(done_marker))
+
     def test_does_not_abort_when_fallback_ratio_is_low(self):
         with tempfile.TemporaryDirectory() as tmp:
             input_pdf, output_dir, reader, args = self._setup(tmp)
@@ -453,7 +514,7 @@ class TestProcessOnePdfAbortsOnDegradedChunk(unittest.TestCase):
             with patch.object(ct, "find_card_by_file_id", return_value=None), \
                  patch.object(ct, "PdfReader", return_value=reader), \
                  patch.object(ct, "_load_or_compute_boundaries", return_value=([(0, 4)], None, 4)), \
-                 patch.object(ct, "process_page_range", return_value=("real content", {}, True, 0.25)), \
+                 patch.object(ct, "process_page_range", return_value=(_FOUR_PAGES, {}, True, 0.25)), \
                  patch.object(ct.gc, "collect", side_effect=RuntimeError("reached post-checkpoint cleanup, as expected")):
                 with self.assertRaises(RuntimeError):
                     ct.process_one_pdf(
@@ -473,7 +534,7 @@ class TestProcessOnePdfEmitsRamSizingMarkers(unittest.TestCase):
         output_dir = os.path.join(tmp, "output")
         os.makedirs(output_dir)
         reader = _blank_pdf_reader(4)
-        args = MagicMock(chunk_timeout=30, page_timeout=30, llm_bib=False)
+        args = MagicMock(chunk_timeout=30, page_timeout=30, llm_bib=False, max_empty_pages=3)
         return input_pdf, output_dir, reader, args
 
     def test_emits_start_marker_with_pages_and_file_size(self):
@@ -561,7 +622,7 @@ class TestProcessOnePdfEmitsRamSizingMarkers(unittest.TestCase):
             with patch.object(ct, "find_card_by_file_id", return_value=None), \
                  patch.object(ct, "PdfReader", return_value=reader), \
                  patch.object(ct, "_load_or_compute_boundaries", return_value=([(0, 4)], None, 4)), \
-                 patch.object(ct, "process_page_range", return_value=("# Some real content\n", {}, False, 0.0)), \
+                 patch.object(ct, "process_page_range", return_value=(_FOUR_PAGES, {}, False, 0.0)), \
                  patch.object(ct, "get_gemini_client", return_value=None), \
                  patch.object(ct, "load_dotenv_override"), \
                  redirect_stdout(captured):
@@ -580,7 +641,7 @@ class TestProcessOnePdfEmitsRamSizingMarkers(unittest.TestCase):
             with patch.object(ct, "find_card_by_file_id", return_value=None), \
                  patch.object(ct, "PdfReader", return_value=reader), \
                  patch.object(ct, "_load_or_compute_boundaries", return_value=([(0, 4)], None, 4)), \
-                 patch.object(ct, "process_page_range", return_value=("real content", {}, False, 0.0)), \
+                 patch.object(ct, "process_page_range", return_value=(_FOUR_PAGES, {}, False, 0.0)), \
                  patch.object(ct.gc, "collect", side_effect=RuntimeError("reached post-checkpoint cleanup, as expected")), \
                  redirect_stdout(captured):
                 with self.assertRaises(RuntimeError):
