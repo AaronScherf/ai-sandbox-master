@@ -10,6 +10,7 @@ The [3R revision](../notes/00_overview-and-strategy/01_ground-truth-and-research
 | `data-fusion-toolkit/` | Project 04 prospective reusable library; review held until library-kind support exists |
 | `systems-dynamics/` | Project 05 scoping review; remains notes until its scope is settled |
 | `bangladesh-insurance-replication/` | Separate private Git repository (git-ignored here; URL and commit in `repositories.json`). Study-kind replication of Hill et al. (2019); replication CSV stays local and git-ignored |
+| `armenia_project/` | Separate private Git repository (git-ignored here; URL and commit in `repositories.json`). Consulting proposal notes |
 | `math_thesis/` | Separate thesis work (Project 06 in the roadmap) |
 | `compound-shocks-panel/` | Separate Git repository (git-ignored here; URL and commit in `repositories.json`). The live Project 02 code and data panel for Somalia and Sudan |
 | `reprokit/` | Separate Git repository (git-ignored here). The reproducibility framework and project template that `compound-shocks-panel` and `bangladesh-insurance-replication` pin by tag |

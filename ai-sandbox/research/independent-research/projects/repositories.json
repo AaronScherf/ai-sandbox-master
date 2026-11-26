@@ -29,6 +29,11 @@
       "path": "bangladesh-insurance-replication",
       "url": "https://github.com/AaronScherf/bangladesh-insurance-replication.git",
       "commit": "844ce98fe93bf9384abd6d5e64664d136082b6af"
+    },
+    {
+      "path": "armenia_project",
+      "url": "https://github.com/AaronScherf/armenia-project.git",
+      "commit": "a774c1f0653e613f561f32e0cee16fd7e8d7af10"
     }
   ]
 }
