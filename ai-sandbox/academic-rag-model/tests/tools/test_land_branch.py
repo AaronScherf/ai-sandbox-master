@@ -1093,6 +1093,19 @@ class LandByChangeIdTests(unittest.TestCase):
         full_main(self.wt, runner=lambda root: ("passed", [], 1.0), subdir="")
         self.assertEqual(narrowing_off_reason(self._entries(), self.wt), "")
 
+    def test_check_records_the_main_it_tested_when_main_moves_during_the_tests(self):
+        from tools.land_branch import check
+        write_and_commit(self.wt, {"core/a.py": "x = 2\n"}, "branch edit")
+        tested_main = self._head(self.repo, "main")
+
+        def tests_while_main_moves(*args, **kwargs):
+            write_and_commit(self.repo, {"core/b.py": "y = 1\n"}, "lands during the check")
+            return "passed", ["t"], 0.1
+
+        with patch("tools.land_branch.run_checks", side_effect=tests_while_main_moves):
+            result = check(self.wt, subdir="")
+        self.assertEqual(result.base, tested_main)
+
     def test_land_refuses_a_change_with_no_passing_check(self):
         from tools.land_branch import LandingError, land
         write_and_commit(self.wt, {"core/a.py": "x = 2\n"}, "branch edit")

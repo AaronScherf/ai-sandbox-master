@@ -482,6 +482,8 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
     cut_date = datetime.fromisoformat(commit_date(worktree, cut))
     rebased = rebase_onto_main(worktree)
     sha = run_git(["rev-parse", "HEAD"], worktree).strip()
+    # The main these tests run on. Main can move while they run; `land` must re-test that.
+    base = run_git(["merge-base", MAIN_BRANCH, "HEAD"], worktree).strip()
     changed = changed_since_merge_base(worktree, MAIN_BRANCH, "HEAD")
     guard_violations = [str(v) for v in main_guard(worktree).check_range(worktree, MAIN_BRANCH)]
     policy_changed = sorted(changed & set(GUARD_POLICY_PATHS))
@@ -507,7 +509,7 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
         days_since_cut=round(age_days, 1),
         overlaps=overlaps,
         change_id=change_id(worktree),
-        base=run_git(["rev-parse", MAIN_BRANCH], worktree).strip(),
+        base=base,
         full=full,
         selection_reason=reason,
         changed_packages=sorted({p.split("/")[0] for p in relative if "/" in p}),

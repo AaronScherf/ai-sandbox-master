@@ -4,8 +4,8 @@ Design: `../../superpowers/specs/tools/2026-11-25-landing-retest-overlap-design.
 Rule and conditions: `docs/WORKTREE_LANDING.md`, "What a land-time re-test runs".
 
 ## State, 2026-11-25
-- Code and fixtures built. Narrowing is **inactive**: no `scheduled_full` record exists.
-- `full-main` has not had a real run, and the scheduled task is not installed.
+- Code and fixtures built. Narrowing was inactive until the first real pass (below).
+- The scheduled task is not installed.
 
 ## Reproduced gap
 Before the change, a targeted branch's re-test ran only the approved test files. A fixture where
@@ -26,7 +26,7 @@ three point at pruned commits and two records lack `approved_base`.
 These are file counts, not times. The sample is one narrowable landing.
 
 ## Remaining
-1. Real `full-main` run; record the result here.
+1. ~~Real `full-main` run~~ done 2026-11-26.
 2. Install the scheduled task (owner's call); confirm with `tools.landing_metrics` the next day.
 3. A real landing logged `retest_mode: overlap`; then close TODO-0103.
 4. Two weeks later: review failures, missed nights, and any break the nightly run found that a
@@ -35,6 +35,10 @@ These are file counts, not times. The sample is one narrowable landing.
 ## Final review, 2026-11-26
 Fixed: a selector change on an earlier `main` move no longer lets a later move narrow; a branch
 editing the guard or selection code re-tests in full; an unfinished `full-main` turns narrowing off.
+Also fixed (older bug, seen live on this branch): `check` recorded `main` as read after its tests, so a
+commit landing during the check counted as tested and `land` did not re-test it.
+
+First real `full-main` (run by another session): passed on `3c3745e4`, 806 s, 2026-11-26.
 
 Known gaps, not fixed:
 - A `full-main` that finds no chunks logs `passed`.
