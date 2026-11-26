@@ -31,3 +31,16 @@ These are file counts, not times. The sample is one narrowable landing.
 3. A real landing logged `retest_mode: overlap`; then close TODO-0103.
 4. Two weeks later: review failures, missed nights, and any break the nightly run found that a
    narrowed re-test let through.
+
+## Final review, 2026-11-26
+Fixed: a selector change on an earlier `main` move no longer lets a later move narrow; a branch
+editing the guard or selection code re-tests in full; an unfinished `full-main` turns narrowing off.
+
+Known gaps, not fixed:
+- A `full-main` that finds no chunks logs `passed`.
+- A future-dated `scheduled_full` record is accepted.
+- When `main` changed the selection code, a targeted re-test does not add new dependent tests.
+- A skipped approval (`doc_only`, `data_unreferenced`) is still never re-tested.
+- `_data_mirror_tests` (older code) prefixes `tests/` to paths already under `tests/`.
+- The `land` record keeps only the last move's `retest_mode` and `narrowing_off`.
+- `impact_selection.py` and `run_tests_chunked.py` are not in `GUARD_POLICY_PATHS` (owner's call).

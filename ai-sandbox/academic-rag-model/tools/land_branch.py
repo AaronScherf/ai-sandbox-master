@@ -350,10 +350,12 @@ def overlap_tests(branch: set[str] | None, main: set[str] | None) -> set[str] | 
 
 def narrowing_off_reason(entries: list[dict], repo: Path, now: datetime | None = None) -> str:
     """Why `land` may not narrow a re-test, or "" when the latest full run of main backs it."""
-    runs = [e for e in entries if e.get("event") == "scheduled_full"]
+    runs = [e for e in entries if e.get("event") in ("scheduled_full", "scheduled_full_started")]
     if not runs:
         return "no full-main run is logged"
     last = runs[-1]  # the log is append-only, so the last record is the newest
+    if last["event"] == "scheduled_full_started":
+        return "the last full-main run did not finish"
     if last.get("result") != "passed":
         return "the last full-main run did not pass"
     try:
@@ -382,6 +384,7 @@ class RetestPlan:
 
 def retest_plan(
     approved: dict, branch_files: set[str], main_changed: set[str], worktree: Path, subdir: str,
+    since_approval: set[str],
 ) -> RetestPlan:
     """What to re-run after rebasing onto a main that moved. Judged on the rebased tree, so an
     import either side added counts."""
@@ -390,8 +393,13 @@ def retest_plan(
         return RetestPlan("approved", narrowing_off="the approved check was --full")
     prefix = subdir.rstrip("/") + "/" if subdir else ""
     root = worktree / subdir
-    main_relative = project_relative(main_changed, subdir)
-    if main_relative & set(SELECTOR_PATHS):
+    branch_relative = project_relative(branch_files, subdir)
+    if (branch_relative & set(SELECTOR_PATHS)
+            or _touches_guard_policy(branch_relative, {p for p in branch_files if not p.startswith(prefix)})):
+        # the branch's own copy of this code is what would be deciding
+        return RetestPlan("full", narrowing_off="the branch changes the guard or test selection code")
+    # This process imported the selector before the first rebase, so any later change leaves it stale.
+    if project_relative(since_approval, subdir) & set(SELECTOR_PATHS):
         return RetestPlan("approved", narrowing_off="main changed the test selection code")
     shared = overlap_tests(*(
         affected_tests(project_relative(files, subdir),
@@ -650,7 +658,8 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
                           if is_outside_test_input(p) or p in OUTSIDE_TEST_TARGETS)
         if code_delta and approved["checks"] != "skipped":
             prefix = subdir.rstrip("/") + "/" if subdir else ""
-            plan = retest_plan(approved, branch_files, main_changed, worktree, subdir)
+            plan = retest_plan(approved, branch_files, main_changed, worktree, subdir,
+                               _files_between(worktree, approved["base"], main_now))
             retest_mode, narrowing_off = plan.mode, plan.narrowing_off
             count = "the full suite" if plan.mode == "full" else (
                 "the approved selection" if plan.targets is None else f"{len(plan.targets)} test files")
@@ -728,6 +737,8 @@ def full_main(
     runner = runner or run_all
     run_git(["fetch", "origin", MAIN_BRANCH], worktree)
     sha = run_git(["rev-parse", f"origin/{MAIN_BRANCH}"], worktree).strip()
+    # Logged first: a run that is killed or crashes leaves this as the newest record.
+    append_log(worktree, {"event": "scheduled_full_started", "sha": sha})
     scratch = Path(tempfile.mkdtemp(prefix="full-main-"))
     tree = scratch / "tree"
     run_git(["worktree", "add", "--detach", str(tree), sha], worktree)

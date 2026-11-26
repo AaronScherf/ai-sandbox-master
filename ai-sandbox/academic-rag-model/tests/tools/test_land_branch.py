@@ -797,6 +797,33 @@ class LandByChangeIdTests(unittest.TestCase):
         self.assertEqual([c.kwargs["selected_targets"] for c in rerun.call_args_list],
                          [["tests/tools/test_ab.py"], ["tests/tools/test_ac.py"]])
 
+    def test_selector_change_on_an_earlier_move_still_blocks_narrowing(self):
+        from tools.land_branch import land
+        cid = self._branch_edits_a(extra_tests=[("a", "b")])
+        self._nightly_passed()
+        wrapped, _ = self._move_main_then_ff([{self.P + "tools/impact_selection.py": "x = 1\n"},
+                                              {self.P + "agent/b.py": "y = 1\n"}])
+        with patch("tools.land_branch._ff_main", side_effect=wrapped), \
+             patch("tools.land_branch.run_checks", return_value=("passed", ["t"], 0.1)):
+            result = land(self.wt, cid)
+        self.assertEqual((result.retest_mode, result.narrowing_off),
+                         ("approved", "main changed the test selection code"))
+
+    def test_branch_changing_selection_or_guard_code_is_never_narrowed(self):
+        for rel in ("tools/impact_selection.py", "tools/land_branch.py"):
+            with self.subTest(rel):
+                self.tearDown()
+                self.setUp()
+                self._branch_edits_a(extra_tests=[("a", "b")])
+                self._project(self.wt, {rel: "x = 1\n"}, "branch edits the machinery")
+                with patch("tools.land_branch.run_checks", return_value=("passed", ["tests/"], 0.1)):
+                    cid = check(self.wt).change_id
+                self._nightly_passed()
+                self._project(self.repo, {"agent/b.py": "y = 1\n"}, "main code")
+                result, rerun = self._land(cid)
+                self.assertIs(rerun.call_args.args[2], True)
+                self.assertEqual(result.retest_mode, "full")
+
     def test_change_id_is_stable_across_clean_rebase(self):
         from tools.land_branch import change_id
         write_and_commit(self.wt, {"core/a.py": "x = 2\n"}, "branch edit")
@@ -1050,6 +1077,21 @@ class LandByChangeIdTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             full_main(self.wt, runner=boom, subdir="")
         self.assertFalse(roots[0].exists())
+
+    def test_unfinished_full_main_turns_narrowing_off(self):
+        from tools.land_branch import append_log, full_main, narrowing_off_reason
+        append_log(self.wt, {"event": "scheduled_full", "result": "passed",
+                             "sha": self._head(self.repo, "main")})
+
+        def killed(root):
+            raise KeyboardInterrupt
+
+        with self.assertRaises(KeyboardInterrupt):
+            full_main(self.wt, runner=killed, subdir="")
+        self.assertEqual(narrowing_off_reason(self._entries(), self.wt),
+                         "the last full-main run did not finish")
+        full_main(self.wt, runner=lambda root: ("passed", [], 1.0), subdir="")
+        self.assertEqual(narrowing_off_reason(self._entries(), self.wt), "")
 
     def test_land_refuses_a_change_with_no_passing_check(self):
         from tools.land_branch import LandingError, land

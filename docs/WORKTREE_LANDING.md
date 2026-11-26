@@ -105,10 +105,12 @@ cannot be bounded (config, top-level test helper, guard policy, moved or deleted
 Python file, code no test imports or mirrors, an `OUTSIDE_TEST_INPUTS` path)
 sets no limit, so the other side's tests run; if neither is bounded, the full
 suite runs. An explicit `--full` approval, and a `main` change to the selection
-code itself, are never narrowed.
+code itself since the approval, are never narrowed. A branch that changes the
+guard policy or the selection code re-tests with the full suite.
 
 Narrowing needs the newest `full-main` record to be `passed`, at most 48 hours
-old, and on a commit in `main`. Otherwise `land` says why, re-runs the approved
+old, and on a commit in `main`. A run that started and did not finish also turns
+narrowing off. Otherwise `land` says why, re-runs the approved
 selection as before, and for a targeted branch adds the shared tests (a test
 `main` added that depends on the branch is not in the approved list).
 
