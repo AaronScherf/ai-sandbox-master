@@ -45,8 +45,8 @@ on their own. When a task branch is finished, the agent:
    `C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model\.venv\Scripts\python.exe -m tools.land_branch land --change-id <ID>`.
    It refuses unless the main checkout is on `main`; rebases onto the current
    `main`; stops if the change ID no longer matches, if the rebase conflicts, or
-   if `main` has since changed a file the branch also changes; re-runs the
-   approved check's tests only when `main` gained non-Markdown changes inside
+   if `main` has since changed a file the branch also changes; re-runs tests
+   (see "What a land-time re-test runs") only when `main` gained non-Markdown changes inside
    `academic-rag-model/`, or changed a path in `OUTSIDE_TEST_INPUTS` (root
    `.gitignore`, `ai-sandbox/.obsidian/`, the Novelty Check note; files the
    suite reads) or `OUTSIDE_TEST_TARGETS` (`hub_config.json`); stops on
@@ -82,15 +82,40 @@ checkout is never touched; the worktree is removed afterwards) and appends a
 `scheduled_full` record (sha, result, failed chunks, per-chunk timings) to the
 landing log. `python -m tools.landing_metrics` shows the last run, its result and
 age, and flags a failure. It exits 1 when any chunk fails. A run takes 15 to 30
-minutes. Nothing schedules it yet; whether to is the owner's call. To run it
-nightly with Windows Task Scheduler (run once from an elevated or normal
-PowerShell, adjust the time):
+minutes. Nothing schedules it yet; whether to is the owner's call. `land` relies on this run (below). To run it nightly with Windows Task
+Scheduler, run once in PowerShell (`-StartWhenAvailable` starts a run that was
+missed while the laptop was off):
 
 ```powershell
-schtasks /Create /TN "ai-sandbox full-main" /SC DAILY /ST 03:00 /TR "cmd /c cd /d C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model && .venv\Scripts\python.exe -m tools.land_branch full-main --worktree C:\Users\theaa\ai-sandbox-master"
+$dir = "C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model"
+$action = New-ScheduledTaskAction -Execute "$dir\.venv\Scripts\python.exe" -Argument "-m tools.land_branch full-main --worktree C:\Users\theaa\ai-sandbox-master" -WorkingDirectory $dir
+$trigger = New-ScheduledTaskTrigger -Daily -At 3am
+Register-ScheduledTask -TaskName "ai-sandbox full-main" -Action $action -Trigger $trigger -Settings (New-ScheduledTaskSettingsSet -StartWhenAvailable)
 ```
 
-Remove it with `schtasks /Delete /TN "ai-sandbox full-main" /F`.
+Remove it with `Unregister-ScheduledTask -TaskName "ai-sandbox full-main"`.
+
+## What a land-time re-test runs
+
+After rebasing, `land` finds the tests the branch's diff can affect and the
+tests `main`'s new commits can affect, both on the rebased tree. Only tests in
+both sets can newly fail from combining them, so only those run (`Retest mode:
+overlap`). An empty overlap runs nothing and uses no retry. A side whose impact
+cannot be bounded (config, top-level test helper, guard policy, moved or deleted
+Python file, code no test imports or mirrors, an `OUTSIDE_TEST_INPUTS` path)
+sets no limit, so the other side's tests run; if neither is bounded, the full
+suite runs. An explicit `--full` approval, and a `main` change to the selection
+code itself, are never narrowed.
+
+Narrowing needs the newest `full-main` record to be `passed`, at most 48 hours
+old, and on a commit in `main`. Otherwise `land` says why, re-runs the approved
+selection as before, and for a targeted branch adds the shared tests (a test
+`main` added that depends on the branch is not in the approved list).
+
+Blind spot: the selection is static. Run-time imports, subprocess-only tests
+and files found by glob are invisible to it, and an overlap re-test no longer
+covers them by chance. The nightly run finds such a break after it has landed,
+within about a day.
 
 Merge style is rebase onto `main`, then `--ff-only`. Do not use `--no-ff`
 merges. Rebasing is allowed only on a branch that is exclusively owned and not
