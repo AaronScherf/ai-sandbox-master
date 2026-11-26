@@ -114,6 +114,13 @@ one task, one branch, one worktree, one writer; integration is serialized.
   Gemini sessions to fill the cards and *not* run `submit`; the integrating agent then submits the runs one after
   another. Runs that depend on each other (for example tag level 2 after level 1) stay sequential; stage every
   independent run in the same turn rather than one per turn.
+- **Citing literature.** Any agent writing or revising a research note or website page that cites
+  literature follows the "Citing literature" rules in the root `CLAUDE.md` (the same rules are in
+  `AGENTS.md` and `GEMINI.md`): give every citation the work's title, run
+  `python -m tools.reference_review raise <note>` before handing off, fix every defect, report the
+  counts, and never write `[source-verified]` or a similar tag by hand. The landing gates enforce
+  this: `tools.land_branch` for Markdown under `ai-sandbox/research/`, `tools.land_website` for the
+  website's `content/`.
 - Don't copy this file's content into `CLAUDE.md` / `GEMINI.md` /
   `AGENTS.md` — link to it and add only agent-specific notes locally.
 

@@ -48,6 +48,7 @@ h1 { font: 600 1.9rem/1.15 var(--f-display); margin: 0; text-wrap: balance; }
 .t-REVIEW, .t-AMBIGUOUS { background: var(--warn-soft); color: var(--warn); }
 .t-PLAUSIBLE { background: var(--info-soft); color: var(--info); }
 .t-UNCHECKED, .t-UNRESOLVED { background: var(--grey-soft); color: var(--muted); }
+.t-TITLE_WRONG, .t-TITLE_MISSING, .t-WRONG_WORK, .t-NOT_FOUND { background: var(--bad-soft); color: var(--bad); }
 .doi { font: 13px var(--f-mono); color: var(--accent); overflow-wrap: anywhere; }
 .reason { font-size: 13px; color: var(--muted); flex: 1 1 220px; min-width: 0; }
 .cols { display: grid; grid-template-columns: 1fr 1fr; }
@@ -98,7 +99,7 @@ code { font: 12.5px var(--f-mono); background: var(--grey-soft); padding: 1px 5p
 <div class="wrap">
   <header>
     <h1>Citation Review Queue</h1>
-    <p class="lede">Each card is one DOI in one research note that the reference checker could not confirm on its own. Citations with no title pass automatically unless the same team published other work within a year; those works are listed so you can check which one the note means. Compare how the note cites it with what the registry holds, then decide. Same work carries over to the same citation in other notes; title and paper corrections stay with this note.</p>
+    <p class="lede">Each card is one DOI in one research note that the reference checker could not confirm on its own. A name and year alone cannot show which work a note means, so in a note someone is editing, a citation without a title is a defect for the writer to fix; in notes nobody is editing, such citations pass on author and year. Compare how the note cites it with what the registry holds, then decide. Same work carries over to the same citation in other notes; title and paper corrections stay with this note. Red cards are defects that block the note from landing; the only decision for them here is <em>Quoted on purpose</em>, for a note that cites the error as evidence. Otherwise the note needs a fix.</p>
     <div class="bar">
       <div class="progress"><div class="meter"><i id="meter"></i></div><span id="count">Loading the queue…</span></div>
       <div class="tabs" role="group" aria-label="Show">
@@ -134,7 +135,7 @@ code { font: 12.5px var(--f-mono); background: var(--grey-soft); padding: 1px 5p
     { key: "defer", label: "Can't tell", action: "defer", chosen: null },
   ];
   const keyOf = (rec) => rec ? (rec.action === "decline" ? rec.chosen : rec.action) : null;
-  const TIER_NOTE = { PLAUSIBLE: "No title in the citation", REVIEW: "Title or year disagrees", AMBIGUOUS: "Authors only partly agree", UNCHECKED: "Checker could not judge", UNRESOLVED: "Checker could not judge" };
+  const TIER_NOTE = { PLAUSIBLE: "No title in the citation", REVIEW: "Title or year disagrees", AMBIGUOUS: "Authors only partly agree", UNCHECKED: "Checker could not judge", UNRESOLVED: "Checker could not judge", TITLE_WRONG: "Defect: title not found for this DOI", TITLE_MISSING: "Defect: no title, so the writer must name the work", WRONG_WORK: "Defect: DOI is a different paper", NOT_FOUND: "Defect: DOI does not exist" };
 
   let db = null, items = [], defects = [], decisions = new Map(), filter = "open", readOnly = false;
   const saving = new Set();
