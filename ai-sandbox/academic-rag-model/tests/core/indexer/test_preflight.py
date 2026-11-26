@@ -204,7 +204,7 @@ def test_enforce_warn_only_paths_and_ignore_continue(tmp_path, monkeypatch, caps
     preflight.enforce(str(tmp_path), Needs(), refuse=False)
     assert "skipped" in capsys.readouterr().err
     preflight.enforce(str(tmp_path), Needs(), ignore=True, refuse=True)
-    assert "skipped" in capsys.readouterr().err
+    assert capsys.readouterr().err == ""
 
 
 def test_edited_card_shard_re_reconciles_with_unchanged_notes(tmp_path, store, monkeypatch):

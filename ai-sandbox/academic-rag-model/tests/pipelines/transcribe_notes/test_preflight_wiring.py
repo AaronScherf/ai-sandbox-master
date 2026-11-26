@@ -53,8 +53,8 @@ def test_router_refuses_with_course_needs(tmp_path, monkeypatch, seen, capsys):
 def test_router_whole_hub_without_course_and_ignore_flag(tmp_path, monkeypatch, seen, capsys):
     planned = _route(monkeypatch, tmp_path, "--driver", "api", "--ignore-unresolved", "--dry-run")
     router.main()
-    assert seen[0][1].courses is None and planned == [1]
-    assert "ignoring" in capsys.readouterr().err
+    assert seen == [] and planned == [1]
+    assert capsys.readouterr().err == ""
 
 
 class _PastPreflight(Exception):
@@ -80,8 +80,8 @@ def test_router_ignore_flag_gets_past_preflight_without_dry_run(tmp_path, monkey
     monkeypatch.setattr(router, "build_plan", stop)
     with pytest.raises(_PastPreflight):
         router.main()
-    assert reached == [1] and seen[0][1].courses is None
-    assert "ignoring" in capsys.readouterr().err
+    assert reached == [1] and seen == []
+    assert capsys.readouterr().err == ""
 
 
 def test_router_dry_run_only_warns(tmp_path, monkeypatch, seen, capsys):
@@ -131,7 +131,8 @@ def test_excalidraw_dry_run_warns_and_ignore_flag_runs(tmp_path, monkeypatch, se
                                       "--ignore-unresolved"])
     exc_cli.main()
     assert found == [1, 1]
-    assert "ignoring" in capsys.readouterr().err
+    assert len(seen) == 1
+    assert capsys.readouterr().err == ""
 
 
 def test_excalidraw_ignore_flag_gets_past_preflight_without_dry_run(tmp_path, monkeypatch, seen, capsys):
@@ -141,4 +142,5 @@ def test_excalidraw_ignore_flag_gets_past_preflight_without_dry_run(tmp_path, mo
     with pytest.raises(SystemExit) as e:
         exc_cli.main()
     assert e.value.code == 1 and found == [1] and clients == [1]
-    assert "ignoring" in capsys.readouterr().err
+    assert seen == []
+    assert capsys.readouterr().err == ""
