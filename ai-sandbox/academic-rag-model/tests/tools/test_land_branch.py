@@ -1049,7 +1049,7 @@ class LandByChangeIdTests(unittest.TestCase):
         from tools.land_branch import full_main
         seen = {}
 
-        def fake_runner(root):
+        def fake_runner(root, only=None):
             seen["root"] = Path(root)
             seen["existed"] = Path(root).exists()
             return "failed", [ChunkResult("core", 0, 1.0, ""), ChunkResult("tools", 1, 2.0, "")], 3.0
@@ -1070,7 +1070,7 @@ class LandByChangeIdTests(unittest.TestCase):
         from tools.land_branch import full_main
         roots = []
 
-        def boom(root):
+        def boom(root, only=None):
             roots.append(Path(root))
             raise RuntimeError("runner died")
 
@@ -1105,6 +1105,65 @@ class LandByChangeIdTests(unittest.TestCase):
         with patch("tools.land_branch.run_checks", side_effect=tests_while_main_moves):
             result = check(self.wt, subdir="")
         self.assertEqual(result.base, tested_main)
+
+    def _flaky_runner(self, rerun_code):
+        calls = []
+
+        def runner(root, only=None):
+            calls.append(only)
+            if only is None:
+                return "failed", [ChunkResult("core", 0, 1.0, ""), ChunkResult("tools", 1, 2.0, "")], 3.0
+            return ("passed" if rerun_code == 0 else "failed"), [ChunkResult("tools", rerun_code, 2.0, "")], 2.0
+        return runner, calls
+
+    def test_full_main_reruns_failed_chunks_once_and_records_a_flake(self):
+        from tools.land_branch import full_main
+        runner, calls = self._flaky_runner(0)
+        entry = full_main(self.wt, runner=runner, subdir="")
+        self.assertEqual(calls, [None, ["tools"]])
+        self.assertEqual((entry["result"], entry["failed_chunks"], entry["flaky_chunks"]),
+                         ("passed", [], ["tools"]))
+        self.assertEqual(entry["seconds"], 5.0)
+
+    def test_full_main_stays_failed_when_the_rerun_fails(self):
+        from tools.land_branch import full_main
+        runner, calls = self._flaky_runner(1)
+        entry = full_main(self.wt, runner=runner, subdir="")
+        self.assertEqual(len(calls), 2)
+        self.assertEqual((entry["result"], entry["failed_chunks"], entry["flaky_chunks"]),
+                         ("failed", ["tools"], []))
+
+    def test_full_main_warning_covers_missing_failed_stale_and_fresh(self):
+        from datetime import datetime, timezone
+        from tools.land_branch import full_main_warning
+        now = datetime(2026, 11, 30, tzinfo=timezone.utc)
+        started = {"event": "scheduled_full_started", "sha": "c" * 40}
+
+        def run(day, result="passed", failed=()):
+            return [{"event": "scheduled_full", "at": f"2026-11-{day:02d}T00:00:00+00:00",
+                     "sha": "a" * 40, "result": result, "failed_chunks": list(failed)}]
+
+        self.assertIn("no full run", full_main_warning([], now))
+        self.assertIn("FAILED: tools", full_main_warning(run(29, "failed", ["tools"]), now))
+        self.assertIn("72 hours old", full_main_warning(run(27), now))
+        self.assertEqual(full_main_warning(run(28), now), "")
+        self.assertIn("did not finish", full_main_warning(run(29) + [started], now))
+        self.assertIn("did not finish", full_main_warning([started], now))
+        self.assertEqual(full_main_warning([started] + run(29), now), "")
+
+    def test_check_reports_and_prints_the_full_main_warning(self):
+        import io
+        from contextlib import redirect_stdout
+        from tools.land_branch import append_log, print_summary
+        write_and_commit(self.wt, {"core/a.py": "x = 2\n"}, "branch edit")
+        append_log(self.wt, {"event": "scheduled_full", "sha": "b" * 40, "result": "failed",
+                             "failed_chunks": ["core"]})
+        result = self._approve()
+        self.assertIn("FAILED: core", result.full_main_warning)
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            print_summary(result)
+        self.assertIn("WARNING:", buf.getvalue())
 
     def test_land_refuses_a_change_with_no_passing_check(self):
         from tools.land_branch import LandingError, land

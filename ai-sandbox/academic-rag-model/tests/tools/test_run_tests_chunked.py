@@ -1,3 +1,4 @@
+import unittest
 from pathlib import Path
 
 from tools.run_tests_chunked import (
@@ -245,3 +246,26 @@ def test_run_selected_with_nothing_selected_passes_without_running(tmp_path):
     status, results, _ = run_selected(
         tmp_path, [], runner=lambda cmd, **kw: (_ for _ in ()).throw(AssertionError("ran")))
     assert (status, results) == ("passed", [])
+
+
+class OnlyChunksTests(unittest.TestCase):
+    def test_only_limits_the_run_to_the_named_chunks(self):
+        import tempfile
+        from pathlib import Path
+        from types import SimpleNamespace
+        from tools.run_tests_chunked import run_all
+        with tempfile.TemporaryDirectory() as directory:
+            tests = Path(directory) / "tests"
+            for name in ("core", "tools"):
+                (tests / name).mkdir(parents=True)
+            (tests / "test_root.py").write_text("", encoding="utf-8")
+
+            def fake(cmd, **kwargs):
+                return SimpleNamespace(returncode=0, stdout="")
+
+            def names(only):
+                return [r.name for r in run_all(Path(directory), runner=fake, only=only)[1]]
+
+            self.assertEqual(names(["tools"]), ["tools"])
+            self.assertEqual(names(["(root)"]), ["(root)"])
+            self.assertEqual(names(None), ["core", "tools", "(root)"])

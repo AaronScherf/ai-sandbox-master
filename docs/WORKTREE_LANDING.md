@@ -79,12 +79,21 @@ change ID.
 `python -m tools.land_branch full-main` fetches `origin/main`, runs the full
 chunked suite in a scratch detached worktree under the system temp dir (the main
 checkout is never touched; the worktree is removed afterwards) and appends a
-`scheduled_full` record (sha, result, failed chunks, per-chunk timings) to the
-landing log. `python -m tools.landing_metrics` shows the last run, its result and
-age, and flags a failure. It exits 1 when any chunk fails. A run takes 15 to 30
-minutes. Nothing schedules it yet; whether to is the owner's call. `land` relies on this run (below). To run it nightly with Windows Task
-Scheduler, run once in PowerShell (`-StartWhenAvailable` starts a run that was
-missed while the laptop was off):
+`scheduled_full` record (sha, result, failed and flaky chunks, per-chunk
+timings) to the landing log. Chunks that fail are re-run once: one that then
+passes is logged as flaky and does not fail the run, so the command exits 1 only
+when a chunk fails twice. `python -m tools.landing_metrics` shows the last run.
+`check` prints a `WARNING:` when the last run failed, did not finish, is more
+than 48 hours old or was never logged; the warning does not block a landing. A
+run takes 15 to 30 minutes.
+
+When a run fails: run it again by hand to confirm, then record a TODO naming the
+failed chunks and the sha, and route the fix.
+
+The owner chose a nightly schedule (2026-11-27); `land` relies on this run
+(below). To create it with Windows Task Scheduler, run once in PowerShell
+(`-StartWhenAvailable` starts a run that was missed while the laptop was off;
+by default the task runs only while you are logged on and on AC power):
 
 ```powershell
 $dir = "C:\Users\theaa\ai-sandbox-master\ai-sandbox\academic-rag-model"

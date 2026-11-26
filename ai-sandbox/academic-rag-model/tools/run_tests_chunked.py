@@ -94,17 +94,21 @@ def run_all(
     *,
     include_local_llm: bool = False,
     runner=subprocess.run,
+    only: list[str] | None = None,
 ) -> tuple[str, list[ChunkResult], float]:
+    """`only` limits the run to those chunk names (as in ChunkResult.name)."""
     tests_dir = project_root / "tests"
     results: list[ChunkResult] = []
     total_started = time.monotonic()
 
     for chunk in discover_chunks(tests_dir):
+        if only is not None and chunk not in only:
+            continue
         cmd = [sys.executable, "-m", "pytest", f"tests/{chunk}", "-q", "-m", "not local_llm"]
         results.append(_run_one(chunk, cmd, project_root, runner))
 
     root_files = discover_root_test_files(tests_dir)
-    if root_files:
+    if root_files and (only is None or "(root)" in only):
         cmd = [sys.executable, "-m", "pytest", *root_files, "-q", "-m", "not local_llm"]
         results.append(_run_one("(root)", cmd, project_root, runner))
 

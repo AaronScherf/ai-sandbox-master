@@ -5,7 +5,7 @@ Rule and conditions: `docs/WORKTREE_LANDING.md`, "What a land-time re-test runs"
 
 ## State, 2026-11-25
 - Code and fixtures built. Narrowing was inactive until the first real pass (below).
-- The scheduled task is not installed.
+- The scheduled task is not installed. (Installed 2026-11-27; see "Remaining".)
 
 ## Reproduced gap
 Before the change, a targeted branch's re-test ran only the approved test files. A fixture where
@@ -27,7 +27,8 @@ These are file counts, not times. The sample is one narrowable landing.
 
 ## Remaining
 1. ~~Real `full-main` run~~ done 2026-11-26.
-2. Install the scheduled task (owner's call); confirm with `tools.landing_metrics` the next day.
+2. ~~Install the scheduled task~~ installed 2026-11-27 (daily 03:00, machine-local); confirm a
+   nightly run with `tools.landing_metrics`.
 3. A real landing logged `retest_mode: overlap`; then close TODO-0103.
 4. Two weeks later: review failures, missed nights, and any break the nightly run found that a
    narrowed re-test let through.

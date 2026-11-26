@@ -92,6 +92,7 @@ class LandingError(RuntimeError):
 
 
 LOG_NAME = "agent-landing-log.jsonl"
+FULL_RUN_MAX_AGE_HOURS = 48  # older than this: `check` warns, `land` does not narrow
 OUTCOMES = ("landed", "declined")
 
 
@@ -103,6 +104,43 @@ def append_log(worktree: Path, entry: dict) -> None:
     record_entry = {"at": datetime.now(timezone.utc).isoformat(), **entry}
     with log_path(worktree).open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(record_entry, sort_keys=True) + "\n")
+
+
+def read_log(worktree: Path) -> list[dict]:
+    path = log_path(worktree)
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def last_scheduled_full(entries: list[dict], now: datetime | None = None) -> dict | None:
+    """Most recent `full-main` run: sha, result, failed and flaky chunks, age in days."""
+    runs = [e for e in entries if e.get("event") == "scheduled_full"]
+    if not runs:
+        return None
+    last = max(runs, key=lambda e: datetime.fromisoformat(e["at"]))
+    age = ((now or datetime.now(timezone.utc)) - datetime.fromisoformat(last["at"])).total_seconds() / 86400
+    return {"sha": last.get("sha", ""), "result": last.get("result", "?"),
+            "failed_chunks": last.get("failed_chunks", []),
+            "flaky_chunks": last.get("flaky_chunks", []), "age_days": age}
+
+
+def full_main_warning(entries: list[dict], now: datetime | None = None) -> str:
+    """Why the backstop needs attention, or "" when the last run is recent and passed."""
+    rerun = "; run: python -m tools.land_branch full-main"
+    runs = [e for e in entries if e.get("event") in ("scheduled_full", "scheduled_full_started")]
+    if runs and runs[-1]["event"] == "scheduled_full_started":  # killed, crashed or still going
+        return "the last full run of main did not finish" + rerun
+    last = last_scheduled_full(entries, now)
+    if last is None:
+        return "no full run of main is logged" + rerun
+    hours = last["age_days"] * 24
+    if last["result"] != "passed":
+        return (f"the last full run of main ({last['sha'][:8]}, {hours:.0f} hours old) FAILED: "
+                + ", ".join(last["failed_chunks"] or ["?"]))
+    if hours > FULL_RUN_MAX_AGE_HOURS:
+        return f"the last full run of main is {hours:.0f} hours old (limit {FULL_RUN_MAX_AGE_HOURS})" + rerun
+    return ""
 
 
 def record(worktree: Path, sha: str, outcome: str) -> None:
@@ -133,6 +171,7 @@ class CheckResult:
     guard_violations: list[str] = field(default_factory=list)
     guard_policy_changed: list[str] = field(default_factory=list)  # branch edits the guard or the landing tool
     citation_gate: list[dict] = field(default_factory=list)
+    full_main_warning: str = ""  # the scheduled full run failed, is stale or never ran
 
 
 def change_id(worktree: Path, base_ref: str = MAIN_BRANCH) -> str:
@@ -321,7 +360,6 @@ def selection_reason(
 # Files that compute a re-test. When main changes one, the code this process already imported may
 # be out of date, so `land` does not narrow.
 SELECTOR_PATHS = ("tools/land_branch.py", "tools/impact_selection.py", "tools/run_tests_chunked.py")
-FULL_RUN_MAX_AGE_HOURS = 48
 
 
 def affected_tests(relative: set[str], outside: set[str], project_root: Path) -> set[str] | None:
@@ -521,6 +559,7 @@ def _run_check(worktree: Path, subdir: str, full: bool) -> CheckResult:
         guard_violations=guard_violations,
         guard_policy_changed=policy_changed,
         citation_gate=[asdict(note) for note in gate_result.notes],
+        full_main_warning=full_main_warning(read_log(worktree)),
     )
 
 
@@ -533,6 +572,8 @@ def print_summary(r: CheckResult) -> None:
     print(f"Checks:      {r.checks} {r.check_targets} ({r.check_seconds}s)")
     print(f"Branch age:  {r.days_since_cut} days since cut")
     print("Overlaps:    " + (", ".join(r.overlaps) if r.overlaps else "none"))
+    if r.full_main_warning:
+        print(f"WARNING:     {r.full_main_warning}")
     print(f"Guard:       {r.guard}")
     if r.citation_gate:
         for note in r.citation_gate:
@@ -734,7 +775,8 @@ def full_main(
     Static test selection cannot see run-time imports or subprocess-only tests, so
     this scheduled run is the backstop. The scratch worktree is detached, lives in
     the system temp dir (never the main checkout) and is removed afterwards.
-    `runner` replaces `run_all` in tests.
+    Failed chunks are re-run once: one that then passes is logged as flaky, not as
+    a regression. `runner` replaces `run_all` in tests.
     """
     runner = runner or run_all
     run_git(["fetch", "origin", MAIN_BRANCH], worktree)
@@ -746,6 +788,17 @@ def full_main(
     run_git(["worktree", "add", "--detach", str(tree), sha], worktree)
     try:
         status, results, seconds = runner(tree / subdir)
+        first_failed = [r.name for r in results if chunk_failed(r.returncode)]
+        reruns: list[ChunkResult] = []
+        if first_failed:
+            print(f"Re-running failed chunks once: {', '.join(first_failed)}")
+            _, reruns, rerun_seconds = runner(tree / subdir, only=first_failed)
+            seconds += rerun_seconds
+        # A chunk is cleared only if its re-run actually ran and passed.
+        cleared = {r.name for r in reruns if not chunk_failed(r.returncode)}
+        still_failed = [n for n in first_failed if n not in cleared]
+        if first_failed and not still_failed:
+            status = "passed"
     finally:
         run_git(["worktree", "remove", "--force", str(tree)], worktree)
         scratch.rmdir()
@@ -753,7 +806,10 @@ def full_main(
         "sha": sha,
         "result": status,
         "seconds": round(seconds, 1),
-        "failed_chunks": [r.name for r in results if chunk_failed(r.returncode)],
+        "failed_chunks": still_failed,
+        "flaky_chunks": [n for n in first_failed if n in cleared],
+        "rerun_timings": [{"name": r.name, "returncode": r.returncode, "seconds": round(r.seconds, 1)}
+                          for r in reruns],
         "chunk_timings": [{"name": r.name, "returncode": r.returncode, "seconds": round(r.seconds, 1)}
                           for r in results],
     }
@@ -785,7 +841,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"NOT RUN: {exc}", file=sys.stderr)
             return 1
         print(f"full-main {entry['sha'][:8]}: {entry['result']} in {entry['seconds']}s"
-              + (f"; failed: {', '.join(entry['failed_chunks'])}" if entry["failed_chunks"] else ""))
+              + (f"; failed: {', '.join(entry['failed_chunks'])}" if entry["failed_chunks"] else "")
+              + (f"; flaky (passed on re-run): {', '.join(entry['flaky_chunks'])}" if entry["flaky_chunks"] else ""))
         return 0 if entry["result"] == "passed" else 1
     if args.cmd == "record":
         record(args.worktree.resolve(), args.sha, args.outcome)
