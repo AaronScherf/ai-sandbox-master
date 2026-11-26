@@ -34,6 +34,11 @@
       "path": "armenia_project",
       "url": "https://github.com/AaronScherf/armenia-project.git",
       "commit": "a774c1f0653e613f561f32e0cee16fd7e8d7af10"
+    },
+    {
+      "path": "MESA",
+      "url": "https://github.com/AaronScherf/mesa-fellowship.git",
+      "commit": "367385bf7c0078a50a14955dd35a305ffd42a518"
     }
   ]
 }
