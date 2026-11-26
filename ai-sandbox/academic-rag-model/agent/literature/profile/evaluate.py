@@ -6,11 +6,15 @@ not per-study intervention or outcome codes.
 """
 
 import csv
-import html
-from collections.abc import Callable
+import json
+import re
+from collections.abc import Callable, Iterable
+from pathlib import Path
 
 from agent.literature.profile.metadata import title_match
 from agent.literature.profile.tagging import covered_terms
+from agent.literature.profile.taxonomy import ancestors
+from core.env.frontmatter import parse_frontmatter
 
 _PUBLICATION_TYPES = {
     "journal article": "journal_article", "published working paper": "working_paper", "published report": "report",
@@ -79,21 +83,42 @@ def score_records(predicted: list[dict], answer_key: list[dict], stratum_of: Cal
     return out
 
 
-def blind_label_page(papers: list[dict]) -> str:
-    """HTML for the owner (or a second model) to label papers before any extractor result is seen. Only the file id,
-    title, authors and abstract are read from each paper dict; predictions never reach the page."""
-    cards = []
-    for p in papers:
-        fid = html.escape(str(p["file_id"]))
-        authors = html.escape("; ".join(p.get("authors") or []))
-        cards.append(
-            f'<section data-file-id="{fid}"><h3>{html.escape(p.get("title") or fid)}</h3><p>{authors}</p>'
-            f'<p>{html.escape((p.get("abstract") or "")[:1500])}</p>'
-            '<label>Report type <select name="report_type"><option>journal_article</option><option>working_paper</option>'
-            '<option>report</option><option>program_document</option><option>grey_literature</option>'
-            '<option>thesis</option><option>protocol</option><option>notes</option><option>other</option></select></label> '
-            '<label>Applicability <select name="applicability"><option>both</option><option>intervention_only</option>'
-            '<option>outcome_only</option><option>not_applicable</option></select></label> '
-            '<label>Main intervention <input name="main_intervention"></label> '
-            '<label>Main outcome <input name="main_outcome"></label></section>')
-    return "\n".join(cards)
+_TEMPLATE = Path(__file__).with_name("blind_label.html")
+_PAGE_KEYS = ("file_id", "title", "authors", "year", "excerpt")
+_ABSTRACT = re.compile(r"^[#*_ ]*(abstract|a b s t r a c t|executive summary|summary)\b(?![^\n]*(?:\. ?){4})",
+                       re.IGNORECASE | re.MULTILINE)  # the lookahead skips table-of-contents lines
+
+
+def excerpt(transcript: str, front: int = 900, limit: int = 3500) -> str:
+    """The opening of a transcript as a labeller reads it, without frontmatter or page markers: the first `front`
+    characters (cover, journal header, authors: what shows the report type), then `limit` characters from the abstract
+    when one starts later than that."""
+    text = parse_frontmatter(transcript.replace("\r", ""))[1]
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL).strip()
+    found = _ABSTRACT.search(text, 0, 12000)
+    if found and found.start() > front:
+        return text[:front].rstrip() + "\n\n[…]\n\n" + text[found.start():found.start() + limit]
+    return text[:front + limit]
+
+
+def term_list(vocab) -> list[dict]:
+    """A 3ie vocabulary as the page's term picker reads it."""
+    return [{"id": t.id, "label": t.label, "path": " > ".join(vocab.terms[a].label for a in reversed(ancestors(vocab, t.id))),
+             "definition": t.definition or ""} for t in vocab.terms.values()]
+
+
+def blind_label_page(papers: list[dict], report_types: Iterable[str]) -> str:
+    """The labelling page (publish with the `db` capability and `terms.json` beside it) for the owner or a second
+    model. Only the keys in `_PAGE_KEYS` are read from each paper dict, so predictions never reach the page. Labels are
+    saved to the `labels` collection, one document per file id."""
+    data = {"papers": [{k: p.get(k) for k in _PAGE_KEYS} for p in papers], "report_types": sorted(report_types)}
+    blob = json.dumps(data, ensure_ascii=False).replace("<", "\\u003c")
+    return _TEMPLATE.read_text(encoding="utf-8").replace("__DATA__", blob)
+
+
+def labels_to_key(labels: dict[str, dict]) -> list[dict]:
+    """Saved page labels (file id to label document) as an answer key. A paper without both report type and
+    applicability is unfinished and left out."""
+    return [{"file_id": fid, "report_type": v["report_type"], "applicability": v["applicability"],
+             "main_intervention": v.get("main_intervention") or [], "main_outcome": v.get("main_outcome") or []}
+            for fid, v in sorted(labels.items()) if v.get("report_type") and v.get("applicability")]

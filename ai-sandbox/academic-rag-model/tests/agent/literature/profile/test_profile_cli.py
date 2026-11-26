@@ -237,3 +237,30 @@ def test_folders_apply_with_file_id_still_counts_every_paper(root):
     assert _run(root, "folders", "apply", "--all", "--file-id", "f1") == 0
     path = find_card_by_file_id(str(root), "f1")[1]["path"]
     assert "/other/" not in path and "economics-econometrics-and-finance" in path
+
+
+def test_label_page_writes_a_prediction_free_page_and_its_terms(root, tmp_path):
+    set_research_profile(str(root), "f1", {"report_type": "thesis", "subtype": "SECRETSUBTYPE"})
+    assert _run(root, "label-page", "--file-id", "f1", "--out", str(tmp_path)) == 0
+    page = (tmp_path / "index.html").read_text(encoding="utf-8")
+    assert "Cash transfers in Kenya" in page and "households received" in page
+    assert "SECRETSUBTYPE" not in page and "Seed adoption in Mali" not in page
+    terms = json.loads((tmp_path / "terms.json").read_text(encoding="utf-8"))
+    assert [t["id"] for t in terms["intervention"]] == ["intervention.sector", "intervention.branch"]
+    assert terms["intervention"][1] == {"id": "intervention.branch", "label": "intervention branch",
+                                        "path": "intervention sector", "definition": "d"}
+
+
+def test_eval_scores_saved_page_labels(root, tmp_path, capsys):
+    set_research_profile(str(root), "f1", {"report_type": "report", "applicability": "intervention_only",
+                                          "intervention_tags": [{"term_id": "intervention.branch"}]})
+    labels = tmp_path / "labels.json"
+    labels.write_text(json.dumps({"f1": {"report_type": "report", "applicability": "both",
+                                         "main_intervention": ["intervention.sector"], "main_outcome": []}}),
+                      encoding="utf-8")
+    assert _run(root, "eval", "--labels", str(labels)) == 0
+    out = capsys.readouterr().out
+    scores = json.loads(out[:out.rindex("}") + 1])["report"]
+    assert scores["report_type_agreement"] == 1.0 and scores["applicability_agreement"] == 0.0
+    assert scores["tag_recall"] == 1.0
+

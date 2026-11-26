@@ -26,7 +26,14 @@ python -m agent.literature.profile.cli project <folder> <slug>                  
 python -m agent.literature.profile.cli folders plan                                # reviews only; nothing moves
 python -m agent.literature.profile.cli folders apply --approve <file_id> | --all   # then `folders undo`
 python -m agent.literature.profile.cli eval "<path>/all_study_record.csv"
+python -m agent.literature.profile.cli label-page --file-id <id> ... --out <dir>     # blind-labelling page, see below
+python -m agent.literature.profile.cli eval --labels <labels.json>                  # score saved page labels
 ```
+
+**Blind labelling.** Publish `<dir>/index.html` as a private Artifact with `terms.json` beside it and the `db`
+capability. Labels land in its `labels` collection, one document per `file_id`; save them as one
+`{file_id: document}` JSON file for `eval --labels`. The page holds paper excerpts, so keep `<dir>` under the
+research folder, never in the repository.
 
 `collect` writes private cards to `<index-root>/.agent_work/<run>/`; the agent fills each `## Result` block;
 `submit` validates (quotes must appear on the cited page) and applies. Bounced cards say why; fix and submit again.

@@ -1,0 +1,164 @@
+<title>Blind Paper Labelling</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: paper list beside one paper at a time, reading text above its coding sheet. */
+:root { --bg:#f3f5f6; --panel:#ffffff; --fg:#16222b; --dim:#586773; --line:#d3dbe0; --accent:#0f6b73; --soft:#e2f0f0; --warn:#8a4b00;
+  --body:system-ui,-apple-system,"Segoe UI",sans-serif; --read:Georgia,"Times New Roman",serif; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#10171c; --panel:#17212a; --fg:#e4ecf0; --dim:#9aabb6; --line:#2d3b46; --accent:#5cc3c9; --soft:#143238; --warn:#f0b56a; color-scheme:dark } }
+:root[data-theme="dark"] { --bg:#10171c; --panel:#17212a; --fg:#e4ecf0; --dim:#9aabb6; --line:#2d3b46; --accent:#5cc3c9; --soft:#143238; --warn:#f0b56a; color-scheme:dark }
+body { background:var(--bg); color:var(--fg); font:15px/1.5 var(--body); padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px)); padding-block:20px 40px; }
+h1 { font-size:20px; margin:0 0 4px } h2 { font-size:19px; margin:0 0 4px; text-wrap:balance } h3 { font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--dim); margin:22px 0 8px }
+p { margin:0 0 8px } .dim { color:var(--dim) } .warn { color:var(--warn) }
+.wrap { display:grid; grid-template-columns:260px minmax(0,1fr); gap:20px; max-width:1180px; margin:16px auto 0 }
+header { max-width:1180px; margin:0 auto }
+nav { display:flex; flex-direction:column; gap:2px; max-height:85vh; overflow-y:auto; position:sticky; top:env(safe-area-inset-top,0px); align-self:start }
+nav button { text-align:left; background:none; border:1px solid transparent; padding:6px 8px; font-size:13px }
+nav button[aria-current="true"] { background:var(--soft); border-color:var(--accent) }
+main { background:var(--panel); border:1px solid var(--line); padding:20px; min-width:0 }
+button, select, input, textarea { font:inherit; color:var(--fg); background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:6px 9px }
+button { cursor:pointer } :focus-visible { outline:2px solid var(--accent); outline-offset:1px }
+input[type=search], textarea { width:100%; box-sizing:border-box }
+.excerpt { font:15px/1.65 var(--read); white-space:pre-wrap; overflow-wrap:anywhere; max-height:22em; overflow-y:auto; border-block:1px solid var(--line); padding:10px 0; max-width:75ch }
+.row { display:flex; flex-wrap:wrap; gap:14px; align-items:end } .row label { display:flex; flex-direction:column; gap:4px; font-size:13px; color:var(--dim) }
+.chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px }
+.chip { background:var(--soft); border-color:var(--accent); font-size:13px }
+.results { display:flex; flex-direction:column; max-height:20em; overflow-y:auto }
+.results button { text-align:left; border:0; border-bottom:1px solid var(--line); border-radius:0 }
+.results small { display:block; color:var(--dim) }
+@media (max-width:760px) { .wrap { grid-template-columns:minmax(0,1fr) } nav { position:static; max-height:12em } }
+</style>
+<header>
+  <h1>Blind Paper Labelling</h1>
+  <p class="dim">Label each paper from its own text. The pipeline's answers are not on this page. A paper counts as labelled once report type and applicability are set.</p>
+  <p id="progress"></p>
+  <p id="status" class="warn" role="status">Connecting to saved labels…</p>
+</header>
+<div class="wrap"><nav id="list" aria-label="Papers"></nav><main id="paper"></main></div>
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  var DATA = JSON.parse(document.getElementById("data").textContent);
+  var APPLICABILITY = [["both", "Both: a studied intervention and a measured outcome"], ["intervention_only", "Intervention only"],
+                       ["outcome_only", "Outcome only"], ["not_applicable", "Not applicable"]];
+  var KINDS = [["intervention", "Main intervention"], ["outcome", "Main outcome"]];
+  var labels = {}, dirty = {}, timers = {}, chains = {}, terms = null, byId = {}, current = 0, col = null, loaded = false;
+
+  function el(tag, text, cls) { var n = document.createElement(tag); if (text != null) n.textContent = text; if (cls) n.className = cls; return n; }
+  function blank() { return { report_type: "", applicability: "", main_intervention: [], main_outcome: [], note: "" }; }
+  function get(id) { return labels[id] || blank(); }
+  function done(id) { return !!(get(id).report_type && get(id).applicability); }
+  function status(text) { document.getElementById("status").textContent = text; }
+
+  function save(id, patch) {
+    labels[id] = Object.assign(blank(), get(id), patch);
+    dirty[id] = true;
+    renderList();
+    clearTimeout(timers[id]);
+    status("Saving…");
+    timers[id] = setTimeout(function () {
+      var body = Object.assign({}, labels[id]);
+      chains[id] = (chains[id] || Promise.resolve()).then(function () { return col.doc(id).set(body); }).then(function () {
+        dirty[id] = false; status("Saved.");
+      }).catch(function (e) { status("Not saved (" + (e && e.code || "error") + "). Change the field again to retry."); });
+    }, 500);
+  }
+
+  function renderList() {
+    var nav = document.getElementById("list"); nav.replaceChildren();
+    DATA.papers.forEach(function (p, i) {
+      var b = el("button", (done(p.file_id) ? "✓ " : "○ ") + p.title);
+      b.setAttribute("aria-current", i === current ? "true" : "false");
+      b.onclick = function () { current = i; renderList(); renderPaper(); };
+      nav.appendChild(b);
+    });
+    var n = DATA.papers.filter(function (p) { return done(p.file_id); }).length;
+    document.getElementById("progress").textContent = n + " of " + DATA.papers.length + " labelled";
+  }
+
+  function select(name, text, options, id) {
+    var wrap = el("label", text), s = el("select"); s.id = name; s.disabled = !loaded;
+    [["", "Choose…"]].concat(options).forEach(function (o) { var opt = el("option", o[1]); opt.value = o[0]; s.appendChild(opt); });
+    s.value = get(id)[name] || "";
+    s.onchange = function () { var patch = {}; patch[name] = s.value; save(id, patch); };
+    wrap.appendChild(s); return wrap;
+  }
+
+  function picker(kind, heading, id) {
+    var key = "main_" + kind, box = el("section"), chips = el("div", null, "chips"), input = el("input"), results = el("div", null, "results");
+    box.appendChild(el("h3", heading));
+    input.type = "search"; input.id = "search_" + kind; input.disabled = !loaded || !terms;
+    input.placeholder = terms ? "Search 3ie " + kind + " terms by name or definition" : "Loading terms…";
+    function renderChips() {
+      chips.replaceChildren();
+      get(id)[key].forEach(function (tid) {
+        var b = el("button", ((byId[tid] || {}).label || tid) + "  ×", "chip");
+        b.title = (byId[tid] || {}).definition || "";
+        b.onclick = function () { var p = {}; p[key] = get(id)[key].filter(function (x) { return x !== tid; }); save(id, p); renderChips(); };
+        chips.appendChild(b);
+      });
+      if (!get(id)[key].length) chips.appendChild(el("span", "None chosen. Leave empty if the paper has none.", "dim"));
+    }
+    input.oninput = function () {
+      results.replaceChildren();
+      var q = input.value.trim().toLowerCase();
+      if (q.length < 2) return;
+      var words = q.split(/\s+/);
+      var hits = terms[kind].map(function (t) {
+        var name = t.label.toLowerCase(), all = (name + " " + t.definition + " " + t.path).toLowerCase();
+        if (!words.every(function (w) { return all.indexOf(w) >= 0; })) return null;
+        return [name === q ? 0 : name.indexOf(q) >= 0 ? 1 : 2, t];
+      }).filter(Boolean).sort(function (a, b) { return a[0] - b[0]; });
+      hits.slice(0, 30).forEach(function (h) {
+        var t = h[1], b = el("button"); b.appendChild(el("strong", t.label));
+        b.appendChild(el("small", t.definition || "No definition in the 3ie list."));
+        if (t.path) b.appendChild(el("small", "Under: " + t.path));
+        b.onclick = function () {
+          if (get(id)[key].indexOf(t.id) < 0) { var p = {}; p[key] = get(id)[key].concat(t.id); save(id, p); }
+          input.value = ""; results.replaceChildren(); renderChips();
+        };
+        results.appendChild(b);
+      });
+      results.appendChild(el("p", hits.length ? (hits.length > 30 ? "Showing 30 of " + hits.length + ". Add a word to narrow." : "") : "No term matches.", "dim"));
+    };
+    renderChips();
+    box.append(chips, input, results);
+    return box;
+  }
+
+  function renderPaper() {
+    var p = DATA.papers[current], main = document.getElementById("paper"), id = p.file_id;
+    main.replaceChildren(el("h2", p.title), el("p", [(p.authors || []).join("; "), p.year].filter(Boolean).join(" · "), "dim"),
+                         el("h3", "Opening text"), el("div", p.excerpt || "No transcript text.", "excerpt"), el("h3", "Classification"));
+    var row = el("div", null, "row");
+    row.append(select("report_type", "Report type", DATA.report_types.map(function (r) { return [r, r.replace(/_/g, " ")]; }), id),
+               select("applicability", "Applicability", APPLICABILITY, id));
+    main.appendChild(row);
+    KINDS.forEach(function (k) { main.appendChild(picker(k[0], k[1], id)); });
+    main.appendChild(el("h3", "Note (optional)"));
+    var note = el("textarea"); note.id = "note"; note.rows = 2; note.value = get(id).note; note.disabled = !loaded;
+    note.oninput = function () { save(id, { note: note.value }); };
+    main.appendChild(note);
+    var next = el("button", "Next paper"); next.onclick = function () { current = (current + 1) % DATA.papers.length; renderList(); renderPaper(); window.scrollTo(0, 0); };
+    var foot = el("p"); foot.style.marginTop = "16px"; foot.appendChild(next); main.appendChild(foot);
+  }
+
+  renderList(); renderPaper();
+  fetch("terms.json").then(function (r) { return r.json(); }).then(function (t) {
+    terms = t; KINDS.forEach(function (k) { t[k[0]].forEach(function (x) { byId[x.id] = x; }); }); renderPaper();
+  }).catch(function () { status("The term list did not load. Reload the page."); });
+
+  (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(function (db) {
+    if (!db) { status("Labels cannot be saved in this view. Open the page on claude.ai while signed in."); return; }
+    col = db.collection("labels");
+    var timer = setTimeout(function () { status("Saved labels cannot be reached yet."); }, 10000);
+    col.onSnapshot(function (snap) {
+      snap.docs.forEach(function (d) { if (!dirty[d.id]) labels[d.id] = Object.assign(blank(), d.data()); });
+      if (snap.metadata.fromCache) return;
+      clearTimeout(timer);
+      var first = !loaded; loaded = true;
+      renderList();
+      if (first) { renderPaper(); status(""); }
+    }, function (e) { clearTimeout(timer); status("Saved labels cannot be read (" + e.code + ")."); });
+  });
+})();
+</script>

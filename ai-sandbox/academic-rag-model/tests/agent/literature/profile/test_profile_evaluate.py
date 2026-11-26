@@ -76,9 +76,37 @@ def test_score_ignores_predictions_without_a_key_and_reports_missing_predictions
 
 
 def test_blind_label_page_hides_model_predictions():
-    papers = [{"file_id": "p1", "title": "A Paper", "authors": ["Ann Smith"], "abstract": "Abstract text here.",
+    papers = [{"file_id": "p1", "title": "A </script> Paper", "authors": ["Ann Smith"], "excerpt": "Opening text here.",
                "research_profile": {"discipline": "SECRETFIELD", "applicability": "SECRETTIER"}, "report_type": "SECRETTYPE"}]
-    page = evaluate.blind_label_page(papers)
-    assert "A Paper" in page and "Abstract text here." in page and 'data-file-id="p1"' in page
+    page = evaluate.blind_label_page(papers, ["journal_article", "book"])
+    assert "Opening text here." in page and '"p1"' in page and '"book"' in page
+    assert "</script> Paper" not in page  # paper text cannot close the data block
     for secret in ("SECRETFIELD", "SECRETTIER", "SECRETTYPE"):
         assert secret not in page
+
+
+def test_excerpt_keeps_the_front_matter_then_jumps_to_the_abstract_past_the_contents_page():
+    text = """---
+title: x
+---
+
+<!-- page 1 -->
+Journal header
+Executive Summary ........................ 4
+""" + "filler " * 40 + """
+## Abstract
+We study cash.
+<!-- page 2 -->
+More."""
+    out = evaluate.excerpt(text, front=40, limit=200)
+    assert out.startswith("Journal header") and "## Abstract" in out and "We study cash." in out
+    assert "[…]" in out and "title: x" not in out and "<!--" not in out
+    assert len(evaluate.excerpt("word " * 5000, front=50, limit=50)) == 100
+
+
+def test_labels_become_an_answer_key_and_unfinished_labels_are_left_out():
+    labels = {"p1": {"report_type": "report", "applicability": "both", "main_intervention": ["i.a"], "main_outcome": []},
+              "p2": {"report_type": "", "applicability": "both"}}
+    key = evaluate.labels_to_key(labels)
+    assert key == [{"file_id": "p1", "report_type": "report", "applicability": "both",
+                    "main_intervention": ["i.a"], "main_outcome": []}]

@@ -16,7 +16,7 @@ from agent.literature.vocab import load_vocabularies
 from core.agent_tasks.loop import BudgetError, api_run, collect_run, provenance, submit_run
 from core.agent_tasks.work import load_run
 from core.env.corpus_write_lock import CorpusWriteLockError, corpus_write_lock
-from core.indexer.research_profile import set_research_profile
+from core.indexer.research_profile import REPORT_TYPES, set_research_profile
 
 _DEFAULT_ROOT = Path(__file__).resolve().parents[3].parent / "research"
 KINDS = tagging.KINDS
@@ -222,7 +222,38 @@ def cmd_queue(args) -> int:
     return 0
 
 
+def cmd_label_page(args) -> int:
+    """Writes the blind-labelling page and its term list for the chosen papers. No predictions are read into it."""
+    papers = []
+    for card in _cards(args):
+        profile = card.get("research_profile") or {}
+        text = (Path(args.index_root) / card["path"]).read_text(encoding="utf-8")
+        papers.append({"file_id": card["file_id"], "title": card.get("title"), "authors": profile.get("authors"),
+                       "year": card.get("publication_year"), "excerpt": evaluate.excerpt(text)})
+    vocabs = _vocabs(args)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "index.html").write_text(evaluate.blind_label_page(papers, REPORT_TYPES), encoding="utf-8")
+    terms = {kind: evaluate.term_list(vocabs[kind]) for kind in KINDS}
+    (out / "terms.json").write_text(json.dumps(terms, ensure_ascii=False), encoding="utf-8")
+    print(f"wrote {out / 'index.html'} and terms.json for {len(papers)} papers")
+    return 0
+
+
+def _eval_labels(args) -> int:
+    key = evaluate.labels_to_key(json.loads(Path(args.labels).read_text(encoding="utf-8")))
+    cards = {c["file_id"]: c for c in _cards(args)}
+    predicted = [{"file_id": k["file_id"], **(cards[k["file_id"]].get("research_profile") or {})}
+                 for k in key if k["file_id"] in cards]
+    strata = {k["file_id"]: k["report_type"] for k in key}
+    print(json.dumps(evaluate.score_records(predicted, key, lambda r: strata[r["file_id"]], _vocabs(args)), indent=2))
+    print(f"scored {len(key)} labelled papers, stratified by the labelled report type")
+    return 0
+
+
 def cmd_eval(args) -> int:
+    if args.labels:
+        return _eval_labels(args)
     cards = _cards(args)
     key, predicted = [], []
     by_doi = {c["doi"].casefold(): c for c in cards if c.get("doi")}
@@ -307,8 +338,14 @@ def build_parser() -> argparse.ArgumentParser:
     pj.add_argument("project", help="Project slug, e.g. an independent-research/projects folder name.")
     pj.add_argument("--file-id", action="append", default=[])
 
-    e = top.add_parser("eval", help="Score against a 3ie all_study_record CSV (matched by DOI).")
-    e.add_argument("answer_key")
+    lp = top.add_parser("label-page", help="Write the blind-labelling page for the chosen papers.")
+    lp.add_argument("--file-id", action="append", required=True, help="A paper to label (repeatable).")
+    lp.add_argument("--out", required=True, help="Directory for index.html and terms.json (keep it out of git).")
+
+    e = top.add_parser("eval", help="Score against a 3ie all_study_record CSV (matched by DOI) or saved page labels.")
+    key = e.add_mutually_exclusive_group(required=True)
+    key.add_argument("answer_key", nargs="?")
+    key.add_argument("--labels", help="JSON file mapping file_id to the page's saved label document.")
     return p
 
 
@@ -316,7 +353,7 @@ def _writes(args) -> bool:
     """True when the command can change cards, folders or transcripts under the index root. `collect` only writes
     private task cards under `.agent_work/`, so it does not take the corpus lock."""
     action = getattr(args, "action", None)
-    if args.command in ("summary", "queue", "eval"):
+    if args.command in ("summary", "queue", "eval", "label-page"):
         return False
     return not (action in ("plan", "collect"))
 
@@ -340,7 +377,7 @@ def _dispatch(args, lookup, complete) -> int:
         if args.action == "collect":
             return cmd_collect_classify(args) if args.command == "classify" else cmd_collect_tag(args)
         return cmd_submit(args) if args.action == "submit" else cmd_api(args, complete)
-    return {"folders": cmd_folders, "summary": cmd_summary, "queue": cmd_queue, "eval": cmd_eval,
+    return {"folders": cmd_folders, "summary": cmd_summary, "queue": cmd_queue, "eval": cmd_eval, "label-page": cmd_label_page,
             "refresh-discipline": cmd_refresh_discipline, "project": cmd_project}[args.command](args)
 
 
