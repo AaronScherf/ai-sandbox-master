@@ -1,4 +1,12 @@
-# Separate private repository; URL and commit pin in repositories.json.
+# Independent research projects that are separate Git repositories; keep their
+# working trees local. See repositories.json for URLs and commit pins.
+berkeley_thesis/wheat_yield_prediction_gee/
+math_thesis/Novel-Omnibus-Normality-Test-and-Power-Comparison-with-the-Shapiro-Wilk-Test/
+compound-shocks-panel/
+reprokit/
+evidence-map/
+bangladesh-insurance-replication/
 armenia_project/
-# Separate private repository; URL and commit pin in repositories.json.
 MESA/
+# Extra local worktrees of the bangladesh-insurance-replication repository.
+bangladesh-insurance-replication-*-wt/
