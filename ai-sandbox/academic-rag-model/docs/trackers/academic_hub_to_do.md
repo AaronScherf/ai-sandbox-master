@@ -287,6 +287,7 @@ Things to fix in post-processing?
 - <!-- TODO-0066 --> Could add internal links to obsidian when figures or sections are mentioned
 - <!-- TODO-0067 --> Printed TOC spurious entry repair in `chapter_index.py`: `parse_printed_toc()` extracts a spurious frontmatter entry in books like Hammack; add filtering for Roman-numeral or unnumbered frontmatter page markers. (added 2026-10-04)
 - <!-- TODO-0068 --> Front-matter image filter boundary tuning in `describe_images.py`: refine the filter to avoid dropping legitimate introductory diagrams near the start of Chapter 1. (added 2026-10-04)
+- Pilot: can the Antigravity Gemini subscription replace the GPU VM (Marker) for textbook pages? Staged, not run (daily quota hit): two blind cards in the gitignored `academic-hub/.agent_work/mwg-pilot/`, 12 MWG scan pages. `task-0001.md` = PDF pages 70, 184, 426, 455, 690, 803, which Marker converted (compare with the MWG `.md`); `task-0002.md` = pages 555-560, blank in the pre-2026-11-26 conversion. Agent fills each "Agent output" section from the images only; never `--submit`. Pass: nothing refused, summarized or cut short, and no more meaningful math errors than Marker, judged against the page images. VM stays the default meanwhile. (added 2026-11-26)
 
 Example of a converter LaTeX error (Hansen eq. 2.43, as output):
 
