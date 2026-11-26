@@ -463,7 +463,10 @@ class RunChecksFullSuiteTests(unittest.TestCase):
             (set(), {f"{hub}/.index/courses.json", f"{hub}/.index/microecon.json",
                      f"{hub}/academic_notes/microecon/x.md"}, "outside_project_only"),
             (set(), {"ai-sandbox/research/helper.py"}, "outside_project_only"),
-            (set(), {f"{hub}/hub_config.json"}, "allowlist_hit"),
+            (set(), {f"{hub}/hub_config.json"}, "targeted_outside"),
+            ({"agent/a.py"}, {f"{hub}/hub_config.json"}, "targeted"),
+            ({"docs/a.md"}, {f"{hub}/hub_config.json"}, "targeted_outside"),
+            (set(), {f"{hub}/hub_config.json", ".gitignore"}, "allowlist_hit"),
             (set(), {".gitignore"}, "allowlist_hit"),
             (set(), {"ai-sandbox/.obsidian/app.json"}, "allowlist_hit"),
             (set(), {"ai-sandbox/research/independent-research/notes/00_overview-and-strategy/"
@@ -489,13 +492,38 @@ class RunChecksFullSuiteTests(unittest.TestCase):
         (self.tmp / "tests" / "agent").mkdir(parents=True)
         fake = [ChunkResult(name="agent", returncode=0, seconds=1.0, stdout="ok")]
         for changed, outside in (
-            (set(), {"ai-sandbox/academic-hub/hub_config.json"}),
+            (set(), {".gitignore"}),
             ({"tools/land_branch.py"}, set()),
         ):
             with self.subTest(changed=changed, outside=outside), \
                     patch("tools.land_branch.run_all", return_value=("passed", fake, 1.0)) as runner:
                 run_checks(self.tmp, changed, False, outside=outside)
             runner.assert_called_once_with(self.tmp)
+
+    def test_hub_config_change_runs_only_the_shipped_config_test(self):
+        shipped = "tests/core/env/test_shipped_hub_config.py"
+        (self.tmp / shipped).parent.mkdir(parents=True)
+        (self.tmp / shipped).write_text("def test_x():\n    pass\n", encoding="utf-8")
+        outside = {"ai-sandbox/academic-hub/hub_config.json"}
+        with patch("tools.land_branch.run_all") as full, \
+                patch("tools.land_branch.run_selected", return_value=("passed", [], 1.0)) as selected:
+            status, targets, _ = run_checks(self.tmp, set(), False, outside=outside)
+        full.assert_not_called()
+        selected.assert_called_once_with(self.tmp, [shipped])
+        self.assertEqual((status, targets), ("passed", [shipped]))
+
+    def test_hub_config_target_is_added_to_code_targets(self):
+        from tools.land_branch import OUTSIDE_TEST_TARGETS
+        shipped = "tests/core/env/test_shipped_hub_config.py"
+        self.assertEqual(OUTSIDE_TEST_TARGETS["ai-sandbox/academic-hub/hub_config.json"], (shipped,))
+        for rel, text in {shipped: "def test_x():\n    pass\n", "agent/a.py": "x = 1\n",
+                          "tests/agent/test_a.py": "from agent.a import x\n"}.items():
+            (self.tmp / rel).parent.mkdir(parents=True, exist_ok=True)
+            (self.tmp / rel).write_text(text, encoding="utf-8")
+        with patch("tools.land_branch.run_selected", return_value=("passed", [], 1.0)):
+            _, targets, _ = run_checks(self.tmp, {"agent/a.py"}, False,
+                                       outside={"ai-sandbox/academic-hub/hub_config.json"})
+        self.assertEqual(sorted(targets), ["tests/agent/test_a.py", shipped])
 
     def test_full_run_uses_chunked_runner_and_reports_failure(self):
         fake_results = [

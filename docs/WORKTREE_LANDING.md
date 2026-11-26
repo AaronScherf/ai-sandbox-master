@@ -19,7 +19,10 @@ on their own. When a task branch is finished, the agent:
    changes only outside `academic-rag-model/` (hub notes, `.index/` JSON,
    research pins; reason `outside_project_only`) unless a path is in
    `OUTSIDE_TEST_INPUTS` in `tools/land_branch.py` (paths tests read; reason
-   `allowlist_hit`, full suite). Inside the project, a change runs only the test
+   `allowlist_hit`, full suite). `hub_config.json` is not on that list: the suite
+   reads a frozen seed (`tests/conftest.py`), so a change to it runs only
+   `tests/core/env/test_shipped_hub_config.py` (`OUTSIDE_TEST_TARGETS`; reason
+   `targeted_outside`). Inside the project, a change runs only the test
    files it can affect (`tools/impact_selection.py`): for Python, the tests that
    import the changed module directly or through other modules, plus the tests in
    its mirror folder under `tests/`; for a data file, the tests (and modules'
@@ -45,8 +48,8 @@ on their own. When a task branch is finished, the agent:
    if `main` has since changed a file the branch also changes; re-runs the
    approved check's tests only when `main` gained non-Markdown changes inside
    `academic-rag-model/`, or changed a path in `OUTSIDE_TEST_INPUTS` (root
-   `.gitignore`, `ai-sandbox/.obsidian/`, `hub_config.json`, the Novelty Check
-   note; files the suite reads); stops on
+   `.gitignore`, `ai-sandbox/.obsidian/`, the Novelty Check note; files the
+   suite reads) or `OUTSIDE_TEST_TARGETS` (`hub_config.json`); stops on
    a failure or an overlap (a tracked file the branch changes that is dirty in
    the main checkout or changed on another open branch); then runs
    `git merge --ff-only` and `git push origin main` in the main checkout and

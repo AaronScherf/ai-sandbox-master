@@ -3,7 +3,6 @@ import logging
 
 from core.env.hub_vocabulary import (
     LEGACY_VOCABULARY,
-    default_config_path,
     load_vocabulary,
 )
 
@@ -60,16 +59,6 @@ def test_cache_follows_file_changes(tmp_path):
     import os
     os.utime(path, (path.stat().st_atime + 5, path.stat().st_mtime + 5))
     assert load_vocabulary(path).kind_of("a") == "group"
-
-
-def test_shipped_config_has_the_seed():
-    vocab = load_vocabulary(default_config_path())
-    for name in SEED_CATEGORIES:
-        assert vocab.kind_of(name) == "category", name
-    for name in ("processed_outputs", "images", "assets"):
-        assert vocab.kind_of(name) == "ignore", name
-    # Owner answers (past_exams, summaries, ...) are added over time, so this only pins the seed.
-    assert vocab.textbook_folders == ("textbooks", "textbooks-and-papers")
 
 
 # --- Task 3: vocabulary-driven parser -------------------------------------------------------------

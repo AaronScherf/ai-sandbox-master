@@ -54,10 +54,15 @@ GUARD_POLICY_PATHS = (
 OUTSIDE_TEST_INPUTS = (
     ".gitignore",  # test_lit_gap_report.py
     "ai-sandbox/.obsidian",  # test_audit_website_sync.py
-    "ai-sandbox/academic-hub/hub_config.json",  # core/env/hub_vocabulary.py default config
     "ai-sandbox/research/independent-research/notes/00_overview-and-strategy/"
     "03_novelty-check/Novelty Check - Summary - v3.md",  # test_reference_checker.py
 )
+# Outside-project paths that only some tests read: a change selects just those tests, not the
+# suite. The suite pins hub_config.json to a seed (tests/conftest.py); the one test below reads
+# the shipped file.
+OUTSIDE_TEST_TARGETS = {
+    "ai-sandbox/academic-hub/hub_config.json": ("tests/core/env/test_shipped_hub_config.py",),
+}
 
 
 GUARD_MODULE_PATH = "ai-sandbox/academic-rag-model/tools/guard_binaries.py"
@@ -276,6 +281,10 @@ def is_outside_test_input(path: str) -> bool:
     return any(path == target or path.startswith(target + "/") for target in OUTSIDE_TEST_INPUTS)
 
 
+def outside_test_targets(outside: set[str]) -> list[str]:
+    return sorted({t for p in outside for t in OUTSIDE_TEST_TARGETS.get(p, ())})
+
+
 def _touches_guard_policy(changed: set[str], outside: set[str]) -> bool:
     prefix = PROJECT_SUBDIR + "/"
     inside = {p[len(prefix):] for p in GUARD_POLICY_PATHS if p.startswith(prefix)}
@@ -296,12 +305,13 @@ def selection_reason(
         return "allowlist_hit"
     if _is_documentation_only(changed | outside):
         return "doc_only"
+    mapped = outside_test_targets(outside)
     if all(p.endswith(".md") for p in changed):
-        return "outside_project_only"  # only outside data changed; no test can read it
+        return "targeted_outside" if mapped else "outside_project_only"  # only outside data changed; no test can read it
     selection = select_tests(changed, project_root)
     if selection.run_all_reason:
         return selection.run_all_reason  # helper_change, config_change, moved_or_deleted_file, no_tests_for_code
-    if not selection.files:
+    if not selection.files and not mapped:
         return "data_unreferenced"  # only data no Python file names; no test can read it
     packages = {p.split("/")[1] if p.startswith("tests/") and p.count("/") > 1 else p.split("/")[0]
                 for p in changed if not p.endswith(".md")}
@@ -317,13 +327,15 @@ def run_checks(
         reason = selection_reason(changed, project_root, full, outside)
     if reason in ("doc_only", "outside_project_only", "data_unreferenced"):
         return "skipped", [], 0.0
-    if reason not in ("targeted", "targeted_multi", "multi_package"):
+    if reason not in ("targeted", "targeted_multi", "multi_package", "targeted_outside"):
         targets = ["tests/"]
     else:
         # A re-test reuses the approved files; main may have deleted one since (pytest exit 4).
         targets = [t for t in (selected_targets or []) if (project_root / t).exists()]
         if not targets:
-            targets = select_test_targets(changed, project_root)
+            targets = select_test_targets(changed, project_root) if changed else []
+            targets += [t for t in outside_test_targets(outside or set())
+                        if t not in targets and (project_root / t).exists()]
     if not targets:
         targets = ["tests/"]  # code changed but no mapped tests: run everything
     if targets == ["tests/"]:
@@ -537,7 +549,8 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
         main_changed = _files_between(worktree, tested_base, main_now)
         code_delta = [p for p in project_relative(main_changed, subdir)
                       if not p.endswith(".md")]
-        code_delta.extend(p for p in main_changed if is_outside_test_input(p))
+        code_delta.extend(p for p in main_changed
+                          if is_outside_test_input(p) or p in OUTSIDE_TEST_TARGETS)
         if code_delta and approved["checks"] != "skipped":
             retests += 1
             if retests > MAX_RETEST_ATTEMPTS:
