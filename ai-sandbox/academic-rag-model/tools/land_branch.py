@@ -318,6 +318,55 @@ def selection_reason(
     return "targeted_multi" if len(packages) > 1 else "targeted"
 
 
+# Files that compute a re-test. When main changes one, the code this process already imported may
+# be out of date, so `land` does not narrow.
+SELECTOR_PATHS = ("tools/land_branch.py", "tools/impact_selection.py", "tools/run_tests_chunked.py")
+FULL_RUN_MAX_AGE_HOURS = 48
+
+
+def affected_tests(relative: set[str], outside: set[str], project_root: Path) -> set[str] | None:
+    """Test files one side's changes can affect on this tree; None when that cannot be bounded."""
+    if _touches_guard_policy(relative, outside) or any(is_outside_test_input(p) for p in outside):
+        return None
+    selection = select_tests(relative, project_root)
+    if selection.run_all_reason:
+        return None
+    mapped = {t for t in outside_test_targets(outside) if (project_root / t).is_file()}
+    return set(selection.files) | mapped
+
+
+def overlap_tests(branch: set[str] | None, main: set[str] | None) -> set[str] | None:
+    """Tests both sides can affect: only these can newly fail from combining them. An unbounded
+    side contributes no limit, so the other side's set stands; None means run everything."""
+    if branch is None:
+        return main
+    if main is None:
+        return branch
+    return branch & main
+
+
+def narrowing_off_reason(entries: list[dict], repo: Path, now: datetime | None = None) -> str:
+    """Why `land` may not narrow a re-test, or "" when the latest full run of main backs it."""
+    runs = [e for e in entries if e.get("event") == "scheduled_full"]
+    if not runs:
+        return "no full-main run is logged"
+    last = runs[-1]  # the log is append-only, so the last record is the newest
+    if last.get("result") != "passed":
+        return "the last full-main run did not pass"
+    try:
+        age = (now or datetime.now(timezone.utc)) - datetime.fromisoformat(last["at"])
+        hours = age.total_seconds() / 3600
+    except (KeyError, TypeError, ValueError):
+        return "the last full-main record has no readable time"
+    if hours > FULL_RUN_MAX_AGE_HOURS:
+        return f"the last full-main run is {hours:.0f} hours old"
+    try:
+        in_main = bool(last.get("sha")) and is_ancestor(repo, last["sha"], MAIN_BRANCH)
+    except GitError:  # a commit this clone does not have
+        in_main = False
+    return "" if in_main else "the last full-main run was not on a commit in main"
+
+
 def run_checks(
     project_root: Path, changed: set[str], full: bool,
     *, outside: set[str] | None = None, chunk_results: list[ChunkResult] | None = None,

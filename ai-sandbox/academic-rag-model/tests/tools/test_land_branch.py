@@ -570,6 +570,83 @@ class RunChecksFullSuiteTests(unittest.TestCase):
         self.assertEqual(targets, ["tests/agent"])
 
 
+class RetestDecisionTests(unittest.TestCase):
+    """What a land-time re-test must run (TODO-0103)."""
+
+    HUB = "ai-sandbox/academic-hub"
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._tmp.name)
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def _tree(self, files):
+        for rel, text in files.items():
+            (self.tmp / rel).parent.mkdir(parents=True, exist_ok=True)
+            (self.tmp / rel).write_text(text, encoding="utf-8")
+
+    def test_overlap_table(self):
+        from tools.land_branch import overlap_tests
+        self.assertEqual(overlap_tests({"a", "b"}, {"b", "c"}), {"b"})
+        self.assertEqual(overlap_tests(None, {"c"}), {"c"})
+        self.assertEqual(overlap_tests({"a"}, None), {"a"})
+        self.assertIsNone(overlap_tests(None, None))
+        self.assertEqual(overlap_tests({"a"}, {"c"}), set())
+
+    def test_shared_dependency_is_in_the_overlap(self):
+        from tools.land_branch import affected_tests, overlap_tests
+        self._tree({"core/a.py": "A = 1\n", "core/b.py": "B = 1\n",
+                    "core/x.py": "from core.a import A\nfrom core.b import B\n",
+                    "tests/core/test_x.py": "import core.x\n"})
+        both = overlap_tests(affected_tests({"core/a.py"}, set(), self.tmp),
+                             affected_tests({"core/b.py"}, set(), self.tmp))
+        self.assertIn("tests/core/test_x.py", both)
+
+    def test_unbounded_sides(self):
+        from tools.land_branch import affected_tests
+        self._tree({"conftest.py": "", "requirements.txt": "", "tools/land_branch.py": ""})
+        for changed, outside in (({"conftest.py"}, set()), ({"requirements.txt"}, set()),
+                                 ({"tools/land_branch.py"}, set()), ({"core/gone.py"}, set()),
+                                 (set(), {".gitignore"})):
+            with self.subTest(changed=changed, outside=outside):
+                self.assertIsNone(affected_tests(changed, outside, self.tmp))
+
+    def test_mapped_outside_target_counts(self):
+        from tools.land_branch import affected_tests
+        shipped = "tests/core/env/test_shipped_hub_config.py"
+        self._tree({shipped: "def test_x():\n    pass\n"})
+        self.assertEqual(affected_tests(set(), {f"{self.HUB}/hub_config.json"}, self.tmp), {shipped})
+
+    def test_narrowing_off_reasons(self):
+        from datetime import datetime, timedelta, timezone
+        from tools.land_branch import narrowing_off_reason
+        repo = make_repo(self.tmp / "repo")
+        sha = git(repo, "rev-parse", "main").strip()
+        git(repo, "checkout", "-q", "-b", "side")
+        write_and_commit(repo, {"side.txt": "x\n"}, "side")
+        side = git(repo, "rev-parse", "HEAD").strip()
+        now = datetime(2026, 11, 26, 12, tzinfo=timezone.utc)
+
+        def run(hours=1, result="passed", commit=sha):
+            return {"event": "scheduled_full", "at": (now - timedelta(hours=hours)).isoformat(),
+                    "sha": commit, "result": result}
+
+        self.assertEqual(narrowing_off_reason([run()], repo, now), "")
+        cases = {"none": [], "other events": [{"event": "land"}], "failed": [run(result="failed")],
+                 "stale": [run(hours=49)], "side branch": [run(commit=side)],
+                 "unknown sha": [run(commit="0" * 40)],
+                 "newer failure": [run(hours=5), run(hours=1, result="failed")],
+                 "no at": [{k: v for k, v in run().items() if k != "at"}],
+                 "bad at": [{**run(), "at": "yesterday"}],
+                 "no sha": [{k: v for k, v in run().items() if k != "sha"}],
+                 "no result": [{k: v for k, v in run().items() if k != "result"}]}
+        for name, entries in cases.items():
+            with self.subTest(name):
+                self.assertTrue(narrowing_off_reason(entries, repo, now))
+
+
 class LandByChangeIdTests(unittest.TestCase):
     """`land` lands an approved change, re-checking only what main's movement could affect."""
 
