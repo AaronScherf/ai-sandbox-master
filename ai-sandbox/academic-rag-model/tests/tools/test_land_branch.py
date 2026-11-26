@@ -613,6 +613,11 @@ class RetestDecisionTests(unittest.TestCase):
             with self.subTest(changed=changed, outside=outside):
                 self.assertIsNone(affected_tests(changed, outside, self.tmp))
 
+    def test_a_python_file_outside_the_graph_is_unbounded(self):
+        from tools.land_branch import affected_tests
+        self._tree({"archive/old.py": "x = 1\n"})
+        self.assertIsNone(affected_tests({"archive/old.py"}, set(), self.tmp))
+
     def test_mapped_outside_target_counts(self):
         from tools.land_branch import affected_tests
         shipped = "tests/core/env/test_shipped_hub_config.py"
@@ -680,6 +685,117 @@ class LandByChangeIdTests(unittest.TestCase):
         import json
         from tools.land_branch import log_path
         return [json.loads(l) for l in log_path(self.wt).read_text(encoding="utf-8").splitlines()]
+
+    # --- overlap re-test (TODO-0103) ---------------------------------------------------------
+
+    P = "ai-sandbox/academic-rag-model/"
+
+    def _project(self, cwd, files, message):
+        write_and_commit(cwd, {self.P + rel: text for rel, text in files.items()}, message)
+
+    def _branch_edits_a(self, extra_tests=(), full=False):
+        """main has agent/a, b, c with tests; the branch edits agent/a and is approved."""
+        seed = {"agent/a.py": "x = 0\n", "agent/b.py": "y = 0\n", "agent/c.py": "z = 0\n",
+                "tests/agent/test_a.py": "import agent.a\n", "tests/tools/test_b.py": "import agent.b\n"}
+        for first, second in extra_tests:
+            seed[f"tests/tools/test_{first}{second}.py"] = f"import agent.{first}\nimport agent.{second}\n"
+        self._project(self.repo, seed, "seed project")
+        rebase_onto_main(self.wt)
+        self._project(self.wt, {"agent/a.py": "x = 1\n"}, "branch edit")
+        with patch("tools.land_branch.run_checks",
+                   return_value=("passed", ["tests/agent/test_a.py"], 0.1)):
+            return check(self.wt, full=full).change_id
+
+    def _nightly_passed(self):
+        from tools.land_branch import append_log
+        append_log(self.wt, {"event": "scheduled_full", "result": "passed",
+                             "sha": self._head(self.repo, "main")})
+
+    def _land(self, cid):
+        from tools.land_branch import land
+        with patch("tools.land_branch.run_checks", return_value=("passed", ["t"], 0.1)) as rerun:
+            return land(self.wt, cid), rerun
+
+    def test_retest_runs_a_new_main_test_that_depends_on_the_branch(self):
+        cid = self._branch_edits_a()
+        self._project(self.repo, {"tests/tools/test_new.py": "import agent.a\n"}, "main adds a test")
+        _, rerun = self._land(cid)
+        self.assertIn("tests/tools/test_new.py", rerun.call_args.kwargs["selected_targets"])
+
+    def test_overlap_retest_runs_only_shared_tests(self):
+        cid = self._branch_edits_a(extra_tests=[("a", "b")])
+        self._nightly_passed()
+        self._project(self.repo, {"agent/b.py": "y = 1\n"}, "main code")
+        result, rerun = self._land(cid)
+        self.assertEqual(rerun.call_args.kwargs["selected_targets"], ["tests/tools/test_ab.py"])
+        self.assertEqual(rerun.call_args.kwargs["reason"], "targeted")
+        self.assertEqual((result.retest_mode, result.retest_files, result.narrowing_off), ("overlap", 1, ""))
+
+    def test_empty_overlap_runs_nothing_and_lands(self):
+        cid = self._branch_edits_a()
+        self._nightly_passed()
+        self._project(self.repo, {"agent/b.py": "y = 1\n"}, "main code")
+        result, rerun = self._land(cid)
+        rerun.assert_not_called()
+        self.assertEqual((result.retested, result.retest_mode), (False, "overlap"))
+        self.assertEqual(self._head(self.repo, "main"), self._head(self.wt))
+
+    def test_narrowing_off_keeps_the_approved_selection(self):
+        cid = self._branch_edits_a(extra_tests=[("a", "b")])
+        self._project(self.repo, {"agent/b.py": "y = 1\n"}, "main code")
+        result, rerun = self._land(cid)
+        self.assertEqual(rerun.call_args.kwargs["selected_targets"],
+                         ["tests/agent/test_a.py", "tests/tools/test_ab.py"])
+        self.assertEqual(result.retest_mode, "approved")
+        self.assertIn("no full-main run", result.narrowing_off)
+
+    def test_explicit_full_is_never_narrowed(self):
+        cid = self._branch_edits_a(full=True)
+        self._nightly_passed()
+        self._project(self.repo, {"agent/b.py": "y = 1\n"}, "main code")
+        result, rerun = self._land(cid)
+        self.assertIs(rerun.call_args.args[2], True)
+        self.assertEqual(result.retest_mode, "approved")
+
+    def test_main_changing_the_selector_is_not_narrowed(self):
+        cid = self._branch_edits_a()
+        self._nightly_passed()
+        self._project(self.repo, {"tools/impact_selection.py": "x = 1\n"}, "main selector")
+        result, rerun = self._land(cid)
+        rerun.assert_called_once()
+        self.assertEqual(result.retest_mode, "approved")
+
+    def test_main_deleting_a_module_runs_the_branch_tests(self):
+        cid = self._branch_edits_a()
+        self._nightly_passed()
+        git(self.repo, "rm", "-q", self.P + "agent/c.py")
+        git(self.repo, "commit", "-q", "-m", "main deletes")
+        result, rerun = self._land(cid)
+        self.assertEqual(rerun.call_args.kwargs["selected_targets"], ["tests/agent/test_a.py"])
+        self.assertEqual(result.retest_mode, "overlap")
+
+    def test_both_sides_unbounded_runs_the_full_suite(self):
+        self._branch_edits_a()
+        self._nightly_passed()
+        self._project(self.wt, {"conftest.py": "\n"}, "branch conftest")
+        with patch("tools.land_branch.run_checks", return_value=("passed", ["tests/"], 0.1)):
+            cid = check(self.wt).change_id
+        self._project(self.repo, {"requirements.txt": "x\n"}, "main pin")
+        result, rerun = self._land(cid)
+        self.assertIs(rerun.call_args.args[2], True)
+        self.assertEqual(result.retest_mode, "full")
+
+    def test_second_main_move_selects_from_the_new_delta_only(self):
+        from tools.land_branch import land
+        cid = self._branch_edits_a(extra_tests=[("a", "b"), ("a", "c")])
+        self._nightly_passed()
+        wrapped, _ = self._move_main_then_ff([{self.P + "agent/b.py": "y = 1\n"},
+                                              {self.P + "agent/c.py": "z = 1\n"}])
+        with patch("tools.land_branch._ff_main", side_effect=wrapped), \
+             patch("tools.land_branch.run_checks", return_value=("passed", ["t"], 0.1)) as rerun:
+            land(self.wt, cid)
+        self.assertEqual([c.kwargs["selected_targets"] for c in rerun.call_args_list],
+                         [["tests/tools/test_ab.py"], ["tests/tools/test_ac.py"]])
 
     def test_change_id_is_stable_across_clean_rebase(self):
         from tools.land_branch import change_id
@@ -798,6 +914,7 @@ class LandByChangeIdTests(unittest.TestCase):
             cid = self._approve_project().change_id
         write_and_commit(self.repo, {"ai-sandbox/academic-rag-model/agent/b.py": "y = 1\n"}, "main code")
         with patch("tools.land_branch.selection_reason", return_value="core_change"), \
+             patch("tools.land_branch.affected_tests", return_value=set()), \
              patch("tools.land_branch.run_checks", return_value=("passed", [], 0.1)) as rerun:
             land(self.wt, cid)
         self.assertEqual(rerun.call_args.kwargs["reason"], "targeted")

@@ -328,7 +328,10 @@ def affected_tests(relative: set[str], outside: set[str], project_root: Path) ->
     """Test files one side's changes can affect on this tree; None when that cannot be bounded."""
     if _touches_guard_policy(relative, outside) or any(is_outside_test_input(p) for p in outside):
         return None
-    selection = select_tests(relative, project_root)
+    try:
+        selection = select_tests(relative, project_root)
+    except KeyError:  # a Python file the import graph does not cover (e.g. under archive/)
+        return None
     if selection.run_all_reason:
         return None
     mapped = {t for t in outside_test_targets(outside) if (project_root / t).is_file()}
@@ -367,6 +370,47 @@ def narrowing_off_reason(entries: list[dict], repo: Path, now: datetime | None =
     return "" if in_main else "the last full-main run was not on a commit in main"
 
 
+TARGETED_REASONS = ("targeted", "targeted_multi", "multi_package", "targeted_outside")
+
+
+@dataclass
+class RetestPlan:
+    mode: str  # "overlap", "approved" (as before TODO-0103) or "full"
+    targets: list[str] | None = None  # replaces the approved targets; [] means nothing to run
+    narrowing_off: str = ""
+
+
+def retest_plan(
+    approved: dict, branch_files: set[str], main_changed: set[str], worktree: Path, subdir: str,
+) -> RetestPlan:
+    """What to re-run after rebasing onto a main that moved. Judged on the rebased tree, so an
+    import either side added counts."""
+    reason = approved.get("selection_reason") or approved.get("full_reason") or ""
+    if approved.get("full") or reason == "explicit_full":
+        return RetestPlan("approved", narrowing_off="the approved check was --full")
+    prefix = subdir.rstrip("/") + "/" if subdir else ""
+    root = worktree / subdir
+    main_relative = project_relative(main_changed, subdir)
+    if main_relative & set(SELECTOR_PATHS):
+        return RetestPlan("approved", narrowing_off="main changed the test selection code")
+    shared = overlap_tests(*(
+        affected_tests(project_relative(files, subdir),
+                       {p for p in files if not p.startswith(prefix)}, root)
+        for files in (branch_files, main_changed)))
+    if shared is None:
+        return RetestPlan("full")
+    path = log_path(worktree)
+    entries = ([json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+               if path.exists() else [])
+    off = narrowing_off_reason(entries, worktree)
+    if not off:
+        return RetestPlan("overlap", targets=sorted(shared))
+    # Narrowing is off: keep the approved selection, plus any shared test it lacks.
+    targets = (sorted(set(approved.get("check_targets") or []) | shared)
+               if reason in TARGETED_REASONS else None)
+    return RetestPlan("approved", targets=targets, narrowing_off=off)
+
+
 def run_checks(
     project_root: Path, changed: set[str], full: bool,
     *, outside: set[str] | None = None, chunk_results: list[ChunkResult] | None = None,
@@ -376,7 +420,7 @@ def run_checks(
         reason = selection_reason(changed, project_root, full, outside)
     if reason in ("doc_only", "outside_project_only", "data_unreferenced"):
         return "skipped", [], 0.0
-    if reason not in ("targeted", "targeted_multi", "multi_package", "targeted_outside"):
+    if reason not in TARGETED_REASONS:
         targets = ["tests/"]
     else:
         # A re-test reuses the approved files; main may have deleted one since (pytest exit 4).
@@ -513,6 +557,9 @@ class LandResult:
     approved_base: str = ""
     approved_reason: str = ""
     retest_reason: str = ""
+    retest_mode: str = ""
+    retest_files: int = 0
+    narrowing_off: str = ""
 
 
 def approved_check(worktree: Path, branch: str, cid: str) -> dict:
@@ -578,6 +625,7 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
     retests = 0
     retest_chunks: list[ChunkResult] = []
     last_retest_reason = ""
+    retest_mode, narrowing_off, retest_files = "", "", 0
     approved_reason = approved.get("selection_reason") or approved.get("full_reason") or ""
     print(f"Approved check: {approved.get('at', '?')} base {str(approved.get('base', ''))[:8]} "
           f"{approved.get('checks')} reason {approved_reason or '?'}")
@@ -601,27 +649,41 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
         code_delta.extend(p for p in main_changed
                           if is_outside_test_input(p) or p in OUTSIDE_TEST_TARGETS)
         if code_delta and approved["checks"] != "skipped":
-            retests += 1
-            if retests > MAX_RETEST_ATTEMPTS:
-                raise LandingError(f"main kept moving: {MAX_RETEST_ATTEMPTS} test re-runs without landing")
             prefix = subdir.rstrip("/") + "/" if subdir else ""
-            retest_reason = ", ".join(sorted(code_delta)[:5]) + (
-                f" (+{len(code_delta) - 5} more)" if len(code_delta) > 5 else "")
-            print(f"Retesting: main changed since {tested_base[:8]}: {retest_reason}")
-            status, _, _ = run_checks(
-                worktree / subdir, project_relative(branch_files, subdir),
-                approved.get("full", False),
-                outside={p for p in branch_files if not p.startswith(prefix)},
-                reason=approved.get("selection_reason") or approved.get("full_reason"),
-                selected_targets=(approved.get("check_targets") if
-                                  approved.get("selection_reason") or approved.get("full_reason")
-                                  else None),
-                chunk_results=retest_chunks,
-            )
-            if status not in ("passed", "skipped"):
-                raise LandingError("tests failed after rebasing onto the new main")
-            tested_base = main_now
-            last_retest_reason = retest_reason
+            plan = retest_plan(approved, branch_files, main_changed, worktree, subdir)
+            retest_mode, narrowing_off = plan.mode, plan.narrowing_off
+            count = "the full suite" if plan.mode == "full" else (
+                "the approved selection" if plan.targets is None else f"{len(plan.targets)} test files")
+            print(f"Retest mode: {plan.mode}, {count}"
+                  + (f" (narrowing off: {plan.narrowing_off})" if plan.narrowing_off else ""))
+            if plan.targets == [] and plan.mode == "overlap":
+                tested_base = main_now  # no test depends on both sides; not a re-run
+            else:
+                retests += 1
+                if retests > MAX_RETEST_ATTEMPTS:
+                    raise LandingError(
+                        f"main kept moving: {MAX_RETEST_ATTEMPTS} test re-runs without landing")
+                retest_reason = ", ".join(sorted(code_delta)[:5]) + (
+                    f" (+{len(code_delta) - 5} more)" if len(code_delta) > 5 else "")
+                print(f"Retesting: main changed since {tested_base[:8]}: {retest_reason}")
+                reason = approved.get("selection_reason") or approved.get("full_reason")
+                selected = approved.get("check_targets") if reason else None
+                full = approved.get("full", False)
+                if plan.mode == "full":
+                    full, reason, selected = True, None, None
+                elif plan.targets is not None:
+                    reason, selected = "targeted", plan.targets
+                    retest_files += len(plan.targets)
+                status, _, _ = run_checks(
+                    worktree / subdir, project_relative(branch_files, subdir), full,
+                    outside={p for p in branch_files if not p.startswith(prefix)},
+                    reason=reason, selected_targets=selected,
+                    chunk_results=retest_chunks,
+                )
+                if status not in ("passed", "skipped"):
+                    raise LandingError("tests failed after rebasing onto the new main")
+                tested_base = main_now
+                last_retest_reason = retest_reason
         violations = main_guard(worktree).check_range(worktree, MAIN_BRANCH)
         if violations:
             raise LandingError(
@@ -648,6 +710,7 @@ def _run_land(worktree: Path, cid: str, subdir: str) -> LandResult:
                                   for r in retest_chunks],
             approved_at=approved.get("at", ""), approved_base=approved.get("base", ""),
             approved_reason=approved_reason, retest_reason=last_retest_reason,
+            retest_mode=retest_mode, retest_files=retest_files, narrowing_off=narrowing_off,
         )
     raise LandingError(f"main kept moving: no landing after {MAX_ATTEMPTS} attempts")
 
