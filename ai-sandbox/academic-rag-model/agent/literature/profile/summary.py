@@ -6,6 +6,7 @@ from collections import Counter
 from agent.literature.profile.profiles import InclusionProfile, matches
 from agent.literature.profile.review import effective_profile, method_disagrees
 from agent.literature.profile.tagging import covered_terms
+from core.indexer.research_profile import RESEARCH_REPORT_TYPES
 
 FIELDS = ("report_type", "subtype", "discipline", "secondary_discipline", "discipline_fit", "discipline_domain", "method_class", "orientation",
           "evidence_role", "applicability")
@@ -15,6 +16,8 @@ def _flags(profile: dict) -> list[str]:
     reasons = list(profile.get("review_reasons", [])) if profile.get("needs_review") else []
     if (profile.get("doi_verified") or {}).get("match") == "mismatch":
         reasons.append("DOI mismatch: " + "; ".join(profile.get("bibliography_mismatches", [])))
+    if profile.get("report_type") in RESEARCH_REPORT_TYPES and profile.get("applicability") == "not_assessed":
+        reasons.append("research document with no applicability yet: run tag collect for it")
     if method_disagrees(profile):
         reasons.append(f"study_design {profile['study_design']} disagrees with method_class {profile['method_class']}")
     return reasons

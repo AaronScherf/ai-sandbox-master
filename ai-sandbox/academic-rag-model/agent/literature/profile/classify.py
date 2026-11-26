@@ -5,6 +5,7 @@ Variant `a` classifies the document (report type, publisher, discipline, subfiel
 `type` re-reads only the type and publisher of documents classified before those rules, and changes nothing else.
 """
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -23,7 +24,7 @@ from core.indexer.research_profile import (
 STAGE = "classify"
 PROMPT_VERSION = "classify-v1"  # variant b, and variant a as first run
 PROMPT_VERSION_A = "classify-v2"
-TYPE_VERSION = "type-v1"
+TYPE_VERSION = "type-v2"
 CARD_PAGES = 3
 FALLBACK_CHARS = 12_000
 
@@ -34,9 +35,9 @@ TYPE_RULES = """\
   3. book or book_chapter: a published book, or one chapter of it.
   4. thesis: submitted for a degree.
   5. protocol: sets out a study's plan before there are results.
-  6. working_paper: labelled a working paper, discussion paper or preprint.
-  7. program_document: written to run or account for one specific program AND published by the organisation implementing it. This includes evaluations by third-party evaluators that organisation hired.
-  8. report: any other substantive document. An evaluation or study of a program that someone other than its implementer publishes (for example an independent research organisation) is a report, even when it reads like a program document, so check the publisher and the introductory text.
+  6. working_paper: labelled a working paper, discussion paper or preprint, or a conference paper (subtype conference_paper).
+  7. program_document: written to run or account for one specific program AND either published by the organisation implementing it, or an evaluation by a third-party evaluator that the implementer or the program's funder hired (even when the evaluator issues it).
+  8. report: any other substantive document. An evaluation or study of a program that neither its implementer nor its funder asked for (for example an independent research organisation publishing its own study) is a report, even when it reads like a program document, so check the publisher and the introductory text for who commissioned it.
   9. other: none of the above, and not research.
   If none fits, use a short snake_case value and set report_type_proposed: true.
 - subtype: journal_article: empirical_study, systematic_review, methodology, qualitative_assessment, scientific_experiment or discussion_paper. program_document: design, procurement, budget, monitoring_report (including progress reports), evaluation_report or supporting_document. report: research_report, policy_brief, review, technical_report or blog_post. Otherwise a short word.
@@ -133,14 +134,28 @@ def _already_ran(ran: dict, variant: str) -> bool:
         return version in (PROMPT_VERSION, PROMPT_VERSION_A)
     if variant == "type" and ran.get("classify_a", {}).get("prompt_version") == PROMPT_VERSION_A:
         return True
+    if variant == "type" and version == "type-v1":
+        return True
     return version == _version(variant)
+
+
+# Names that are not types of their own, with what to give instead.
+_FOLDED_TYPES = {"grey_literature": "report", "conference_paper": "working_paper (subtype conference_paper)"}
+_PUBLISHER_ALIASES = {"ODI/ALNAP": "ALNAP/ODI", "World Bank Group": "World Bank"}
+_LEGAL_SUFFIX = re.compile(r",?\s+(?:Ltd|Inc|B\.V)\.?$")
+
+
+def publisher_name(name) -> str | None:
+    """One spelling per publisher: company suffixes and known variants are removed."""
+    name = _LEGAL_SUFFIX.sub("", str(name or "").strip())
+    return _PUBLISHER_ALIASES.get(name, name) or None
 
 
 def _type_problems(result: dict) -> list[str]:
     problems = []
     report_type = result.get("report_type")
-    if report_type == "grey_literature":
-        problems.append("report_type: grey_literature was merged into report")
+    if report_type in _FOLDED_TYPES:
+        problems.append(f"report_type: use {_FOLDED_TYPES[report_type]} instead of {report_type}")
     elif report_type not in REPORT_TYPES and not result.get("report_type_proposed"):
         problems.append(f"report_type: {report_type!r} is not in the starter set; "
                         "set report_type_proposed: true to propose it")
@@ -212,7 +227,7 @@ def _provenance(profile: dict, variant: str, provenance: dict) -> dict:
 def _type_fields(result: dict) -> dict:
     return {"report_type": result["report_type"], "subtype": result.get("subtype"),
             "report_type_proposed": bool(result.get("report_type_proposed")),
-            "publisher": result.get("publisher") or None, "publisher_type": result["publisher_type"]}
+            "publisher": publisher_name(result.get("publisher")), "publisher_type": result["publisher_type"]}
 
 
 def _apply_type(target: Target, fid: str, profile: dict, result: dict, provenance: dict) -> None:

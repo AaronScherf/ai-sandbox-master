@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 
 from agent.literature.profile import classify, evaluate, reader, review
+from agent.literature.profile.summary import summarize
 from agent.literature.vocab import Term, Vocabulary
 from core.indexer.index_card import find_card_by_file_id, save_shard
 from core.indexer.research_profile import PUBLISHER_TYPES, REPORT_TYPES, set_research_profile, validate_profile
@@ -135,3 +136,36 @@ def test_reader_check_derives_applicability_and_rejects_unsupported_evidence():
         answer.write_text(json.dumps(_answer(evidence=[invented])), encoding="utf-8")
         labels, problems = reader.read_answers(pack, _vocabs())
         assert "f1" not in labels and "outcome.cash" in problems[0]
+
+
+def test_funder_hired_evaluations_are_program_documents():
+    assert "the implementer or the program's funder" in classify.TYPE_RULES
+
+
+def test_conference_paper_is_a_working_paper_subtype_not_a_type():
+    assert "conference_paper" not in REPORT_TYPES and "conference_paper" in classify.TYPE_RULES
+    tmp, root = _root()
+    with tmp:
+        proposed = _typed(report_type="conference_paper", report_type_proposed=True)
+        assert classify.validate_result(_entry(), proposed, classify.Target(str(root)))
+
+
+def test_publisher_names_lose_legal_suffixes_and_spelling_variants():
+    tmp, root = _root()
+    with tmp:
+        for given, kept in (("Elsevier Ltd.", "Elsevier"), ("Elsevier B.V.", "Elsevier"),
+                            ("John Wiley & Sons Ltd", "John Wiley & Sons"), ("ODI/ALNAP", "ALNAP/ODI"),
+                            ("World Bank Group", "World Bank"), ("MDPI", "MDPI")):
+            classify.apply_result(classify.Target(str(root)), _entry(), _typed(publisher=given), PROV)
+            assert _card(root)["research_profile"]["publisher"] == kept, given
+
+
+def test_a_first_round_retype_still_counts():
+    assert classify.TYPE_VERSION == "type-v2"
+    assert classify._already_ran({"classify_type": {"prompt_version": "type-v1"}}, "type")
+
+
+def test_summary_flags_a_research_document_that_was_never_assessed():
+    card = {"file_id": "f1", "title": "A", "research_profile": {"report_type": "report", "applicability": "not_assessed"}}
+    note = {"file_id": "f2", "title": "B", "research_profile": {"report_type": "notes", "applicability": "not_assessed"}}
+    assert [f["file_id"] for f in summarize([card, note])["flagged"]] == ["f1"]

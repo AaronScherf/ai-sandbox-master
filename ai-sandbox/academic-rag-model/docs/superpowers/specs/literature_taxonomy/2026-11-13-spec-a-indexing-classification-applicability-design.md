@@ -131,7 +131,11 @@ could not be told apart.
   live in `classify.TYPE_RULES`.
 - Who issued a document is its own field: `publisher` (name) and `publisher_type` (academic, research_institute,
   multilateral, government, ngo, other). The last three can be viewed together as practitioners.
-- `program_document` means published by the implementing organisation, including evaluations by third parties it
-  hired. An evaluation published by anyone else is a `report` (or an article), however it reads.
+- `program_document` means published by the implementing organisation, or an evaluation by a third party that the
+  implementer or the programme's funder hired, whoever issues it. An evaluation neither asked for is a `report` (or an
+  article), however it reads.
+- A conference paper is a `working_paper` with subtype `conference_paper`.
+- Publisher names are stored without company suffixes. `summary` flags a research document with no applicability,
+  which is what a re-type from non-research to research leaves behind.
 - This change was prompted partly by the first 25 held-out papers, so report-type agreement on them is no longer a
   held-out result.
