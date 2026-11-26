@@ -143,12 +143,9 @@ def submit_doc(
         return "already complete"
 
     cache_path, driver_path = _cache_paths_for(pdf_path)
-    # collect_mode deliberately skips os.makedirs (Task 1) since it never
-    # writes anything -- submit is the first thing that does, so the
-    # output directory may not exist yet.
-    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
     cache = load_json_cache(cache_path)
     driver_provenance = load_json_cache(driver_path)
+    cached_pages = False
 
     for entry in entries:
         if entry.status not in ("pending", "filled", "bounced"):
@@ -167,11 +164,16 @@ def submit_doc(
         for page, text in result.pages.items():
             cache[str(page)] = text
             driver_provenance[str(page)] = agent_name
+            cached_pages = True
         entry.status = "submitted"
         entry.bounce_reason = None
 
-    save_json_cache(cache_path, cache)
-    save_json_cache(driver_path, driver_provenance)
+    if cached_pages:
+        # collect_mode leaves processed_outputs absent; create it only when
+        # this submission actually has page data to persist.
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+        save_json_cache(cache_path, cache)
+        save_json_cache(driver_path, driver_provenance)
     save_manifest(doc_dir, entries)
     render_worklist(doc_dir, entries)
 

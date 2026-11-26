@@ -6,7 +6,7 @@ import unittest.mock
 from unittest.mock import MagicMock
 
 from pipelines.transcribe_notes.agent_submit import submit_doc, validate_card_output
-from pipelines.transcribe_notes.agent_work import AgentDriver, load_manifest
+from pipelines.transcribe_notes.agent_work import AgentDriver, ManifestEntry, load_manifest, save_manifest
 
 
 class TestValidateCardOutput(unittest.TestCase):
@@ -94,6 +94,28 @@ def _write_minimal_tier3_pdf(path: str, pages: int = 2) -> None:
 
 
 class TestSubmitDoc(unittest.TestCase):
+    def test_submitted_duplicate_path_does_not_create_empty_sidecars(self):
+        with tempfile.TemporaryDirectory() as hub:
+            canonical = os.path.join(hub, "Pre Lecture Notes", "doc.pdf")
+            duplicate = os.path.join(hub, "Post lecture notes", "doc.pdf")
+            os.makedirs(os.path.dirname(canonical))
+            os.makedirs(os.path.dirname(duplicate))
+            for pdf_path in (canonical, duplicate):
+                with open(pdf_path, "wb") as pdf:
+                    pdf.write(b"same PDF bytes")
+            doc_dir = os.path.join(hub, ".agent_work", "run-1", "same-doc")
+            save_manifest(doc_dir, [ManifestEntry("card-1", "batch", [1], "submitted")])
+
+            with unittest.mock.patch("pipelines.transcribe_notes.agent_submit.process_pdf") as process:
+                status = submit_doc(hub, hub, "run-1", "same-doc", duplicate, MagicMock(), None)
+
+            self.assertTrue(status.startswith("incomplete"))
+            process.assert_called_once()
+            self.assertFalse(os.path.exists(os.path.join(
+                hub, "Post lecture notes", "processed_outputs", "doc_pages_cache.json")))
+            self.assertFalse(os.path.exists(os.path.join(
+                hub, "Post lecture notes", "processed_outputs", "doc_pages_driver.json")))
+
     def test_incomplete_when_a_card_is_still_pending(self):
         with tempfile.TemporaryDirectory() as hub:
             notes_dir = os.path.join(hub, "notes")
