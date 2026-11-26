@@ -102,7 +102,7 @@ def check(worktree: Path, *, build_command=None, repo_root: Path | None = None,
             gate = reference_review.gate([worktree / page for page in pages], client,
                                          repo_root=root, note_keys=note_keys)
             if gate.blocked:
-                raise _step("Citation gate", str(land_branch.citation_gate_error(gate)))
+                raise _step("Citation gate", str(land_branch.citation_gate_error(gate)).removeprefix("citation gate: "))
         cid = land_branch.change_id(worktree, base_ref="origin/main")
         result = {"branch": branch, "sha": run_git(["rev-parse", "HEAD"], worktree).strip(),
                   "change_id": cid, "base": run_git(["rev-parse", "origin/main"], worktree).strip(),

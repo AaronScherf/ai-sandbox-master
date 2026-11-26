@@ -134,16 +134,14 @@ def extract(text: str) -> list[dict]:
                     title = value
                 else:
                     doi, doi_line = value, number
-        if DOI.search(doi):
-            rows.append({"citation": title, "identifier": clean_identifier(DOI.search(doi).group()),
+        if match := DOI.search(doi):
+            rows.append({"citation": title, "identifier": clean_identifier(match.group()),
                          "kind": "doi", "line": doi_line, "front_matter_title": title})
-        body = text[front.end():]
-        offset = text[:front.end()].count("\n")
-        for row in extract(body):
-            if "line" in row:
-                row["line"] += offset
-            rows.append(row)
-        return rows
+            # Preserve all other front matter for the ordinary extractor. Only
+            # this field is replaced, so its DOI is not counted twice.
+            lines = text.splitlines()
+            lines[doi_line - 1] = ""
+            text = "\n".join(lines)
     markdown_document = bool(re.search(r"^#{1,6}\s", text, re.M))
     lines = text.splitlines()
     reference_headings = [i for i, line in enumerate(lines)

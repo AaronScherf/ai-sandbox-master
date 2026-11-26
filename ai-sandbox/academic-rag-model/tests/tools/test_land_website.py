@@ -78,6 +78,20 @@ class WebsiteLandingTests(unittest.TestCase):
                          ["content/caps.MD", "content/new.md", "content/old.md"])
         self.assertEqual(len(reference_checker.extract("---\ntitle: A Registered Paper Title\ndoi: 10.1234/paper\n---\n")), 1)
 
+    def test_front_matter_keeps_other_urls_and_body_doi(self):
+        without_doi = ("---\ntitle: Page Title\nlinks:\n"
+                       "  - url: https://doi.org/10.1234/link\n"
+                       "  - url: https://example.org/project\n\n---\n"
+                       "Smith (2020). Body Work. 10.1234/body\n")
+        baseline = reference_checker.extract(without_doi)
+        self.assertEqual([row["identifier"] for row in baseline],
+                         ["10.1234/link", "https://example.org/project", "10.1234/body"])
+        with_doi = without_doi.replace("\n\n---", "\ndoi: 10.1234/page\n---")
+        rows = reference_checker.extract(with_doi)
+        self.assertEqual(rows[1:], baseline)
+        self.assertEqual(rows[0]["front_matter_title"], "Page Title")
+        self.assertEqual(rows[0]["identifier"], "10.1234/page")
+
     def test_repo_and_tree_failures(self):
         with self.assertRaisesRegex(site.LandingError, "Repo.*non-main"):
             site.check(self.main, build_command=self.build)
@@ -121,8 +135,9 @@ class WebsiteLandingTests(unittest.TestCase):
             row = reference_checker.check_note(text, Registry())[0]
             self.assertEqual(row["tier"], tier)
         write_and_commit(self.wt, {"content/test.md": pages[0][0]}, "bad page")
-        with self.assertRaisesRegex(site.LandingError, "Citation gate.*defects=1"):
+        with self.assertRaisesRegex(site.LandingError, "Citation gate.*defects=1") as blocked:
             self.check()
+        self.assertNotIn("citation gate: citation gate:", str(blocked.exception).lower())
         defects = reference_review.load_defects(self.store)
         self.assertEqual(defects[0]["note"],
                          "ai-sandbox/personal-website/AaronScherf.github.io/content/test.md")
