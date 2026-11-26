@@ -95,7 +95,7 @@ def _classify_answer(entry):
     base = {"discipline": ECON, "discipline_confidence": 0.9}
     if entry["subject"]["variant"] == "b":
         return base
-    return {**base, "report_type": "journal_article", "subtype": "empirical_study", "country": ["Kenya"],
+    return {**base, "report_type": "journal_article", "subtype": "empirical_study", "publisher_type": "academic", "country": ["Kenya"],
             "method_class": "quantitative", "study_design": "randomized_controlled_trial",
             "orientation": "retrospective", "evidence_role": "primary_evaluation", "intervention_start_year": 2015}
 

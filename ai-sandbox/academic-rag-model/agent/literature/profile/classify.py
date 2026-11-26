@@ -1,7 +1,8 @@
-"""Classification task cards (spec A, step 2): one card per document, two prompt variants.
+"""Classification task cards (spec A, step 2): one card per document, three prompt variants.
 
-Variant `a` classifies the document (report type, discipline, subfields, geography, method flags). Variant `b` is a
-differently worded prompt that only re-reads the discipline; it never overwrites the primary reading.
+Variant `a` classifies the document (report type, publisher, discipline, subfields, geography, method flags). Variant
+`b` is a differently worded prompt that only re-reads the discipline; it never overwrites the primary reading. Variant
+`type` re-reads only the type and publisher of documents classified before those rules, and changes nothing else.
 """
 
 from dataclasses import dataclass, field
@@ -15,19 +16,42 @@ from agent.literature.vocab import Vocabulary, load_vocab_dir
 from core.agent_tasks.tasks import Passage, Task
 from core.indexer.index_card import find_card_by_file_id
 from core.indexer.research_profile import (
-    EVIDENCE_ROLES, METHOD_CLASSES, ORIENTATIONS, REPORT_TYPES, RESEARCH_REPORT_TYPES, set_research_profile,
+    EVIDENCE_ROLES, METHOD_CLASSES, ORIENTATIONS, PUBLISHER_TYPES, REPORT_TYPES, RESEARCH_REPORT_TYPES,
+    set_research_profile,
 )
 
 STAGE = "classify"
-PROMPT_VERSION = "classify-v1"
+PROMPT_VERSION = "classify-v1"  # variant b, and variant a as first run
+PROMPT_VERSION_A = "classify-v2"
+TYPE_VERSION = "type-v1"
 CARD_PAGES = 3
 FALLBACK_CHARS = 12_000
+
+TYPE_RULES = """\
+- report_type: the form of the document. Take the FIRST that fits:
+  1. notes: course notes, personal notes or essays.
+  2. journal_article: published in, or accepted by, a journal.
+  3. book or book_chapter: a published book, or one chapter of it.
+  4. thesis: submitted for a degree.
+  5. protocol: sets out a study's plan before there are results.
+  6. working_paper: labelled a working paper, discussion paper or preprint.
+  7. program_document: written to run or account for one specific program AND published by the organisation implementing it. This includes evaluations by third-party evaluators that organisation hired.
+  8. report: any other substantive document. An evaluation or study of a program that someone other than its implementer publishes (for example an independent research organisation) is a report, even when it reads like a program document, so check the publisher and the introductory text.
+  9. other: none of the above, and not research.
+  If none fits, use a short snake_case value and set report_type_proposed: true.
+- subtype: journal_article: empirical_study, systematic_review, methodology, qualitative_assessment, scientific_experiment or discussion_paper. program_document: design, procurement, budget, monitoring_report (including progress reports), evaluation_report or supporting_document. report: research_report, policy_brief, review, technical_report or blog_post. Otherwise a short word.
+- publisher: the name of the organisation, journal or press that issued the document; leave out when the pages do not say.
+- publisher_type: academic (journal, university press, university), research_institute (think tank or independent research organisation), multilateral (e.g. World Bank, FAO), government (national agencies, including bilateral donors such as USAID and FCDO), ngo (e.g. World Vision) or other (firm, media, unknown)."""
+
+INSTRUCTIONS_TYPE = """\
+Say what kind of document this is and who published it, for a research corpus index. Use only the pages on the card.
+Give a `## Result` YAML block with these keys:
+""" + TYPE_RULES
 
 INSTRUCTIONS_A = """\
 Classify this document for a research corpus index. Use only the pages on the card.
 Give a `## Result` YAML block with these keys:
-- report_type: one of journal_article, working_paper, report, program_document, grey_literature, thesis, protocol, notes, other. If none fits, use a short snake_case value and set report_type_proposed: true.
-- subtype: for a journal article one of empirical_study, systematic_review, methodology, qualitative_assessment, scientific_experiment, discussion_paper; for a program document one of design, procurement, monitoring_report, evaluation_report, supporting_document; otherwise a short word.
+""" + TYPE_RULES + """
 - discipline: exactly one OpenAlex field name from the list below, or `other`. discipline_confidence: 0 to 1.
 - subfields: up to 3 OpenAlex subfield names that belong to that field (empty when discipline is other).
 - country: list of countries where the studied intervention or population is (empty if none); admin1: first-level regions if stated.
@@ -73,11 +97,11 @@ def make_tasks(target: Target, cards: list[dict], *, variant: str = "a", redo: b
     """One card per document. Returns (tasks, skipped) with skipped mapping file_id to the reason."""
     tasks: list[Task] = []
     skipped: dict[str, str] = {}
-    instructions = INSTRUCTIONS_A if variant == "a" else INSTRUCTIONS_B
+    instructions = {"a": INSTRUCTIONS_A, "b": INSTRUCTIONS_B, "type": INSTRUCTIONS_TYPE}[variant]
     for card in cards:
         fid = card["file_id"]
-        done = (card.get("research_profile") or {}).get("provenance", {}).get(f"classify_{variant}", {})
-        if done.get("prompt_version") == PROMPT_VERSION and not redo:
+        ran = (card.get("research_profile") or {}).get("provenance", {})
+        if not redo and _already_ran(ran, variant):
             skipped[fid] = "already classified with this prompt version (use redo to run again)"
             continue
         try:
@@ -87,14 +111,44 @@ def make_tasks(target: Target, cards: list[dict], *, variant: str = "a", redo: b
             continue
         ident = [f"Title on record: {card.get('title') or fid}", f"file_id: {fid}"]
         ident += [f"{k}: {card[k]}" for k in ("doi", "publication_year") if card.get(k)]
-        context = "\n".join(ident + ["", _field_listing(target.taxonomy)]
-                            + ([_design_listing(target.study_designs)] if variant == "a" else []))
+        listings = [] if variant == "type" else ["", _field_listing(target.taxonomy)]
+        listings += [_design_listing(target.study_designs)] if variant == "a" else []
+        context = "\n".join(ident + listings)
         passages = [Passage(id=f"P{n}", source=card.get("title") or fid, ref=f"page {n}", text=text)
                     for n, text in _first_pages(markdown)]
         tasks.append(Task(id=f"classify-{variant}-{fid}", stage=STAGE,
-                          subject={"file_id": fid, "variant": variant, "prompt_version": PROMPT_VERSION},
+                          subject={"file_id": fid, "variant": variant, "prompt_version": _version(variant)},
                           instructions=instructions, context=context, passages=passages))
     return tasks, skipped
+
+
+def _version(variant: str) -> str:
+    return {"a": PROMPT_VERSION_A, "b": PROMPT_VERSION, "type": TYPE_VERSION}[variant]
+
+
+def _already_ran(ran: dict, variant: str) -> bool:
+    """A first-round `a` reading still counts as classified; `type` is also covered by a current `a` reading."""
+    version = ran.get(f"classify_{variant}", {}).get("prompt_version")
+    if variant == "a":
+        return version in (PROMPT_VERSION, PROMPT_VERSION_A)
+    if variant == "type" and ran.get("classify_a", {}).get("prompt_version") == PROMPT_VERSION_A:
+        return True
+    return version == _version(variant)
+
+
+def _type_problems(result: dict) -> list[str]:
+    problems = []
+    report_type = result.get("report_type")
+    if report_type == "grey_literature":
+        problems.append("report_type: grey_literature was merged into report")
+    elif report_type not in REPORT_TYPES and not result.get("report_type_proposed"):
+        problems.append(f"report_type: {report_type!r} is not in the starter set; "
+                        "set report_type_proposed: true to propose it")
+    if result.get("publisher_type") not in PUBLISHER_TYPES:
+        problems.append(f"publisher_type: must be one of {sorted(PUBLISHER_TYPES)}")
+    if not isinstance(result.get("publisher") or "", str):
+        problems.append("publisher: give one name as text, or leave it out")
+    return problems
 
 
 def _field_id(tax: OpenAlexTaxonomy, label: str) -> str | None:
@@ -110,6 +164,8 @@ def validate_result(entry: dict, result: dict, target: Target) -> list[str]:
     tax = target.taxonomy
     problems: list[str] = []
     variant = entry["subject"].get("variant", "a")
+    if variant == "type":
+        return _type_problems(result)
     discipline = result.get("discipline")
     field_id = _field_id(tax, discipline) if discipline else None
     if discipline != OTHER and field_id is None:
@@ -124,9 +180,7 @@ def validate_result(entry: dict, result: dict, target: Target) -> list[str]:
     if variant != "a":
         return problems
     report_type = result.get("report_type")
-    if report_type not in REPORT_TYPES and not result.get("report_type_proposed"):
-        problems.append(f"report_type: {report_type!r} is not in the starter set; "
-                        "set report_type_proposed: true to propose it")
+    problems += _type_problems(result)
     if report_type in RESEARCH_REPORT_TYPES or result.get("report_type_proposed"):
         for key, allowed in (("method_class", METHOD_CLASSES), ("orientation", ORIENTATIONS),
                              ("evidence_role", EVIDENCE_ROLES)):
@@ -151,8 +205,26 @@ def _design_term(vocab: Vocabulary, value: str):
 
 def _provenance(profile: dict, variant: str, provenance: dict) -> dict:
     merged = dict(profile.get("provenance") or {})
-    merged[f"classify_{variant}"] = {"prompt_version": PROMPT_VERSION, **provenance}
+    merged[f"classify_{variant}"] = {"prompt_version": _version(variant), **provenance}
     return merged
+
+
+def _type_fields(result: dict) -> dict:
+    return {"report_type": result["report_type"], "subtype": result.get("subtype"),
+            "report_type_proposed": bool(result.get("report_type_proposed")),
+            "publisher": result.get("publisher") or None, "publisher_type": result["publisher_type"]}
+
+
+def _apply_type(target: Target, fid: str, profile: dict, result: dict, provenance: dict) -> None:
+    """Type and publisher only. Moving between research and non-research changes whether the document should be
+    tagged, so that is queued for the owner and the tags are left as they are."""
+    fields = {**_type_fields(result), "provenance": _provenance(profile, "type", provenance)}
+    old, new = profile.get("report_type"), result["report_type"]
+    if old and (old in RESEARCH_REPORT_TYPES) and new not in RESEARCH_REPORT_TYPES and not fields["report_type_proposed"]:
+        reasons = [r for r in profile.get("review_reasons", []) if not r.startswith("report_type:")]
+        fields["review_reasons"] = reasons + [f"report_type: re-typed as {new} (was {old}); tags kept"]
+        fields["needs_review"] = True
+    set_research_profile(target.index_root, fid, fields)
 
 
 def _llm_subfields(tax: OpenAlexTaxonomy, values) -> list[dict]:
@@ -169,16 +241,17 @@ def apply_result(target: Target, entry: dict, result: dict, provenance: dict) ->
     fid, variant = s["file_id"], s.get("variant", "a")
     card = find_card_by_file_id(target.index_root, fid)[1]
     profile = card.get("research_profile") or {}
+    if variant == "type":
+        _apply_type(target, fid, profile, result, provenance)
+        return None
     field_id = _field_id(target.taxonomy, result["discipline"])
     discipline = target.taxonomy.fields[field_id] if field_id is not None else OTHER  # canonical case, so counts and folders agree
     primary = {"discipline": discipline, "discipline_confidence": float(result["discipline_confidence"])}
     subfields = _llm_subfields(target.taxonomy, result.get("subfields"))
     if variant == "a":
-        fields = {"report_type": result["report_type"], "subtype": result.get("subtype"),
+        fields = {**_type_fields(result),
                   "country": list(result.get("country") or []), "admin1": list(result.get("admin1") or []),
                   "discipline_primary": primary, "openalex_subfields": subfields}
-        if result.get("report_type_proposed"):
-            fields["report_type_proposed"] = True
         for key in ("method_class", "orientation", "evidence_role"):
             if result.get(key) is not None:
                 fields[key] = result[key]

@@ -10,7 +10,7 @@ import json
 import sys
 from pathlib import Path
 
-from agent.literature.profile import classify, evaluate, folders, metadata, review, summary, tagging
+from agent.literature.profile import classify, evaluate, folders, metadata, reader, review, summary, tagging
 from agent.literature.profile.profiles import DEFAULT_DIR, load_profile
 from agent.literature.vocab import load_vocabularies
 from core.agent_tasks.loop import BudgetError, api_run, collect_run, provenance, submit_run
@@ -240,6 +240,24 @@ def cmd_label_page(args) -> int:
     return 0
 
 
+def cmd_reader_pack(args) -> int:
+    """Writes the folder an independent second reader works from: transcripts and rules, no predictions."""
+    cards = _cards(args)
+    reader.write_pack(args.index_root, cards, _vocabs(args), Path(args.out))
+    print(f"wrote {args.out} for {len(cards)} papers; open that folder alone and follow INSTRUCTIONS.md")
+    return 0
+
+
+def cmd_reader_check(args) -> int:
+    labels, problems = reader.read_answers(Path(args.pack), _vocabs(args))
+    for problem in problems:
+        print(problem)
+    out = Path(args.pack) / "labels.json"
+    out.write_text(json.dumps(labels, indent=1, ensure_ascii=False), encoding="utf-8")
+    print(f"{len(labels)} papers accepted into {out}; {len(problems)} problems")
+    return 1 if problems else 0
+
+
 def _eval_labels(args) -> int:
     key = evaluate.labels_to_key(json.loads(Path(args.labels).read_text(encoding="utf-8")))
     cards = {c["file_id"]: c for c in _cards(args)}
@@ -304,7 +322,8 @@ def build_parser() -> argparse.ArgumentParser:
     c = top.add_parser("classify", help="Report type, discipline and design flags.")
     cs = c.add_subparsers(dest="action", required=True)
     cc = cs.add_parser("collect")
-    cc.add_argument("--variant", choices=["a", "b"], default="a", help="a: full classification; b: discipline check.")
+    cc.add_argument("--variant", choices=["a", "b", "type"], default="a",
+                    help="a: full classification; b: discipline check; type: re-read type and publisher only.")
     _add_run_options(cc)
     _add_submit_commands(cs)
 
@@ -342,6 +361,12 @@ def build_parser() -> argparse.ArgumentParser:
     lp.add_argument("--file-id", action="append", required=True, help="A paper to label (repeatable).")
     lp.add_argument("--out", required=True, help="Directory for index.html and terms.json (keep it out of git).")
 
+    rp = top.add_parser("reader-pack", help="Write the second reader's folder for the chosen papers.")
+    rp.add_argument("--file-id", action="append", required=True, help="A paper to read (repeatable).")
+    rp.add_argument("--out", required=True, help="Directory for the pack (keep it out of git).")
+    rc = top.add_parser("reader-check", help="Verify the second reader's answers and write labels.json.")
+    rc.add_argument("pack")
+
     e = top.add_parser("eval", help="Score against a 3ie all_study_record CSV (matched by DOI) or saved page labels.")
     key = e.add_mutually_exclusive_group(required=True)
     key.add_argument("answer_key", nargs="?")
@@ -353,7 +378,7 @@ def _writes(args) -> bool:
     """True when the command can change cards, folders or transcripts under the index root. `collect` only writes
     private task cards under `.agent_work/`, so it does not take the corpus lock."""
     action = getattr(args, "action", None)
-    if args.command in ("summary", "queue", "eval", "label-page"):
+    if args.command in ("summary", "queue", "eval", "label-page", "reader-pack", "reader-check"):
         return False
     return not (action in ("plan", "collect"))
 
@@ -378,6 +403,7 @@ def _dispatch(args, lookup, complete) -> int:
             return cmd_collect_classify(args) if args.command == "classify" else cmd_collect_tag(args)
         return cmd_submit(args) if args.action == "submit" else cmd_api(args, complete)
     return {"folders": cmd_folders, "summary": cmd_summary, "queue": cmd_queue, "eval": cmd_eval, "label-page": cmd_label_page,
+            "reader-pack": cmd_reader_pack, "reader-check": cmd_reader_check,
             "refresh-discipline": cmd_refresh_discipline, "project": cmd_project}[args.command](args)
 
 

@@ -15,9 +15,11 @@ from core.indexer.index_card import (
 RESEARCH_PROFILE_VERSION = 1
 
 REPORT_TYPES = frozenset({
-    "journal_article", "working_paper", "report", "program_document", "grey_literature", "thesis", "protocol",
+    "journal_article", "book", "book_chapter", "thesis", "protocol", "working_paper", "program_document", "report",
     "notes", "other",
 })
+# Who issued the document, separate from its form. `provenance` is taken: it records which agent filled each stage.
+PUBLISHER_TYPES = frozenset({"academic", "research_institute", "multilateral", "government", "ngo", "other"})
 # Types that go on to 3ie tagging; notes and other stop after the classification card.
 RESEARCH_REPORT_TYPES = REPORT_TYPES - {"notes", "other"}
 METHOD_CLASSES = frozenset({"quantitative", "qualitative", "mixed_methods", "other"})
@@ -27,7 +29,7 @@ APPLICABILITY = frozenset({"both", "intervention_only", "outcome_only", "not_app
 
 PROFILE_FIELDS = frozenset({
     "research_profile_version",
-    "report_type", "report_type_proposed", "subtype",
+    "report_type", "report_type_proposed", "subtype", "publisher", "publisher_type",
     "title", "authors", "doi", "publication_year", "journal", "openalex_id", "doi_verified", "bibliography_mismatches",
     "discipline", "discipline_confidence", "discipline_source", "discipline_check", "discipline_domain",
     "openalex_subfields", "openalex_topics", "discipline_primary",
@@ -43,6 +45,7 @@ _ENUMS = {
     "orientation": ORIENTATIONS,
     "evidence_role": EVIDENCE_ROLES,
     "applicability": APPLICABILITY,
+    "publisher_type": PUBLISHER_TYPES,
 }
 
 

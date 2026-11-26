@@ -111,6 +111,9 @@ def review_queue(index_root: str) -> list[dict]:
         reasons = [r for r in profile.get("review_reasons", []) if r.startswith("discipline:")]
         if profile.get("needs_review") and reasons:
             found.append(("discipline", reasons, profile.get("discipline")))
+        retyped = [r for r in profile.get("review_reasons", []) if r.startswith("report_type:")]
+        if profile.get("needs_review") and retyped:
+            found.append(("report_type", retyped, profile.get("report_type")))
         if method_disagrees(profile):
             found.append(("method_class", [f"study_design {profile['study_design']} vs method_class {profile['method_class']}"],
                           profile.get("method_class")))

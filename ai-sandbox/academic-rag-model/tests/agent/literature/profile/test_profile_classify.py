@@ -31,7 +31,8 @@ def _result(**over):
     base = {"report_type": "journal_article", "subtype": "empirical_study", "discipline": ECON,
             "discipline_confidence": 0.9, "subfields": [SUB], "country": ["Rwanda"], "admin1": [],
             "method_class": "quantitative", "study_design": "randomized_controlled_trial",
-            "orientation": "retrospective", "evidence_role": "primary_evaluation", "intervention_start_year": 2018}
+            "orientation": "retrospective", "evidence_role": "primary_evaluation", "intervention_start_year": 2018,
+            "publisher_type": "academic"}
     base.update(over)
     return base
 
@@ -81,7 +82,8 @@ def test_validate_rejects_subfield_outside_chosen_field():
 def test_validate_requires_method_fields_for_research_types_only():
     tmp, root = _root()
     with tmp:
-        bare = {"report_type": "notes", "discipline": "other", "discipline_confidence": 0.9}
+        bare = {"report_type": "notes", "publisher_type": "other", "discipline": "other", "discipline_confidence": 0.9,
+                "publisher_type": "other"}
         assert classify.validate_result(_entry(), bare, _target(root)) == []
         research = {k: v for k, v in _result().items() if k != "method_class"}
         assert any("method_class" in p for p in classify.validate_result(_entry(), research, _target(root)))
@@ -130,7 +132,7 @@ def test_apply_a_falls_back_to_publication_year_marked_approximate():
 def test_non_research_report_type_sets_not_assessed():
     tmp, root = _root()
     with tmp:
-        classify.apply_result(_target(root), _entry(), {"report_type": "notes", "discipline": "other",
+        classify.apply_result(_target(root), _entry(), {"report_type": "notes", "publisher_type": "other", "discipline": "other",
                                                          "discipline_confidence": 0.9}, PROV)
         p = find_card_by_file_id(str(root), "f1")[1]["research_profile"]
         assert p["applicability"] == "not_assessed"

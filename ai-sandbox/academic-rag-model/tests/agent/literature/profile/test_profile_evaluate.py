@@ -9,13 +9,12 @@ from agent.literature.vocab import Term, Vocabulary
     ("Published working paper", "working_paper"), ("Published Working Paper", "working_paper"),
     ("Published report", "report"), ("3ie series report", "report"), ("3ie grantee final report", "report"),
     ("Thesis", "thesis"), ("thesis", "thesis"), ("Published protocol", "protocol"),
-    ("Book or book chapter", "other"),
 ])
 def test_map_publication_type_cases_incl_capitalisation(value, expected):
     assert evaluate.map_publication_type(value) == expected
 
 
-@pytest.mark.parametrize("value", ["Ongoing study", "3ie-funded ongoing study", "", None, "Something new"])
+@pytest.mark.parametrize("value", ["Ongoing study", "3ie-funded ongoing study", "Book or book chapter", "", None, "Something new"])
 def test_unscored_publication_types_map_to_none(value):
     assert evaluate.map_publication_type(value) is None
 

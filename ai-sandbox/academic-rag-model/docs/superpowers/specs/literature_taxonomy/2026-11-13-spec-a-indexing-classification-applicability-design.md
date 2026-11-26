@@ -121,3 +121,17 @@ Module layout and names; the exact prompt text; how the descent stages are chunk
 2. Pass bars per stratum, after first measurements.
 3. Gap-note log for in-scope papers with no fitting 3ie term: keep (capped) or drop.
 4. Whether to add a third `evidence_role` value for ongoing/protocol records that 3ie lists separately (protocols, ongoing studies).
+
+## Amendment 2026-11-26: document type and publisher
+
+Owner decision after the first blind labelling. `report_type` had no definitions, and `report` and `grey_literature`
+could not be told apart.
+
+- `grey_literature` is merged into `report`; `book` and `book_chapter` join the set. Rules are applied in order and
+  live in `classify.TYPE_RULES`.
+- Who issued a document is its own field: `publisher` (name) and `publisher_type` (academic, research_institute,
+  multilateral, government, ngo, other). The last three can be viewed together as practitioners.
+- `program_document` means published by the implementing organisation, including evaluations by third parties it
+  hired. An evaluation published by anyone else is a `report` (or an article), however it reads.
+- This change was prompted partly by the first 25 held-out papers, so report-type agreement on them is no longer a
+  held-out result.

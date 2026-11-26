@@ -19,7 +19,7 @@ from core.env.frontmatter import parse_frontmatter
 _PUBLICATION_TYPES = {
     "journal article": "journal_article", "published working paper": "working_paper", "published report": "report",
     "3ie series report": "report", "3ie grantee final report": "report", "thesis": "thesis",
-    "published protocol": "protocol", "book or book chapter": "other",
+    "published protocol": "protocol",
 }
 _NO_DOI = {"", "no doi", "none", "n/a", "na"}
 
@@ -116,9 +116,12 @@ def blind_label_page(papers: list[dict], report_types: Iterable[str]) -> str:
     return _TEMPLATE.read_text(encoding="utf-8").replace("__DATA__", blob)
 
 
+_MERGED_TYPES = {"grey_literature": "report"}  # labels saved before the merge
+
+
 def labels_to_key(labels: dict[str, dict]) -> list[dict]:
     """Saved page labels (file id to label document) as an answer key. A paper without both report type and
     applicability is unfinished and left out."""
-    return [{"file_id": fid, "report_type": v["report_type"], "applicability": v["applicability"],
+    return [{"file_id": fid, "report_type": _MERGED_TYPES.get(v["report_type"], v["report_type"]), "applicability": v["applicability"],
              "main_intervention": v.get("main_intervention") or [], "main_outcome": v.get("main_outcome") or []}
             for fid, v in sorted(labels.items()) if v.get("report_type") and v.get("applicability")]

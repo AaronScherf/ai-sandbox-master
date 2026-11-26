@@ -35,6 +35,14 @@ capability. Labels land in its `labels` collection, one document per `file_id`; 
 `{file_id: document}` JSON file for `eval --labels`. The page holds paper excerpts, so keep `<dir>` under the
 research folder, never in the repository.
 
+**Document type and publisher.** `report_type` is the document's form and `publisher_type` says who issued it; the
+rules both prompts use are `TYPE_RULES` in `classify.py`. To re-read only those two on documents classified earlier:
+`classify collect --variant type`, fill the cards, `classify submit <run>`.
+
+**Second reader.** `reader-pack --file-id <id> ... --out <dir>` writes whole transcripts, the rules and the term lists,
+with no predictions. Run an independent model on that folder alone, then `reader-check <dir>` verifies every quote and
+writes `<dir>/labels.json` for `eval --labels`.
+
 `collect` writes private cards to `<index-root>/.agent_work/<run>/`; the agent fills each `## Result` block;
 `submit` validates (quotes must appear on the cited page) and applies. Bounced cards say why; fix and submit again.
 `classify|tag api <run> --model M --approve-cost USD` sends the cards to the paid Gemini key instead and refuses
