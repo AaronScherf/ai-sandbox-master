@@ -81,3 +81,10 @@ models. `refresh-discipline` recomputes all of this from the stored readings wit
   is their file name) move correctly; transcript, PDF, `.meta.json` and the transcriber page caches move together.
 - Folder moves are keyed by `file_id`, logged in `.index/research_profile/folder_moves.json`, and reversible.
 - Byte-identical duplicates need only one copy per folder; copies in different project folders may stay.
+
+**Comparing readings.** `compare --labels <labels.json> --reader-pack <folder> --out <dir>` sets the owner's
+labels, the cards and the second reader side by side on report type and applicability, and writes a page (publish
+with the `db` capability) listing only the differences, without saying who answered what. Export its `rulings`
+collection to one JSON file per id, then `adjudicate --comparison <dir>/comparison.json --rulings <folder>` writes
+`reference.json` for `eval --labels`. The rulings are made with the other answers in view, so the reference is
+adjudicated, not blind.

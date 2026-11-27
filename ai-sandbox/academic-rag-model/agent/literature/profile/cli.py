@@ -1,4 +1,4 @@
-"""Command line for the research-profile pipeline: metadata, classify, tag, folders, summary, queue, eval.
+"""Command line for the research-profile pipeline: metadata, classify, tag, folders, summary, queue, eval, compare.
 
 Every command takes `--index-root` (the research index: `.index/` shards plus transcripts). Agent stages use the
 shared task-card loop: `collect` writes private cards under `<index-root>/.agent_work/<run>/`, the agent fills them in,
@@ -10,7 +10,7 @@ import json
 import sys
 from pathlib import Path
 
-from agent.literature.profile import classify, evaluate, folders, metadata, reader, review, summary, tagging
+from agent.literature.profile import adjudicate, classify, evaluate, folders, metadata, reader, review, summary, tagging
 from agent.literature.profile.profiles import DEFAULT_DIR, load_profile
 from agent.literature.vocab import load_vocabularies
 from core.agent_tasks.loop import BudgetError, api_run, collect_run, provenance, submit_run
@@ -258,6 +258,50 @@ def cmd_reader_check(args) -> int:
     return 1 if problems else 0
 
 
+def cmd_compare(args) -> int:
+    """Compares the owner's labels, the cards' own values and the second reader's checked answers, and writes the
+    page on which the owner rules on the differences."""
+    pack = Path(args.reader_pack)
+    vocabs = _vocabs(args)
+    owner = json.loads(Path(args.labels).read_text(encoding="utf-8"))
+    second, problems = reader.read_answers(pack, vocabs)
+    for problem in problems:
+        print(problem)
+    cards = {c["file_id"]: c for c in review.all_cards(args.index_root) if c.get("file_id") in owner}
+    pipeline = {fid: card.get("research_profile") or {} for fid, card in cards.items()}
+    papers = {fid: {"title": card.get("title") or fid,
+                    "excerpt": evaluate.excerpt((Path(args.index_root) / card["path"]).read_text(encoding="utf-8"))}
+              for fid, card in cards.items()}
+    evidence = {fid: json.loads((pack / "answers" / f"{fid}.json").read_text(encoding="utf-8-sig"))["evidence"]
+                for fid in second}
+    decisions = {fid: d["value"] for fid in owner if (d := review.decision_for(args.index_root, fid, "report_type"))}
+    result = adjudicate.compare(owner, pipeline, second, evidence, papers, vocabs, decisions)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "comparison.json").write_text(json.dumps(result, indent=1, ensure_ascii=False), encoding="utf-8")
+    (out / "index.html").write_text(adjudicate.page(result["items"], REPORT_TYPES), encoding="utf-8")
+    for fid in result["missing"]:
+        print(f"{fid}: not compared (no card or no accepted second reading)")
+    asked = sum(len(i["fields"]) for i in result["items"])
+    print(f"{len(result['readings'])} papers compared; {asked} fields on {len(result['items'])} papers need a ruling; "
+          f"wrote {out / 'index.html'}")
+    return 0
+
+
+def cmd_adjudicate(args) -> int:
+    """Turns the saved rulings (one JSON file per file id) into the reference and reports each source against it."""
+    comparison = json.loads(Path(args.comparison).read_text(encoding="utf-8"))
+    rulings = {p.stem: json.loads(p.read_text(encoding="utf-8-sig")) for p in Path(args.rulings).glob("*.json")}
+    reference, still_open = adjudicate.apply_rulings(comparison, rulings)
+    out = Path(args.comparison).with_name("reference.json")
+    out.write_text(json.dumps(reference, indent=1, ensure_ascii=False), encoding="utf-8")
+    for line in still_open:
+        print(f"no ruling: {line}")
+    print(json.dumps(adjudicate.agreement(comparison, reference), indent=2))
+    print(f"wrote {out} for {len(reference)} papers; score tags and applicability with eval --labels")
+    return 0
+
+
 def _eval_labels(args) -> int:
     key = evaluate.labels_to_key(json.loads(Path(args.labels).read_text(encoding="utf-8")))
     cards = {c["file_id"]: c for c in _cards(args)}
@@ -367,6 +411,14 @@ def build_parser() -> argparse.ArgumentParser:
     rc = top.add_parser("reader-check", help="Verify the second reader's answers and write labels.json.")
     rc.add_argument("pack")
 
+    cmp_ = top.add_parser("compare", help="Compare owner labels, pipeline and second reader; write the ruling page.")
+    cmp_.add_argument("--labels", required=True, help="The owner's labels.json.")
+    cmp_.add_argument("--reader-pack", required=True, help="The second reader's folder.")
+    cmp_.add_argument("--out", required=True, help="Directory for the page and comparison.json (keep it out of git).")
+    adj = top.add_parser("adjudicate", help="Apply the saved rulings and report agreement with the reference.")
+    adj.add_argument("--comparison", required=True)
+    adj.add_argument("--rulings", required=True, help="Directory of saved ruling documents.")
+
     e = top.add_parser("eval", help="Score against a 3ie all_study_record CSV (matched by DOI) or saved page labels.")
     key = e.add_mutually_exclusive_group(required=True)
     key.add_argument("answer_key", nargs="?")
@@ -378,7 +430,8 @@ def _writes(args) -> bool:
     """True when the command can change cards, folders or transcripts under the index root. `collect` only writes
     private task cards under `.agent_work/`, so it does not take the corpus lock."""
     action = getattr(args, "action", None)
-    if args.command in ("summary", "queue", "eval", "label-page", "reader-pack", "reader-check"):
+    if args.command in ("summary", "queue", "eval", "label-page", "reader-pack", "reader-check",
+                        "compare", "adjudicate"):
         return False
     return not (action in ("plan", "collect"))
 
@@ -404,6 +457,7 @@ def _dispatch(args, lookup, complete) -> int:
         return cmd_submit(args) if args.action == "submit" else cmd_api(args, complete)
     return {"folders": cmd_folders, "summary": cmd_summary, "queue": cmd_queue, "eval": cmd_eval, "label-page": cmd_label_page,
             "reader-pack": cmd_reader_pack, "reader-check": cmd_reader_check,
+            "compare": cmd_compare, "adjudicate": cmd_adjudicate,
             "refresh-discipline": cmd_refresh_discipline, "project": cmd_project}[args.command](args)
 
 

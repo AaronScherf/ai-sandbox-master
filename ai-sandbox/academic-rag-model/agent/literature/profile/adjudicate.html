@@ -1,0 +1,129 @@
+<title>Label Disagreements</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one column; each paper is a block with its choices above its evidence. */
+:root { --bg:#f3f5f6; --panel:#ffffff; --fg:#16222b; --dim:#586773; --line:#d3dbe0; --accent:#0f6b73; --soft:#e2f0f0; --warn:#8a4b00;
+  --body:system-ui,-apple-system,"Segoe UI",sans-serif; --read:Georgia,"Times New Roman",serif; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#10171c; --panel:#17212a; --fg:#e4ecf0; --dim:#9aabb6; --line:#2d3b46; --accent:#5cc3c9; --soft:#143238; --warn:#f0b56a; color-scheme:dark } }
+:root[data-theme="dark"] { --bg:#10171c; --panel:#17212a; --fg:#e4ecf0; --dim:#9aabb6; --line:#2d3b46; --accent:#5cc3c9; --soft:#143238; --warn:#f0b56a; color-scheme:dark }
+body { background:var(--bg); color:var(--fg); font:15px/1.5 var(--body); padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px)); padding-block:20px 40px; }
+.page { max-width:860px; margin:0 auto }
+h1 { font-size:20px; margin:0 0 4px } h2 { font-size:17px; margin:0 0 8px; text-wrap:balance } p { margin:0 0 8px }
+.dim { color:var(--dim) } .warn { color:var(--warn) }
+article { background:var(--panel); border:1px solid var(--line); padding:18px; margin-top:16px; min-width:0 }
+fieldset { border:0; border-top:1px solid var(--line); padding:10px 0; margin:0 }
+legend { font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--dim); padding:0 }
+.choices { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:6px }
+button, select, textarea { font:inherit; color:var(--fg); background:var(--panel); border:1px solid var(--line); border-radius:4px; padding:6px 10px }
+button { cursor:pointer } button[aria-pressed="true"] { background:var(--soft); border-color:var(--accent); font-weight:600 }
+:focus-visible { outline:2px solid var(--accent); outline-offset:1px }
+textarea { width:100%; box-sizing:border-box }
+details { border-top:1px solid var(--line); padding:8px 0 } summary { cursor:pointer }
+.text { font:15px/1.65 var(--read); white-space:pre-wrap; overflow-wrap:anywhere; max-height:22em; overflow-y:auto }
+li { margin-bottom:8px; overflow-wrap:anywhere } q { font-family:var(--read) }
+</style>
+<div class="page">
+  <header>
+    <h1>Label Disagreements</h1>
+    <p class="dim">Three readings of these papers differ on the fields below. Which reading gave which answer is not shown. Pick the right value, or leave a field blank if you cannot tell; a blank paper is left out of the score.</p>
+    <p class="dim">An intervention or outcome counts when the paper itself evaluates, models or reports it, including what a review synthesises; passing or background mentions do not.</p>
+    <details><summary>Type definitions</summary><div class="text" id="rules"></div></details>
+    <p id="progress"></p>
+    <p id="status" class="warn" role="status">Connecting to saved rulings…</p>
+  </header>
+  <main id="list"></main>
+</div>
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  var DATA = JSON.parse(document.getElementById("data").textContent);
+  var NAMES = { report_type: "Report type", applicability: "Applicability" };
+  var APPLICABILITY = ["both", "intervention_only", "outcome_only", "not_applicable"];
+  var rulings = {}, dirty = {}, chains = {}, col = null, loaded = false;
+  document.getElementById("rules").textContent = DATA.type_rules;
+
+  function el(tag, text, cls) { var n = document.createElement(tag); if (text != null) n.textContent = text; if (cls) n.className = cls; return n; }
+  function words(v) { return v.replace(/_/g, " "); }
+  function status(text) { document.getElementById("status").textContent = text; }
+
+  function save(id, patch) {
+    rulings[id] = Object.assign({}, rulings[id], patch);
+    dirty[id] = true;
+    render();
+    status("Saving…");
+    var body = Object.assign({}, rulings[id]);
+    chains[id] = (chains[id] || Promise.resolve()).then(function () { return col.doc(id).set(body); }).then(function () {
+      dirty[id] = false; status("Saved.");
+    }).catch(function (e) { status("Not saved (" + (e && e.code || "error") + "). Choose again to retry."); });
+  }
+
+  function field(item, name) {
+    var id = item.file_id, set = el("fieldset"), row = el("div", null, "choices"), chosen = (rulings[id] || {})[name] || "";
+    set.appendChild(el("legend", NAMES[name]));
+    item.fields[name].forEach(function (v) {
+      var b = el("button", words(v)); b.disabled = !loaded; b.setAttribute("aria-pressed", chosen === v ? "true" : "false");
+      b.onclick = function () { var p = {}; p[name] = chosen === v ? "" : v; save(id, p); };
+      row.appendChild(b);
+    });
+    var other = el("select"); other.disabled = !loaded; other.setAttribute("aria-label", "Another " + NAMES[name].toLowerCase());
+    [""].concat(name === "report_type" ? DATA.report_types : APPLICABILITY).forEach(function (v) {
+      if (v && item.fields[name].indexOf(v) >= 0) return;
+      var o = el("option", v ? words(v) : "Another value…"); o.value = v; other.appendChild(o);
+    });
+    other.value = chosen && item.fields[name].indexOf(chosen) < 0 ? chosen : "";
+    other.onchange = function () { var p = {}; p[name] = other.value; save(id, p); };
+    row.appendChild(other); set.appendChild(row);
+    return set;
+  }
+
+  var opened = {};
+  function fold(key, label, body) {
+    var d = el("details"); d.open = !!opened[key]; d.appendChild(el("summary", label)); d.appendChild(body);
+    d.ontoggle = function () { opened[key] = d.open; };
+    return d;
+  }
+
+  function render() {
+    var list = document.getElementById("list"), done = 0;
+    var focused = document.activeElement && document.activeElement.id;
+    list.replaceChildren();
+    DATA.items.forEach(function (item) {
+      var id = item.file_id, art = el("article"), names = Object.keys(item.fields);
+      if (names.every(function (n) { return (rulings[id] || {})[n]; })) done += 1;
+      art.appendChild(el("h2", item.title));
+      names.forEach(function (n) { art.appendChild(field(item, n)); });
+      if (item.publishers.length) art.appendChild(el("p", "Publisher as read: " + item.publishers.join(" / "), "dim"));
+      art.appendChild(fold(id + ":text", "Opening text", el("div", item.excerpt, "text")));
+      var ul = el("ul");
+      item.evidence.forEach(function (e) {
+        var li = el("li"); li.appendChild(el("strong", e.kind + ": " + e.term)); li.appendChild(el("br"));
+        li.appendChild(el("q", e.quote)); li.appendChild(el("span", "  page " + e.page, "dim")); ul.appendChild(li);
+      });
+      art.appendChild(fold(id + ":evidence", "Quoted evidence (" + item.evidence.length + ")",
+                           item.evidence.length ? ul : el("p", "No quotes were offered.", "dim")));
+      var note = el("textarea"); note.rows = 1; note.id = "note_" + id; note.placeholder = "Note (optional)";
+      note.value = (rulings[id] || {}).note || ""; note.disabled = !loaded;
+      note.onchange = function () { save(id, { note: note.value }); };
+      art.appendChild(note);
+      list.appendChild(art);
+    });
+    if (focused && document.getElementById(focused)) document.getElementById(focused).focus();
+    document.getElementById("progress").textContent = done + " of " + DATA.items.length + " papers ruled";
+  }
+
+  render();
+  (window.claude ? window.claude.use("db") : Promise.resolve(null)).then(function (db) {
+    if (!db) { status("Rulings cannot be saved in this view. Open the page on claude.ai while signed in."); return; }
+    col = db.collection("rulings");
+    var timer = setTimeout(function () { status("Saved rulings cannot be reached yet."); }, 10000);
+    col.onSnapshot(function (snap) {
+      snap.docs.forEach(function (d) { if (!dirty[d.id]) rulings[d.id] = d.data(); });
+      if (snap.metadata.fromCache) return;
+      clearTimeout(timer);
+      if (!loaded) status("");
+      loaded = true;
+      render();
+    }, function (e) { clearTimeout(timer); status("Saved rulings cannot be read (" + e.code + ")."); });
+  });
+})();
+</script>
