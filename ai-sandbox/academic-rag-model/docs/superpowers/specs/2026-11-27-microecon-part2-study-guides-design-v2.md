@@ -11,7 +11,7 @@ Dates: Problem Set 4 due 2026-12-04 (guides must not solve or mirror it). Final 
 
 | Guide | State | Words | Review |
 |---|---|---|---|
-| 0a Math toolkit | not started (topic list in `2026-11-26-microecon-guide0-topics-v1.md`, handoff in `plans/2026-11-26-microecon-guide0-drafting-handoff.md`) | | |
+| 0a Math toolkit | Gemini trial reviewed 2026-11-27 and not accepted; redraft with a fresh Codex session | 5,800 (trial) | math errors, fabricated practice attributions and source locators; draft left in `.worktrees/gemini-microecon-guide0a`, not in the vault |
 | 0b Micro toolkit | in vault | 11,000 | reviewed, revisions checked |
 | 1 Economy and technology | in vault | 6,600 | read in full, source claims spot-checked, edits applied |
 | 2 Pareto optimality | in vault | 11,600 | same |
@@ -27,7 +27,7 @@ Not done for any guide: a visual check of formulas and diagrams in Obsidian by a
 ## Where things are
 - Finished guides, the copies to edit: `academic-hub/academic_notes/microecon/part_2/study_guides/`. Untracked in the `academic_notes` repo as of 2026-11-27. Codex worktree originals under `.worktrees/codex-microecon-guide*` are stale, except that Guide 5's matches the vault.
 - Handoffs: `docs/superpowers/plans/`. Shared rules: `2026-11-26-microecon-guide-common-rules.md`.
-- Planning documents and handoffs: committed locally to `main` on 2026-11-27, not pushed. Guides: committed in `academic_notes`. The repo is public and the common rules describe the forms of the open Problem Set 4, so hold the push until after 2026-12-04.
+- Planning documents and handoffs: committed locally to `main` on 2026-11-27, not pushed. Guides: committed in `academic_notes`. The owner decided on 2026-11-27 that these are not sensitive and may be pushed normally.
 - Guide 0a trial: Gemini in Antigravity, handoff `plans/2026-11-27-microecon-guide0a-gemini-handoff.md`. A fresh Codex draft stays an option.
 
 ## Settled decisions (open in v1)
@@ -42,6 +42,7 @@ Not done for any guide: a visual check of formulas and diagrams in Obsidian by a
 - Guide 5 leaves the number of equilibria at a crossing-count sketch.
 
 ## Lessons to carry into handoffs and reviews
+- Do not use Gemini (Antigravity) to draft these guides. The 0a trial (2026-11-27) had wrong theorem conditions, practice questions attributed to sources that do not contain them, wrong theorem numbers and misdrawn diagrams, and its report listed nothing as unverified.
 - Read any open problem set before writing a handoff, and compare examples with it, rescaled forms included, as the first review step.
 - Ask for diagrams by name, with the place each belongs. A general "pictures first" line produced only one in Guide 5.
 - Ask for long proofs as numbered steps.
