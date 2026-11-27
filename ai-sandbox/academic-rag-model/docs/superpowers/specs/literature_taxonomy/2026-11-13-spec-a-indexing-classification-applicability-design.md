@@ -1,7 +1,7 @@
 # Spec A: indexing, classification and applicability gate (first release)
 
 Date: 2026-11-13. Status: draft for owner review. Parent:
-[umbrella design v2](2026-11-11-literature-corpus-redesign-umbrella-design%20-%20v2.md)
+[umbrella design v3](2026-11-11-literature-corpus-redesign-umbrella-design%20-%20v3.md)
 (read it first; this spec does not repeat its rationale). Revisions are new `- vN` files.
 
 Marking: **[Owner]** = stated by the owner. **[Call]** = my default, not yet agreed.
