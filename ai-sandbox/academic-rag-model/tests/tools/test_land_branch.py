@@ -474,6 +474,8 @@ class RunChecksFullSuiteTests(unittest.TestCase):
             (set(), {".githooks/pre-commit"}, "guard_policy_change"),
             ({"tools/land_branch.py"}, set(), "guard_policy_change"),
             ({"tools/guard_binaries_allow.txt"}, set(), "guard_policy_change"),
+            ({"tools/impact_selection.py"}, set(), "guard_policy_change"),
+            ({"tools/run_tests_chunked.py"}, set(), "guard_policy_change"),
             ({"agent/a.py"}, {f"{hub}/.index/courses.json"}, "targeted"),
             ({"docs/a.md"}, {f"{hub}/.index/courses.json"}, "outside_project_only"),
         ]

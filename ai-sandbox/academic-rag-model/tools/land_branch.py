@@ -40,11 +40,14 @@ from tools.run_tests_chunked import ChunkResult, chunk_failed, run_all, run_sele
 PROJECT_SUBDIR = "ai-sandbox/academic-rag-model"
 # Live tests read these outside-project paths: test_lit_gap_report.py reads
 # the root .gitignore; test_audit_website_sync.py validates .obsidian targets.
-# Files that decide what may land. A branch that edits them is judged by its own edited copy.
+# Files that decide what may land, including which tests run and how their results count.
+# `check` flags a branch that edits one, so the owner reviews it before approving.
 GUARD_POLICY_PATHS = (
     "ai-sandbox/academic-rag-model/tools/guard_binaries.py",
     "ai-sandbox/academic-rag-model/tools/guard_binaries_allow.txt",
     "ai-sandbox/academic-rag-model/tools/land_branch.py",
+    "ai-sandbox/academic-rag-model/tools/impact_selection.py",
+    "ai-sandbox/academic-rag-model/tools/run_tests_chunked.py",
     ".githooks/pre-commit",
 )
 # Outside-project paths that tests read (grep of tests/, proposal 2026-11-11 rule 6).
@@ -169,7 +172,7 @@ class CheckResult:
     chunk_timings: list[dict] = field(default_factory=list)
     guard: str = "passed"  # binary guard over the branch's added/modified paths
     guard_violations: list[str] = field(default_factory=list)
-    guard_policy_changed: list[str] = field(default_factory=list)  # branch edits the guard or the landing tool
+    guard_policy_changed: list[str] = field(default_factory=list)  # branch edits a GUARD_POLICY_PATHS file
     citation_gate: list[dict] = field(default_factory=list)
     full_main_warning: str = ""  # the scheduled full run failed, is stale or never ran
 

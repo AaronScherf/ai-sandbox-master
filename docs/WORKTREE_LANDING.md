@@ -72,7 +72,9 @@ The binary guard runs from `main`'s copy of `tools/guard_binaries.py` and
 a branch cannot weaken its own judge. `land` also refuses a change that edits a
 `GUARD_POLICY_PATHS` file unless the approved check flagged it
 (`guard_policy_changed`); if it did not, run `check` again and ask for the new
-change ID.
+change ID. The list covers the guard, the landing tool, the pre-commit hook and the
+files that pick and run tests (`tools/impact_selection.py`,
+`tools/run_tests_chunked.py`); editing one runs the full suite.
 
 ## Scheduled full run of `main`
 

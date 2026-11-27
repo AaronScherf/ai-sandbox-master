@@ -27,8 +27,8 @@ These are file counts, not times. The sample is one narrowable landing.
 
 ## Remaining
 1. ~~Real `full-main` run~~ done 2026-11-26.
-2. ~~Install the scheduled task~~ installed 2026-11-27 (daily 03:00, machine-local); confirm a
-   nightly run with `tools.landing_metrics`.
+2. ~~Install the scheduled task~~ installed 2026-11-27 (daily 03:00, machine-local); first
+   nightly run passed on `f7aaef09` the same day.
 3. A real landing logged `retest_mode: overlap`; then close TODO-0103.
 4. Two weeks later: review failures, missed nights, and any break the nightly run found that a
    narrowed re-test let through.
@@ -48,4 +48,5 @@ Known gaps, not fixed:
 - A skipped approval (`doc_only`, `data_unreferenced`) is still never re-tested.
 - `_data_mirror_tests` (older code) prefixes `tests/` to paths already under `tests/`.
 - The `land` record keeps only the last move's `retest_mode` and `narrowing_off`.
-- `impact_selection.py` and `run_tests_chunked.py` are not in `GUARD_POLICY_PATHS` (owner's call).
+- ~~`impact_selection.py` and `run_tests_chunked.py` are not in `GUARD_POLICY_PATHS`~~ added
+  2026-11-27 (owner's decision).
