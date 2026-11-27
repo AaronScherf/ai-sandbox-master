@@ -1,12 +1,10 @@
 # Textbook Conversion (Marker, GPU)
 
-> **Status (2026-11-06): the GCP VM route below is retired.** The owner no
-> longer uses Google Cloud, and the local `gcp-container` Docker container,
-> its `gcp-runner` image and the `gcloud-config`/`gcloud-ssh` volumes have
-> been deleted. Nothing in the repo depends on them. This guide is kept as a
-> reference for the conversion procedure. The root `Dockerfile` is now
-> unused. To run the cloud route again, see the note under Step 0 for what
-> to change.
+> **Status (2026-11-26): the GCP VM route below is still in use.** Only the
+> local Docker container was removed on 2026-11-06 (`gcp-container`, its
+> `gcp-runner` image and the `gcloud-config`/`gcloud-ssh` volumes), to free
+> disk space. Run the commands from a local shell with `gcloud` installed;
+> see the note under Step 0. The root `Dockerfile` is unused.
 
 ## Overview
 
