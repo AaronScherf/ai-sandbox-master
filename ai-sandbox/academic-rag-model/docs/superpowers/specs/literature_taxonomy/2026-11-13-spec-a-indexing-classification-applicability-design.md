@@ -139,3 +139,18 @@ could not be told apart.
   which is what a re-type from non-research to research leaves behind.
 - This change was prompted partly by the first 25 held-out papers, so report-type agreement on them is no longer a
   held-out result.
+
+## Amendment 2026-11-27: tags, evidence role and the external test
+
+Owner decisions after adjudication; evidence and results in
+[the status note](../../../status/literature/2026-11-27-tagging-validation-and-gap-map-test.md).
+
+- Intervention and outcome tags are a broad catchment (reviews included). Narrowing to direct evaluations is a later
+  filter on `evidence_role`.
+- A management or planning method is not an intervention; quoted context statistics are not outcomes.
+- `evidence_role` `primary_evaluation` needs an intervention that was carried out. A simulation of a real program
+  counts; a projection of proposed ones does not.
+- Neither rule above is in the prompts yet.
+- The external test is first per-study portal terms from one 3ie map (section 6's `all_study_record` CSV has no
+  per-study terms), scored as recall of 3ie's terms.
+
